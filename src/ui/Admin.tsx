@@ -178,6 +178,23 @@ export function Admin({
               ↑
             </button>
             <button onClick={() => edit({ ...f })}>Editar</button>
+            <button type="button" aria-label={"Quitar campo " + f.label}
+              onClick={() => void run(async () => {
+                const hasValues = data.records.some(r => r.module === mod.id &&
+                  r.values[f.id] !== undefined && r.values[f.id] !== null &&
+                  String(r.values[f.id]) !== "");
+                const referenced = mod.fields.some(other => other.id !== f.id &&
+                  other.when?.field === f.id);
+                if (hasValues || referenced) {
+                  if (!confirm("Este campo contiene datos o se utiliza en otros campos. Se ocultará sin borrar sus valores ni sus relaciones. ¿Continuar?")) return;
+                  await update(mod.fields.map(other => other.id === f.id
+                    ? { ...other, visible: false, required: false } : other));
+                } else {
+                  if (!confirm("Este campo no tiene datos guardados. ¿Eliminarlo de la definición del módulo?")) return;
+                  if (mod.fields.length <= 1) throw Error("Un módulo debe conservar al menos un campo.");
+                  await update(mod.fields.filter(other => other.id !== f.id));
+                }
+              })}>Quitar</button>
           </div>
         ))}
         <button className="primary" onClick={() => edit(field(uid(), ""))}>

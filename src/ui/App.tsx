@@ -1,4 +1,5 @@
 import { ModuleTools } from "./ModuleTools";
+import { DueOverview } from "./DueOverview";
 import { Help } from "./Help";
 import { useEffect, useRef, useState } from "react";
 import { makeRoute, routeFromUrl, initializeHistory, pushAppRoute, replaceAppRoute, isRoute, isGuard } from "./history";
@@ -430,6 +431,7 @@ export function App({
                   </button>
                 ))}
               </div>
+              <DueOverview data={data} open={openRelated} />
             </>
           )}
           {page === "Informes" && (

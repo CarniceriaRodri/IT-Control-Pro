@@ -1,5 +1,6 @@
 import { ModuleTools } from "./ModuleTools";
 import { useEffect, useState } from "react";
+import { makeRoute, routeFromUrl, initializeHistory, pushAppRoute, replaceAppRoute, isRoute, isGuard } from "./history";
 import {
   ArrowUpRight,
   Boxes,
@@ -64,7 +65,7 @@ export function App({
   initial: Snapshot;
 }) {
   const [snap, state] = useState(initial),
-    [page, nav] = useState("Panel"),
+    [page, nav] = useState(() => routeFromUrl().page),
     [menu, toggle] = useState(false),
     [query, search] = useState(""),
     [globalQuery, globalSearch] = useState(""),
@@ -78,6 +79,56 @@ export function App({
   const data = snap.data,
     mods = data.modules.filter((m) => m.active),
     mod = mods.find((m) => m.id === page);
+  const [historyReady, setHistoryReady] = useState(false);
+  useEffect(() => {
+    const current = routeFromUrl();
+    if (current.page !== "Panel" && current.page !== "Administración" &&
+      current.page !== "Informes" && !data.modules.some(m => m.id === current.page && m.active)) {
+      replaceAppRoute(makeRoute("Panel"));
+      nav("Panel");
+    } else {
+      initializeHistory(current);
+      nav(current.page);
+      if (current.editor) {
+        const found = current.editor === "new" ? "new" :
+          data.records.find(r => r.id === current.editor && r.module === current.page);
+        edit(found || null);
+      }
+    }
+    setHistoryReady(true);
+  }, []);
+  useEffect(() => {
+    if (!historyReady) return;
+    const receive = (event: PopStateEvent) => {
+      setChildEditor(null);
+      toggle(false);
+      diagnose(false);
+      notify("");
+      if (isGuard(event.state)) {
+        // El primer Atrás desde el Panel mantiene la aplicación abierta.
+        const panel = makeRoute("Panel");
+        pushAppRoute(panel);
+        nav("Panel");
+        edit(null);
+        search("");
+        return;
+      }
+      const next = isRoute(event.state) ? event.state : routeFromUrl();
+      const validPage = next.page === "Panel" || next.page === "Informes" ||
+        next.page === "Administración" || data.modules.some(m => m.id === next.page && m.active);
+      const target = validPage ? next.page : "Panel";
+      nav(target);
+      search("");
+      archives(false);
+      order(false);
+      window.scrollTo(0, 0);
+      const match = next.editor && data.records.find(r => r.id === next.editor && r.module === target);
+      edit(next.editor === "new" && data.modules.some(m => m.id === target) ? "new" : match || null);
+    };
+    window.addEventListener("popstate", receive);
+    return () => window.removeEventListener("popstate", receive);
+  }, [historyReady, data.modules, data.records]);
+
   const active = data.records.filter((r) => !r.archived),
     count = (id: string) => active.filter((r) => r.module === id).length;
   useEffect(() => {
@@ -101,6 +152,7 @@ export function App({
     };
   }, [repo]);
   const go = (id: string) => {
+    pushAppRoute(makeRoute(id));
     nav(id);
     toggle(false);
     edit(null);
@@ -108,6 +160,26 @@ export function App({
     search("");
     archives(false);
     order(false);
+    window.scrollTo(0, 0);
+  };
+  const openEditor = (row: Entity | "new") => {
+    pushAppRoute(makeRoute(page, row === "new" ? "new" : row.id));
+    edit(row);
+  };
+  const closeEditor = () => {
+    if (isRoute(history.state) && history.state.editor) {
+      history.back();
+    } else {
+      edit(null);
+      replaceAppRoute(makeRoute(page));
+    }
+  };
+  const openRelated = (row: Entity) => {
+    pushAppRoute(makeRoute(row.module, row.id));
+    nav(row.module);
+    edit(row);
+    setChildEditor(null);
+    toggle(false);
     window.scrollTo(0, 0);
   };
   const write: Write = async (a, t, fn, checkpoint, files) => {
@@ -259,7 +331,7 @@ export function App({
                     const m = mods.find((x) => x.id === r.module)!;
                     return <tr key={r.id}><td>{m.name}</td><td>{title(r, m)}</td>
                       <td>{m.fields.filter(f => f.visible).slice(1,4).map(f => display(m,r,f.id)).filter(Boolean).join(" · ") || "—"}</td>
-                      <td><button onClick={() => { go(m.id); globalSearch(""); edit(r); }}>Abrir</button></td></tr>;
+                      <td><button onClick={() => { openRelated(r); globalSearch(""); }}>Abrir</button></td></tr>;
                   })}
                 </tbody></table>
               </div>
@@ -283,7 +355,7 @@ export function App({
               </p>
             </div>
             {mod && !arch && (
-              <button className="primary" onClick={() => edit("new")}>
+              <button className="primary" onClick={() => openEditor("new")}>
                 <Plus size={18} /> Nuevo registro
               </button>
             )}
@@ -407,7 +479,7 @@ export function App({
                         <td>
                           <div className="inline">
                             {!arch && (
-                              <button onClick={() => edit(r)}>Editar</button>
+                              <button onClick={() => openEditor(r)}>Editar</button>
                             )}
                             <button
                               onClick={async () => {
@@ -473,10 +545,10 @@ export function App({
           data={data}
           mod={mod}
           row={editor === "new" ? undefined : editor}
-          close={() => edit(null)}
+          close={closeEditor}
           load={repo.file}
           createRelated={(target, selected) => setChildEditor({ mod: target, selected })}
-          openRelated={(related) => { go(related.module); edit(related); }}
+          openRelated={openRelated}
           save={(r, files) =>
             write(
               editor === "new" ? "Alta" : "Edición",

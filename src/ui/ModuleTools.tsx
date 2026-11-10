@@ -74,6 +74,7 @@ export function ModuleTools({
             change={edit}
             load={repo.file}
             pending={setBusy}
+            library={[...data.modules, ...data.records].flatMap((item) => item.files || [])}
           />
           {error && <p role="alert">{error}</p>}
           <button

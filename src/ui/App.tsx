@@ -1,4 +1,5 @@
 import { ModuleTools } from "./ModuleTools";
+import { DueOverview } from "./DueOverview";
 import { Help } from "./Help";
 import { useEffect, useRef, useState } from "react";
 import { makeRoute, routeFromUrl, initializeHistory, pushAppRoute, replaceAppRoute, isRoute, isGuard } from "./history";
@@ -19,6 +20,7 @@ import {
   LayoutDashboard,
   Menu,
   Monitor,
+  ArrowLeftRight,
   Network,
   Plus,
   Search,
@@ -37,6 +39,7 @@ const icons: Record<string, typeof Monitor> = {
   Centros: Building2,
   Inventario: Monitor,
   Almacén: Warehouse,
+  Movimientos: ArrowLeftRight,
   Incidencias: Ticket,
   Tareas: ClipboardList,
   Redes: Network,
@@ -52,6 +55,7 @@ const descriptions: Record<string, string> = {
   Incidencias: "Seguimiento de avisos y prioridades",
   Tareas: "Pendientes, responsables, fechas y seguimiento",
   Almacén: "Artículos y cantidades registradas",
+  Movimientos: "Entradas, salidas, préstamos y devoluciones vinculadas",
   Redes: "Dispositivos y direcciones IP",
   Agenda: "Tareas, fechas y estados",
   Documentación: "Referencias y documentación técnica",
@@ -427,6 +431,7 @@ export function App({
                   </button>
                 ))}
               </div>
+              <DueOverview data={data} open={openRelated} />
             </>
           )}
           {page === "Informes" && (

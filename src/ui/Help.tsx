@@ -51,14 +51,16 @@ const topics: Topic[] = [
   {title:"Inventario, almacén y movimientos",summary:"Equipos, ubicación, préstamos y salidas.",steps:[
     "Inventario permite guardar datos de equipos y usar un número de serie o hostname como referencia de negocio.",
     "Almacén recoge artículos y existencias registradas; la conciliación automática de entradas, salidas y devoluciones sigue en desarrollo.",
+    "Movimientos permite registrar entradas, salidas, traslados, préstamos y devoluciones, asociando equipos, centros, incidencias y responsables. La conciliación automática de existencias sigue pendiente.",
     "Los centros y contactos se vinculan desde campos de relación, sin copiarlos manualmente en varios módulos.",
     "Los documentos, fotografías y archivos pueden adjuntarse a módulos y registros."
   ]},
   {title:"Redes y monitorización",summary:"Diagnósticos disponibles y límites del control continuo.",steps:[
     "El módulo Redes permite almacenar dispositivos y direcciones y consultar sus datos.",
     "Las comprobaciones de red disponibles dependen de la plataforma y de un servicio Windows local autorizado.",
+    "En Windows con el servicio local puedes añadir hasta diez IP privadas autorizadas y activar su comprobación periódica cada dos minutos; se detiene al reiniciar el servidor.",
     "Una web de GitHub Pages no puede ejecutar ping ICMP continuamente ni explorar redes corporativas por sí sola.",
-    "La monitorización continua, los umbrales de caída, horarios de mantenimiento y alertas automáticas requieren un agente servidor; son una ampliación distinta de las comprobaciones manuales.",
+    "Los umbrales configurables, el mantenimiento horario y las notificaciones del sistema todavía no están incorporados al monitor de prueba.",
     "Realiza exclusivamente verificaciones de sistemas para los que tengas autorización."
   ]},
   {title:"Archivos, OCR y documentos",summary:"Fotografías, ficheros y extracción de texto.",steps:[

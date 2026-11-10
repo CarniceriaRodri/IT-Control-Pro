@@ -7,6 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID, createHash } from "node:crypto";
 import { diagnostics } from "./diagnostics.mjs";
+import { monitorApi } from "./monitor.mjs";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const storage = path.resolve(process.env.IT_DATA_DIR || path.join(root, "datos"));
 const backupDir = path.resolve(process.env.IT_BACKUP_DIR || path.join(storage, "copias"));
@@ -36,6 +37,31 @@ async function initialize() {
   if(oldTask?.visible){
     oldTask.visible=false;
     oldTask.required=false;
+    state.version++;
+    await persist();
+  }
+  // Altas de esquema opcionales: no se reemplazan módulos ni registros del usuario.
+  if(state.data?.modules?.length && !state.data.modules.some(m=>m.id==="Movimientos")){
+    const field=(id,label,type="texto",extra={})=>({
+      id,label,type,required:false,visible:true,options:[],...extra
+    });
+    state.data.modules.push({
+      id:"Movimientos",name:"Movimientos",active:true,fields:[
+        field("referencia","Referencia de movimiento","texto",{required:true,unique:true}),
+        field("fecha","Fecha","fecha",{required:true}),
+        field("tipo","Operación","lista",{required:true,options:["Entrada","Salida","Préstamo","Devolución","Traslado"]}),
+        field("equipoId","Equipo o material","relación",{target:"Inventario"}),
+        field("centroOrigen","Centro de origen","relación",{target:"Centros"}),
+        field("centroDestino","Centro de destino","relación",{target:"Centros"}),
+        field("serie","Número de serie / referencia adicional"),
+        field("cantidad","Cantidad","entero",{initial:"1"}),
+        field("incidenciaId","Incidencia asociada","relación",{target:"Incidencias"}),
+        field("responsableId","Contacto responsable","relación",{target:"Contactos"}),
+        field("devolucionPrevista","Devolución prevista","fecha"),
+        field("estado","Situación","estado",{options:["Pendiente","Entregado","Devuelto","Finalizado","Cancelado"],initial:"Pendiente"}),
+        field("observaciones","Observaciones","texto largo")
+      ]
+    });
     state.version++;
     await persist();
   }
@@ -79,6 +105,15 @@ async function handler(req,res){
   const url=new URL(req.url,"http://localhost");
   const u=url.pathname;
   if(u.startsWith("/api/")) {
+    if(req.method==="GET"&&u==="/api/monitor/status")
+      return monitorApi(req,res,reply,"status");
+    if(req.method==="POST"&&u.startsWith("/api/monitor/")) {
+      const kind=u.slice("/api/monitor/".length);
+      if(!["add","remove","start","stop"].includes(kind))
+        return reply(res,404,{error:"Acción desconocida"});
+      const input=await body(req);
+      return monitorApi(req,res,reply,kind,input);
+    }
     if(req.method==="POST"&&u==="/api/diagnostics") {
       const input=await body(req);
       return diagnostics(req,res,reply,input);

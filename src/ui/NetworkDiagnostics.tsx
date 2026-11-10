@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { LocalMonitor } from "./LocalMonitor";
 import { Activity, Wifi, Download, Network } from "lucide-react";
 import { analyzeIPv4, ipv4Number, type IPv4Analysis } from "../data/ip-tools";
 import { downloadBlob } from "../data/media";
@@ -120,6 +121,7 @@ export function NetworkDiagnostics({saved = []}:{saved?:Array<{ip:string;device:
         <button type="button" disabled={busy} onClick={()=>void run("tcp")}>Probar TCP</button>
       </div>
     </div> : <p>En Android, el navegador no permite ping ICMP, consulta de interfaces de red ni conexiones TCP arbitrarias. Estas pruebas requieren un programa nativo autorizado; no se simulan resultados.</p>}
+    {windows && <LocalMonitor defaultIp={ip} />}
     {busy && <p role="status">Ejecutando comprobación…</p>}
     {error && <p role="alert">{error}</p>}
     {!!results.length && <div className="networkResults">

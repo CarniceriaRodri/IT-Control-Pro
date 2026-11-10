@@ -135,6 +135,31 @@ export function incidenceExtras(): Field[] {
   return [{ ...field("contactoId", "Contacto relacionado", "relación"), target: "Contactos" }];
 }
 
+export function movementsModule(): Module {
+  return {
+    id: "Movimientos",
+    name: "Movimientos",
+    active: true,
+    fields: [
+      { ...field("referencia", "Referencia de movimiento"), required: true, unique: true },
+      { ...field("fecha", "Fecha", "fecha"), required: true },
+      { ...field("tipo", "Operación", "lista"), required: true,
+        options: ["Entrada", "Salida", "Préstamo", "Devolución", "Traslado"] },
+      { ...field("equipoId", "Equipo o material", "relación"), target: "Inventario" },
+      { ...field("centroOrigen", "Centro de origen", "relación"), target: "Centros" },
+      { ...field("centroDestino", "Centro de destino", "relación"), target: "Centros" },
+      field("serie", "Número de serie / referencia adicional"),
+      { ...field("cantidad", "Cantidad", "entero"), initial: "1" },
+      { ...field("incidenciaId", "Incidencia asociada", "relación"), target: "Incidencias" },
+      { ...field("responsableId", "Contacto responsable", "relación"), target: "Contactos" },
+      field("devolucionPrevista", "Devolución prevista", "fecha"),
+      { ...field("estado", "Situación", "estado"),
+        options: ["Pendiente", "Entregado", "Devuelto", "Finalizado", "Cancelado"], initial: "Pendiente" },
+      field("observaciones", "Observaciones", "texto largo"),
+    ],
+  };
+}
+
 export function initialModules(): Module[] {
   return [...Object.entries(legacy).map(([id, keys]) => ({
     id,
@@ -156,7 +181,7 @@ export function initialModules(): Module[] {
           ]
         : []),
     ],
-  })), tasksModule(), contactsModule()];
+  })), tasksModule(), contactsModule(), movementsModule()];
 }
 export function shown(f: Field, values: Entity["values"]) {
   return (
@@ -188,6 +213,12 @@ export function validate(
       if (f.required) fail("Campo obligatorio");
       continue;
     }
+    if (mod.id === "Movimientos" && f.id === "cantidad" &&
+      (!Number.isSafeInteger(Number(s)) || Number(s) <= 0))
+      fail("La cantidad debe ser un entero positivo");
+    if (mod.id === "Movimientos" && f.id === "devolucionPrevista" && s &&
+      values["fecha"] && String(s) < String(values["fecha"]))
+      fail("La devolución prevista no puede ser anterior al movimiento");
     if (
       (f.type === "entero" && !Number.isInteger(Number(s))) ||
       (f.type === "decimal" && !Number.isFinite(Number(s)))

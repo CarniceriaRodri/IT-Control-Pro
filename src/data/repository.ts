@@ -17,6 +17,7 @@ import {
   contactsModule,
   agendaExtras,
   incidenceExtras,
+  movementsModule,
 } from "../domain/model";
 import { fromLegacy } from "./backup";
 export interface Snapshot {
@@ -136,6 +137,10 @@ export async function openRepository(): Promise<Repository> {
       }
       if (!(await request(modules.get("Contactos")))) {
         modules.add(contactsModule());
+        changed = true;
+      }
+      if (!(await request(modules.get("Movimientos")))) {
+        modules.add(movementsModule());
         changed = true;
       }
       const incidents = await request<Module | undefined>(modules.get("Incidencias"));

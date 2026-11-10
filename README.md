@@ -1,4 +1,4 @@
-# IT Control Pro · 0.3
+# IT Control Pro · 0.4
 
 Aplicación web local de gestión informática, en español. [Abrir la aplicación](https://carniceriarodri.github.io/IT-Control-Pro/).
 
@@ -21,6 +21,16 @@ En Administración puedes crear un módulo, elegir sus campos y activar o desact
 | Entradas y salidas; préstamos y devoluciones | Fase posterior con reglas de existencias |
 
 La aplicación solo usa el almacenamiento del perfil de navegador. Exporta una copia JSON antes de cambiar de equipo, navegador, dominio o puerto. Importar muestra una vista previa y conserva un punto de recuperación. La auditoría local es editable por quien controle el dispositivo. La edición actual carga las colecciones en memoria. La paginación por índices y los permisos de servidor quedan para una fase posterior.
+
+## Tablas, fotografías y copias
+
+En Administración puedes crear un módulo a partir de una hoja ODS o un CSV UTF-8. Selecciona la hoja y las columnas que quieres convertir en campos de texto. En un módulo existente, «Importar tabla» permite asignar columnas a campos. La primera fila es el encabezado. Se muestran cinco filas de ejemplo, errores y duplicados antes de confirmar. Se añaden filas nuevas en una transacción y se omiten coincidencias en todas las columnas asignadas. Los campos de relación aceptan UUID. Los límites por importación son 10 MB, 10.000 registros por hoja y 128 columnas. «Exportar CSV» descarga los campos visibles de los registros activos para Calc.
+
+Adjunta documentos o fotos durante la creación del módulo, después en «Archivos y fotos», o al editar un registro. «Tomar foto» solicita la cámara trasera en dispositivos compatibles. El límite individual es 10 MB. IndexedDB mantiene los archivos separados de los registros, con una sola copia por contenido idéntico.
+
+En Administración, las copias automáticas conservan por defecto 7 periodos diarios, 4 semanales y 3 mensuales. La semana empieza en lunes. Cada cambio guardado actualiza el último estado de su periodo en la misma transacción. La aplicación revisa también el cambio de periodo al abrirse y mientras está visible. Los periodos comparten instantánea si corresponden al mismo estado y las fotografías no se duplican en cada copia. Puedes ajustar la conservación (0–90 por frecuencia), revisar una instantánea, descargarla o restaurarla con confirmación. Los puntos locales dependen del almacenamiento del navegador. Para disponer de una copia externa, descarga el JSON y guárdalo en la ubicación autorizada. Esta versión no escribe automáticamente en una carpeta de red.
+
+Las copias JSON v3 incluyen definiciones, registros, historial y archivos con verificación SHA-256. Siguen admitiéndose las copias v1 y v2. Los documentos se conservan como adjuntos descargables y las tablas se importan como datos. Las preferencias de conservación corresponden a cada dispositivo.
 
 ## Desarrollo y alojamiento
 

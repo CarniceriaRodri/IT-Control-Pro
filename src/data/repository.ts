@@ -1,4 +1,12 @@
 import {
+  rotate,
+  defaults,
+  periods,
+  type RestorePoint,
+  type Retention,
+} from "./periods";
+import type { Binaries } from "./media";
+import {
   type Dataset,
   type Entity,
   type Module,
@@ -19,7 +27,14 @@ export interface Repository {
     target: string,
     change: (draft: Dataset) => void,
     checkpoint?: boolean,
+    files?: Binaries,
   ): Promise<void>;
+  file(hash: string): Promise<Blob | undefined>;
+  points(): Promise<RestorePoint[]>;
+  point(key: string): Promise<Dataset | undefined>;
+  retention(): Promise<Retention>;
+  setRetention(value: Retention): Promise<void>;
+  tick(): Promise<void>;
   recovery(): Promise<Dataset | undefined>;
 }
 const tables = ["modules", "records", "history"] as const;
@@ -58,9 +73,13 @@ async function dataset(t: IDBTransaction): Promise<Dataset> {
   return { modules, records, history };
 }
 export async function openRepository(): Promise<Repository> {
-  const req = indexedDB.open("it-control-pro-platform", 1);
-  req.onupgradeneeded = () => {
+  const req = indexedDB.open("it-control-pro-platform", 2);
+  req.onupgradeneeded = (event) => {
     const db = req.result;
+    db.createObjectStore("files");
+    db.createObjectStore("points", { keyPath: "key" });
+    db.createObjectStore("snapshots");
+    if (event.oldVersion >= 1) return;
     db.createObjectStore("meta");
     for (const k of tables) {
       const store = db.createObjectStore(k, { keyPath: "id" });
@@ -71,6 +90,12 @@ export async function openRepository(): Promise<Repository> {
   const db = await request(req);
   db.onversionchange = () => db.close();
   const stores = ["meta", ...tables];
+  const backupStores = [...stores, "points", "snapshots"];
+  const tick = () =>
+    transaction(db, backupStores, "readwrite", async (t) => {
+      const version = await request(t.objectStore("meta").get("version"));
+      await rotate(t, version, () => dataset(t));
+    });
   await transaction(db, stores, "readwrite", async (t) => {
     const meta = t.objectStore("meta");
     if (await request(meta.get("version"))) return;
@@ -80,13 +105,56 @@ export async function openRepository(): Promise<Repository> {
     meta.put(1, "version");
   });
   return {
+    tick,
+    file: (hash) =>
+      transaction(db, ["files"], "readonly", (t) =>
+        request(t.objectStore("files").get(hash)),
+      ),
+    points: () =>
+      transaction(db, ["points"], "readonly", (t) =>
+        request(t.objectStore("points").getAll()),
+      ),
+    point: (key) =>
+      transaction(db, ["points", "snapshots"], "readonly", async (t) => {
+        const p = await request(t.objectStore("points").get(key));
+        return p
+          ? request(t.objectStore("snapshots").get(p.version))
+          : undefined;
+      }),
+    retention: () =>
+      transaction(
+        db,
+        ["meta"],
+        "readonly",
+        async (t) =>
+          (await request(t.objectStore("meta").get("retention"))) ?? defaults,
+      ),
+    setRetention: (value) =>
+      transaction(db, backupStores, "readwrite", async (t) => {
+        if (
+          periods.some(
+            (k) => !Number.isInteger(value[k]) || value[k] < 0 || value[k] > 90,
+          )
+        )
+          throw Error("Indica entre 0 y 90 copias.");
+        const m = t.objectStore("meta");
+        m.put(value, "retention");
+        await rotate(t, await request(m.get("version")), () => dataset(t));
+      }),
     read: () =>
       transaction(db, stores, "readonly", async (t) => ({
         version: await request(t.objectStore("meta").get("version")),
         data: await dataset(t),
       })),
-    commit: (version, action, target, change, checkpoint = false) =>
-      transaction(db, stores, "readwrite", async (t) => {
+    commit: (
+      version,
+      action,
+      target,
+      change,
+      checkpoint = false,
+      files = new Map(),
+    ) =>
+      transaction(db, [...backupStores, "files"], "readwrite", async (t) => {
         const meta = t.objectStore("meta");
         if ((await request(meta.get("version"))) !== version)
           throw Error(
@@ -117,7 +185,10 @@ export async function openRepository(): Promise<Repository> {
           }
           for (const id of original.keys()) store.delete(id);
         }
+        for (const [hash, blob] of files)
+          t.objectStore("files").put(blob, hash);
         meta.put(version + 1, "version");
+        await rotate(t, version + 1, async () => d);
       }),
     recovery: () =>
       transaction(db, ["meta"], "readonly", (t) =>

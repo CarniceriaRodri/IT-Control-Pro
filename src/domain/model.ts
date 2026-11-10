@@ -1,3 +1,4 @@
+import type { Attachment } from "../data/media";
 export const types = [
   "texto",
   "texto largo",
@@ -37,12 +38,14 @@ export interface Field {
   unique?: boolean;
 }
 export interface Module {
+  files?: Attachment[];
   id: string;
   name: string;
   active: boolean;
   fields: Field[];
 }
 export interface Entity {
+  files?: Attachment[];
   id: string;
   module: string;
   values: Record<string, unknown>;

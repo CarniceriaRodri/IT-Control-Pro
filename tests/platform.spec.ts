@@ -134,15 +134,13 @@ test("restaura la copia v1 con vista previa y recupera la base anterior", async 
       m.id === "Centros" ? [{ nombre: "Centro ficticio" }] : [],
     ]),
   );
-  await page
-    .locator("input[type=file]")
-    .setInputFiles({
-      name: "copia.json",
-      mimeType: "application/json",
-      buffer: Buffer.from(
-        JSON.stringify({ app: "IT Control Pro", version: 1, data: d }),
-      ),
-    });
+  await page.getByLabel("Importar JSON").setInputFiles({
+    name: "copia.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(
+      JSON.stringify({ app: "IT Control Pro", version: 1, data: d }),
+    ),
+  });
   await expect(page.getByRole("dialog")).toContainText("1 registros");
   await page.getByText("Confirmar restauración").click();
   await expect(page.getByRole("dialog")).toHaveCount(0);

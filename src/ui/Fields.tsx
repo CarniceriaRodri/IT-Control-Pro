@@ -1,3 +1,5 @@
+import { Attachments, type FileDraft } from "./Attachments";
+import type { Binaries } from "../data/media";
 import { shown } from "../domain/model";
 import {
   type Dataset,
@@ -138,6 +140,7 @@ function Control({
 export function Editor({
   mod,
   row,
+  load,
   data,
   save,
   close,
@@ -145,9 +148,15 @@ export function Editor({
   mod: Module;
   row?: Entity;
   data: Dataset;
-  save: (row: Entity) => Promise<void>;
+  load: (hash: string) => Promise<Blob | undefined>;
+  save: (row: Entity, files: Binaries) => Promise<void>;
   close: () => void;
 }) {
+  const [files, attach] = useState<FileDraft>(() => ({
+    refs: row?.files || [],
+    blobs: new Map(),
+  }));
+  const [busy, work] = useState(false);
   const [id] = useState(() => row?.id || uid());
   const [values, set] = useState<Entity["values"]>(() => ({
     ...Object.fromEntries(
@@ -169,17 +178,25 @@ export function Editor({
   const [error, err] = useState("");
   async function submit(e: FormEvent) {
     e.preventDefault();
+    if (busy) return;
+    work(true);
     try {
-      await save({
-        id,
-        module: mod.id,
-        values,
-        archived: false,
-        rev: (row?.rev || 0) + 1,
-      });
+      await save(
+        {
+          files: files.refs,
+          id,
+          module: mod.id,
+          values,
+          archived: false,
+          rev: (row?.rev || 0) + 1,
+        },
+        files.blobs,
+      );
       close();
     } catch (e) {
       err(String(e));
+    } finally {
+      work(false);
     }
   }
   const grouped = new Map<string, Field[]>();
@@ -213,8 +230,11 @@ export function Editor({
             ))}
           </fieldset>
         ))}
+        <Attachments value={files} change={attach} load={load} pending={work} />
         {error && <p role="alert">{error}</p>}
-        <button className="primary">Guardar registro</button>
+        <button className="primary" disabled={busy}>
+          Guardar registro
+        </button>
       </form>
     </Dialog>
   );

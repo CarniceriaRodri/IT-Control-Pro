@@ -1,6 +1,6 @@
 {
   "name": "it-control-pro",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Plataforma modular de gestión informática local",
   "scripts": {
     "test": "playwright test",
@@ -14,13 +14,16 @@
   "type": "module",
   "homepage": "https://github.com/CarniceriaRodri/IT-Control-Pro#readme",
   "dependencies": {
+    "fflate": "^0.8.3",
     "lucide-react": "^1.71.0",
+    "papaparse": "^5.7.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.65.0",
     "@tailwindcss/vite": "^4.3.5",
+    "@types/papaparse": "^5.5.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "prettier": "^3.9.10",

@@ -1,3 +1,4 @@
+import { ModuleTools } from "./ModuleTools";
 import { useEffect, useState } from "react";
 import {
   ArrowUpRight,
@@ -80,6 +81,21 @@ export function App({
     window.addEventListener("pwa-status", cb);
     return () => window.removeEventListener("pwa-status", cb);
   }, []);
+  useEffect(() => {
+    const tick = () => {
+      if (!document.hidden)
+        repo
+          .tick()
+          .catch((e) => notify("No se pudo crear la copia: " + String(e)));
+    };
+    tick();
+    const timer = setInterval(tick, 60000);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, [repo]);
   const go = (id: string) => {
     nav(id);
     toggle(false);
@@ -89,8 +105,8 @@ export function App({
     order(false);
     window.scrollTo(0, 0);
   };
-  const write: Write = async (a, t, fn, checkpoint) => {
-    await repo.commit(snap.version, a, t, fn, checkpoint);
+  const write: Write = async (a, t, fn, checkpoint, files) => {
+    await repo.commit(snap.version, a, t, fn, checkpoint, files);
     state(await repo.read());
   };
   const button = (id: string, label = id) => (
@@ -283,10 +299,22 @@ export function App({
             </section>
           )}
           {page === "Administración" && (
-            <Admin data={data} write={write} recovery={repo.recovery} />
+            <Admin
+              data={data}
+              write={write}
+              repo={repo}
+              recovery={repo.recovery}
+            />
           )}
           {mod && (
             <section>
+              <ModuleTools
+                key={mod.id}
+                mod={mod}
+                data={data}
+                write={write}
+                repo={repo}
+              />
               <div className="tools">
                 <label className="search">
                   <Search size={17} />
@@ -401,9 +429,14 @@ export function App({
           mod={mod}
           row={editor === "new" ? undefined : editor}
           close={() => edit(null)}
-          save={(r) =>
-            write(editor === "new" ? "Alta" : "Edición", r.id, (d) =>
-              putRecord(d, mod, r),
+          load={repo.file}
+          save={(r, files) =>
+            write(
+              editor === "new" ? "Alta" : "Edición",
+              r.id,
+              (d) => putRecord(d, mod, r),
+              false,
+              files,
             )
           }
         />

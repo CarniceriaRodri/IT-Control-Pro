@@ -7,19 +7,27 @@ import {
   type Field,
   type Module,
 } from "../domain/model";
-import { envelope, parseBackup } from "../data/backup";
+import { exportFull, importFull } from "../data/portable";
+import type { Binaries } from "../data/media";
+import type { Repository } from "../data/repository";
+import { ImportTable } from "./ImportTable";
+import { Attachments, emptyFiles } from "./Attachments";
+import { BackupSchedule } from "./BackupSchedule";
 import { Dialog } from "./Fields";
 export type Write = (
   action: string,
   target: string,
   fn: (d: Dataset) => void,
   checkpoint?: boolean,
+  files?: Binaries,
 ) => Promise<void>;
 export function Admin({
   data,
   write,
+  repo,
   recovery,
 }: {
+  repo: Repository;
   data: Dataset;
   write: Write;
   recovery: () => Promise<Dataset | undefined>;
@@ -43,16 +51,13 @@ export function Admin({
       d.modules.find((m) => m.id === mod.id)!.fields = fields;
     });
   }
-  function download() {
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(
-      new Blob([JSON.stringify(envelope(data), null, 2)], {
-        type: "application/json",
-      }),
-    );
-    link.download = "it-control-pro-v2.json";
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(link.href), 2000);
+  const [table, setTable] = useState(false),
+    [files, attach] = useState(emptyFiles),
+    [busy, work] = useState(false),
+    [imported, setImported] = useState<Binaries>(new Map());
+  function localPreview(d: Dataset) {
+    setImported(new Map());
+    stage(d);
   }
   return (
     <div className="admin">
@@ -76,11 +81,19 @@ export function Admin({
                 id,
                 name: label,
                 active: true,
+                files: files.refs,
                 fields: [{ ...field("nombre", "Nombre"), required: true }],
               };
-              await write("Crear módulo", id, (d) => {
-                d.modules.push(m);
-              });
+              await write(
+                "Crear módulo",
+                id,
+                (d) => {
+                  d.modules.push(m);
+                },
+                false,
+                files.blobs,
+              );
+              attach(emptyFiles());
               select(id);
               setName("");
             });
@@ -93,8 +106,29 @@ export function Admin({
             required
             onChange={(e) => setName(e.target.value)}
           />
-          <button>Crear módulo</button>
+          <details>
+            <summary>Añadir documentos o fotos al módulo nuevo</summary>
+            <Attachments
+              value={files}
+              change={attach}
+              load={repo.file}
+              pending={work}
+            />
+          </details>
+          <button disabled={busy}>Crear módulo</button>
         </form>
+        <button onClick={() => setTable(true)}>
+          Crear módulo desde una tabla
+        </button>
+        {table && (
+          <ImportTable
+            data={data}
+            name={name}
+            write={write}
+            load={repo.file}
+            close={() => setTable(false)}
+          />
+        )}
         <label>
           Módulo que quieres configurar
           <select value={mod.id} onChange={(e) => select(e.target.value)}>
@@ -152,7 +186,9 @@ export function Admin({
           podrá consultarlos y modificarlos.
         </p>
         <div className="inline">
-          <button onClick={download}>Exportar JSON</button>
+          <button onClick={() => void run(() => exportFull(data, repo.file))}>
+            Exportar JSON
+          </button>
           <label className="fileBtn">
             Importar JSON
             <input
@@ -162,7 +198,11 @@ export function Admin({
                 const file = e.target.files?.[0];
                 e.target.value = "";
                 if (file)
-                  void run(async () => stage(parseBackup(await file.text())));
+                  void run(async () => {
+                    const b = await importFull(await file.text());
+                    setImported(b.files);
+                    stage(b.data);
+                  });
               }}
             />
           </label>
@@ -170,7 +210,7 @@ export function Admin({
             onClick={() =>
               void run(async () => {
                 const d = await recovery();
-                if (d) stage(d);
+                if (d) localPreview(d);
                 else msg("Todavía no hay una restauración anterior.");
               })
             }
@@ -179,6 +219,7 @@ export function Admin({
           </button>
         </div>
       </section>
+      <BackupSchedule repo={repo} data={data} stage={localPreview} />
       <section>
         <h2>Auditoría local</h2>
         {data.history.length === 0 ? (
@@ -215,6 +256,7 @@ export function Admin({
                   "workspace",
                   (d) => Object.assign(d, preview),
                   true,
+                  imported,
                 );
                 stage(null);
                 msg("Copia restaurada.");

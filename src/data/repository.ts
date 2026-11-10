@@ -13,6 +13,7 @@ import {
   type Change,
   validate,
   uid,
+  tasksModule,
 } from "../domain/model";
 import { fromLegacy } from "./backup";
 export interface Snapshot {
@@ -98,7 +99,14 @@ export async function openRepository(): Promise<Repository> {
     });
   await transaction(db, stores, "readwrite", async (t) => {
     const meta = t.objectStore("meta");
-    if (await request(meta.get("version"))) return;
+    const existingVersion = await request<number | undefined>(meta.get("version"));
+    if (existingVersion) {
+      if (!(await request(t.objectStore("modules").get("Tareas")))) {
+        t.objectStore("modules").add(tasksModule());
+        meta.put(existingVersion + 1, "version");
+      }
+      return;
+    }
     const raw = localStorage.getItem("it-control-pro-demo-v01"),
       d = fromLegacy(raw === null ? {} : JSON.parse(raw), true);
     for (const k of tables) for (const item of d[k]) t.objectStore(k).add(item);

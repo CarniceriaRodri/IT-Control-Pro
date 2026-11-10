@@ -12,7 +12,7 @@ function reportItem(r:Result) {
     "\n"+(r.ok?"Resultado correcto":"No confirmado")+"\n"+r.detail+
     (extra?"\n"+extra:"")+(r.ms===undefined?"":"\n"+r.ms+" ms");
 }
-export function NetworkDiagnostics() {
+export function NetworkDiagnostics({saved = []}:{saved?:Array<{ip:string;device:string}>}) {
   const [ip,setIp]=useState("192.168.1.10");
   const [mask,setMask]=useState("24");
   const [gateway,setGateway]=useState("");
@@ -70,7 +70,8 @@ export function NetworkDiagnostics() {
     <p>Diagnóstico puntual de equipos autorizados. No hay exploración ni barridos automáticos de red.</p>
     <div className="networkDiagnosticGrid">
       <label>Dirección IPv4
-        <input aria-label="Dirección IP a comprobar" value={ip} onChange={e=>setIp(e.target.value)} placeholder="192.168.1.10" inputMode="decimal"/>
+        <input list="it-network-saved-ips" aria-label="Dirección IP a comprobar" value={ip} onChange={e=>setIp(e.target.value)} placeholder="192.168.1.10" inputMode="decimal"/>
+        <datalist id="it-network-saved-ips">{saved.filter(x=>ipv4Number(x.ip)!==undefined).slice(0,150).map((x,i)=><option key={i} value={x.ip} label={x.device}/>)}</datalist>
       </label>
       <label>Máscara o prefijo
         <input aria-label="Máscara de subred" value={mask} onChange={e=>setMask(e.target.value)} placeholder="24 o 255.255.255.0"/>

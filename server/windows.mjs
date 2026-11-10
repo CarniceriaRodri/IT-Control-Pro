@@ -30,6 +30,15 @@ async function initialize() {
   await mkdir(backupDir,{recursive:true});
   if(existsSync(sourceFile)) state=JSON.parse(await readFile(sourceFile,"utf8"));
   else { state=blank(); await persist(); }
+  // Compatibilidad: ocultar la antigua tarea duplicada de Agenda sin borrar su contenido.
+  const agenda = state.data?.modules?.find(m=>m.id==="Agenda");
+  const oldTask = agenda?.fields?.find(f=>f.id==="tarea");
+  if(oldTask?.visible){
+    oldTask.visible=false;
+    oldTask.required=false;
+    state.version++;
+    await persist();
+  }
 }
 async function backup(force=false) {
   const day=new Date().toISOString().slice(0,10);

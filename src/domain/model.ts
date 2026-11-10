@@ -81,7 +81,7 @@ export const legacy: Record<string, string[]> = {
   Incidencias: ["número", "asunto", "centro", "prioridad", "estado"],
   Almacén: ["artículo", "cantidad", "ubicación", "observaciones"],
   Redes: ["dispositivo", "ip", "centro", "observaciones"],
-  Agenda: ["tarea", "fecha", "centro", "estado"],
+  Agenda: ["fecha", "centro", "estado"],
   Documentación: ["título", "tipo", "referencia", "observaciones"],
 };
 export function tasksModule(): Module {

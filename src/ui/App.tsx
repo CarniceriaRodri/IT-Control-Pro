@@ -72,7 +72,7 @@ export function App({
     [sort, order] = useState(false),
     [arch, archives] = useState(false),
     [editor, edit] = useState<Entity | "new" | null>(null),
-    [childEditors, setChildEditors] = useState<{ mod: Module; selected: (row: Entity) => void; checkpoint: number }[]>([]),
+    [childEditors, setChildEditors] = useState<{ mod: Module; selected: (row: Entity) => void; checkpoint: number; saved?: boolean }[]>([]),
     [info, notify] = useState(""),
     [diag, diagnose] = useState(false),
     [, refresh] = useState(0);
@@ -599,7 +599,7 @@ export function App({
           data={data}
           mod={child.mod}
           close={() => {
-            pendingRef.current = pendingRef.current.slice(0, child.checkpoint);
+            if (!child.saved) pendingRef.current = pendingRef.current.slice(0, child.checkpoint);
             setChildEditors(prev => prev.slice(0, index));
             changePending(v => v + 1);
           }}
@@ -611,8 +611,8 @@ export function App({
             // Validamos contra los registros existentes y contra altas anteriores.
             validate(child.mod, r.values, data.records, r.id);
             pendingRef.current.push({ row: r, files: new Map(files) });
+            child.saved = true;
             child.selected(r);
-            setChildEditors(prev => prev.slice(0, index));
             changePending(v => v + 1);
           }}
         />

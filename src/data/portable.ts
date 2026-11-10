@@ -1,7 +1,7 @@
 import { parseBackup, envelope } from "./backup";
 import { references, fingerprint, downloadBlob, type Binaries } from "./media";
 import type { Dataset } from "../domain/model";
-export async function exportFull(
+export async function createFullBackup(
   data: Dataset,
   load: (hash: string) => Promise<Blob | undefined>,
 ) {
@@ -16,12 +16,29 @@ export async function exportFull(
       reader.readAsDataURL(file);
     });
   }
-  downloadBlob(
-    new Blob([JSON.stringify({ ...envelope(data), version: 3, attachments })], {
-      type: "application/json",
-    }),
+  return new File(
+    [JSON.stringify({ ...envelope(data), version: 3, attachments })],
     "IT-Control-Pro-" + new Date().toISOString().slice(0, 10) + ".json",
+    { type: "application/json" },
   );
+}
+export async function exportFull(
+  data: Dataset,
+  load: (hash: string) => Promise<Blob | undefined>,
+) {
+  const file = await createFullBackup(data, load);
+  downloadBlob(file, file.name);
+}
+export async function shareFull(
+  data: Dataset,
+  load: (hash: string) => Promise<Blob | undefined>,
+) {
+  const file = await createFullBackup(data, load);
+  if (!navigator.share || (navigator.canShare && !navigator.canShare({ files: [file] }))) {
+    downloadBlob(file, file.name);
+    return;
+  }
+  await navigator.share({ title: "Copia IT Control Pro", files: [file] });
 }
 export async function importFull(raw: string) {
   const b = JSON.parse(raw);

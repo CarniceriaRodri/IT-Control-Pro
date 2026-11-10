@@ -18,6 +18,7 @@ export const types = [
   "código de barras",
   "QR",
   "relación",
+  "relación múltiple",
   "identificador",
   "estado",
   "prioridad",
@@ -147,7 +148,7 @@ export function validate(
     function fail(msg: string): never {
       throw Error(f.label + " · " + msg);
     }
-    if (!s) {
+    if (!s || (Array.isArray(v) && v.length === 0)) {
       if (f.required) fail("Campo obligatorio");
       continue;
     }
@@ -176,11 +177,16 @@ export function validate(
     }
     if (f.type === "MAC" && !/^([\da-f]{2}[:-]){5}[\da-f]{2}$/i.test(s))
       fail("MAC no válida");
-    if (
-      f.type === "relación" &&
-      !rows.some((r) => r.module === f.target && r.id === s)
-    )
-      fail("Referencia desconocida");
+    if (f.type === "relación" || f.type === "relación múltiple") {
+      if (f.type === "relación múltiple" && !Array.isArray(v))
+        fail("Se requiere una lista de registros");
+      const selected = f.type === "relación múltiple" ? (v as unknown[]) : [v];
+      if (selected.some((ref) =>
+        typeof ref !== "string" ||
+        !rows.some((r) => r.id === ref && !r.archived &&
+          (f.target === "*" || r.module === f.target))
+      )) fail("Referencia desconocida o archivada");
+    }
     if (
       ["lista", "estado", "prioridad", "selección múltiple"].includes(f.type) &&
       !(Array.isArray(v) ? v : [v]).every((a) => f.options.includes(String(a)))

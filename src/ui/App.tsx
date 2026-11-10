@@ -476,6 +476,7 @@ export function App({
           close={() => edit(null)}
           load={repo.file}
           createRelated={(target, selected) => setChildEditor({ mod: target, selected })}
+          openRelated={(related) => { go(related.module); edit(related); }}
           save={(r, files) =>
             write(
               editor === "new" ? "Alta" : "Edición",
@@ -493,6 +494,7 @@ export function App({
           data={data}
           mod={childEditor.mod}
           close={() => setChildEditor(null)}
+          openRelated={(related) => { go(related.module); edit(related); }}
           load={repo.file}
           save={async (r, files) => {
             await write("Alta relacionada", r.id,

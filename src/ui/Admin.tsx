@@ -309,6 +309,8 @@ export function Admin({
                   ],
                 };
                 if (!f.label) throw Error("Indica un nombre");
+                if (f.keyRole === "primary" && mod.fields.some(x => x.id !== f.id && x.keyRole === "primary"))
+                  throw Error("Solo puede haber un identificador principal por módulo. Puedes usar otros como alternativos.");
                 await update(
                   mod.fields.some((x) => x.id === f.id)
                     ? mod.fields.map((x) => (x.id === f.id ? f : x))
@@ -351,6 +353,30 @@ export function Admin({
                 onChange={(e) => edit({ ...draft, hint: e.target.value })}
               />
             </label>
+            {["relación", "relación múltiple"].includes(draft.type) && (
+              <label>
+                Comportamiento de la relación
+                <select value={draft.relationMode || "full"}
+                  onChange={e => edit({...draft, relationMode: e.target.value as NonNullable<Field["relationMode"]>})}>
+                  <option value="full">Completa: buscar, seleccionar y crear</option>
+                  <option value="select">Buscar y seleccionar (sin crear)</option>
+                  <option value="read">Solo consulta</option>
+                  <option value="off">Desactivada (conservar datos vinculados)</option>
+                </select>
+              </label>
+            )}
+            {!["relación", "relación múltiple", "identificador", "casilla"].includes(draft.type) && (
+              <label>
+                Identificador de negocio
+                <select value={draft.keyRole || ""}
+                  onChange={e => edit({...draft, keyRole: e.target.value ? e.target.value as "primary" | "alternate" : undefined})}>
+                  <option value="">No utilizar como identificador</option>
+                  <option value="primary">Principal (único por módulo)</option>
+                  <option value="alternate">Alternativo (correspondencias)</option>
+                </select>
+                <small>La IP suele cambiar: úsala solo como identificador alternativo. Las coincidencias ambiguas deben revisarse.</small>
+              </label>
+            )}
             {[
               "lista",
               "selección múltiple",

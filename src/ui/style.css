@@ -647,3 +647,12 @@ details > summary {
 .hiddenFieldsEditor fieldset{margin-top:8px}
 .hiddenFieldsEditor legend{font-size:14px}
 @media(max-width:520px){.fieldManageRow button{flex:1 0 auto}.fieldManageRow>div:first-child{flex-basis:100%}}
+
+
+/* Visor de PDF y de documentos de texto en todos los módulos */
+.documentPreview{margin-top:12px;max-width:100%;min-width:0;overflow:hidden}
+.documentPreviewHeader{justify-content:space-between;margin-bottom:10px}
+.documentPreviewHeader strong{min-width:0;flex:1;overflow-wrap:anywhere}
+.documentPdfFrame{display:block;width:100%;height:min(70vh,780px);min-height:320px;border:1px solid var(--line);border-radius:8px;background:white}
+.documentTextPreview{max-width:100%;max-height:65vh;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;font:13px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:16px;margin:0;user-select:text}
+@media(max-width:620px){.documentPreviewHeader{align-items:stretch}.documentPdfFrame{height:60vh;min-height:300px}.documentTextPreview{padding:10px}}

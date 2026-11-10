@@ -250,7 +250,7 @@ export function App({
           r.module === page &&
           r.archived === arch &&
           mod.fields
-            .filter((f) => f.visible)
+            .filter((f) => f.visible && f.relationMode !== "off")
             .some((f) =>
               display(mod, r, f.id)
                 .toLocaleLowerCase()
@@ -487,7 +487,7 @@ export function App({
                   <thead>
                     <tr>
                       {mod.fields
-                        .filter((f) => f.visible)
+                        .filter((f) => f.visible && f.relationMode !== "off")
                         .map((f) => (
                           <th key={f.id}>{f.label}</th>
                         ))}
@@ -498,7 +498,7 @@ export function App({
                     {rows.map((r) => (
                       <tr key={r.id}>
                         {mod.fields
-                          .filter((f) => f.visible)
+                          .filter((f) => f.visible && f.relationMode !== "off")
                           .map((f) => (
                             <td key={f.id}>{display(mod, r, f.id) || "—"}</td>
                           ))}

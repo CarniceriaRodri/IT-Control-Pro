@@ -1,0 +1,45 @@
+name: Preparar paquete Windows de pruebas
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'server/**'
+      - 'scripts/**'
+      - 'index.html'
+      - 'app.html'
+      - 'package*.json'
+      - '*.bat'
+      - '.github/workflows/windows-package.yml'
+permissions:
+  contents: read
+jobs:
+  windows-zip:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: node --check server/windows.mjs
+      - name: Preparar carpeta portable
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path paquete, paquete/runtime, paquete/server | Out-Null
+          Copy-Item index.html, sw.js, app.html, manifest.webmanifest, icon.svg, icon-192.png, icon-512.png -Destination paquete
+          Copy-Item -Recurse assets paquete/assets
+          Copy-Item server/windows.mjs paquete/server/windows.mjs
+          Copy-Item INICIAR-SERVIDOR-WINDOWS.bat paquete/
+          Copy-Item docs/windows-carpeta-compartida.md paquete/LEEME-WINDOWS.md
+          $node = (Get-Command node).Source
+          Copy-Item $node paquete/runtime/node.exe
+          Compress-Archive -Path paquete/* -DestinationPath IT-Control-Pro-Windows-Pruebas.zip -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: IT-Control-Pro-Windows-Pruebas
+          path: IT-Control-Pro-Windows-Pruebas.zip
+          retention-days: 14

@@ -12,7 +12,7 @@ const backupDir = path.resolve(process.env.IT_BACKUP_DIR || path.join(storage, "
 const host = process.env.IT_HOST || "127.0.0.1";
 const port = Number(process.env.IT_PORT || 8787);
 const sourceFile = path.join(storage, "sistema.json");
-const mime = {".html":"text/html; charset=utf-8",".js":"text/javascript; charset=utf-8",".css":"text/css; charset=utf-8",".svg":"image/svg+xml",".png":"image/png",".webmanifest":"application/manifest+json",".json":"application/json"};
+const mime = {".html":"text/html; charset=utf-8",".js":"text/javascript; charset=utf-8",".css":"text/css; charset=utf-8",".svg":"image/svg+xml",".png":"image/png",".webmanifest":"application/manifest+json",".json":"application/json",".wasm":"application/wasm",".gz":"application/gzip"};
 const maxBody = 35 * 1024 * 1024;
 const blank = () => ({ version:1, data:{modules:[],records:[],history:[]}, retention:{day:7,week:4,month:3}, points:[], recovery:null });
 let state;
@@ -132,7 +132,11 @@ async function handler(req,res){
   const p=resolveSafe(u);if(!p)return reply(res,403,{error:"Acceso denegado"});
   const relative=path.relative(root,p).replaceAll("\\","/");
   const publicFiles=new Set(["index.html","app.html","sw.js","manifest.webmanifest","icon.svg","icon-192.png","icon-512.png"]);
-  if(!publicFiles.has(relative) && !/^assets\/[a-zA-Z0-9._-]+$/.test(relative))return reply(res,403,{error:"Ruta restringida"});
+   const webAsset = /^assets\\/[a-zA-Z0-9._-]+$/.test(relative);
+   const ocrAsset = /^(?:android\\/)?ocr\\/(?:[a-zA-Z0-9._-]+|(?:core|lang)\\/[a-zA-Z0-9._-]+)$/.test(relative);
+   const androidAsset = /^android\\/(?:index\\.html|sw\\.js|manifest\\.webmanifest|assets\\/[a-zA-Z0-9._-]+)$/.test(relative);
+   if(!publicFiles.has(relative) && !webAsset && !ocrAsset && !androidAsset)
+     return reply(res,403,{error:"Ruta restringida"});
   if(!existsSync(p)||!(await stat(p)).isFile())return reply(res,404,{error:"No encontrado"});
   const bytes=await readFile(p);
   res.writeHead(200,{"Content-Type":mime[path.extname(p)]||"application/octet-stream","X-Content-Type-Options":"nosniff","Cache-Control":"no-cache"});

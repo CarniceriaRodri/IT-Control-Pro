@@ -132,9 +132,9 @@ async function handler(req,res){
   const p=resolveSafe(u);if(!p)return reply(res,403,{error:"Acceso denegado"});
   const relative=path.relative(root,p).replaceAll("\\","/");
   const publicFiles=new Set(["index.html","app.html","sw.js","manifest.webmanifest","icon.svg","icon-192.png","icon-512.png"]);
-   const webAsset = /^assets\\/[a-zA-Z0-9._-]+$/.test(relative);
-   const ocrAsset = /^(?:android\\/)?ocr\\/(?:[a-zA-Z0-9._-]+|(?:core|lang)\\/[a-zA-Z0-9._-]+)$/.test(relative);
-   const androidAsset = /^android\\/(?:index\\.html|sw\\.js|manifest\\.webmanifest|assets\\/[a-zA-Z0-9._-]+)$/.test(relative);
+  const webAsset = /^assets[/][a-zA-Z0-9._-]+$/.test(relative);
+  const ocrAsset = /^(?:android[/])?ocr[/](?:[a-zA-Z0-9._-]+|(?:core|lang)[/][a-zA-Z0-9._-]+)$/.test(relative);
+  const androidAsset = /^android[/](?:index[.]html|sw[.]js|manifest[.]webmanifest|assets[/][a-zA-Z0-9._-]+)$/.test(relative);
    if(!publicFiles.has(relative) && !webAsset && !ocrAsset && !androidAsset)
      return reply(res,403,{error:"Ruta restringida"});
   if(!existsSync(p)||!(await stat(p)).isFile())return reply(res,404,{error:"No encontrado"});

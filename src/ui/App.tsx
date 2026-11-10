@@ -1,5 +1,5 @@
 import { ModuleTools } from "./ModuleTools";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { makeRoute, routeFromUrl, initializeHistory, pushAppRoute, replaceAppRoute, isRoute, isGuard } from "./history";
 import {
   ArrowUpRight,
@@ -72,11 +72,17 @@ export function App({
     [sort, order] = useState(false),
     [arch, archives] = useState(false),
     [editor, edit] = useState<Entity | "new" | null>(null),
-    [childEditor, setChildEditor] = useState<{ mod: Module; selected: (row: Entity) => void } | null>(null),
+    [childEditors, setChildEditors] = useState<{ mod: Module; selected: (row: Entity) => void; checkpoint: number }[]>([]),
     [info, notify] = useState(""),
     [diag, diagnose] = useState(false),
     [, refresh] = useState(0);
-  const data = snap.data,
+  // Las altas relacionadas se guardan juntas con el formulario principal.
+  // Si se cancela, se descartan sin dejar registros huérfanos.
+  const pendingRef = useRef<{ row: Entity; files: Map<string, Blob> }[]>([]);
+  const [pendingVersion, changePending] = useState(0);
+  const data = pendingVersion >= 0
+      ? { ...snap.data, records: [...snap.data.records, ...pendingRef.current.map(x => x.row)] }
+      : snap.data,
     mods = data.modules.filter((m) => m.active),
     mod = mods.find((m) => m.id === page);
   const [historyReady, setHistoryReady] = useState(false);
@@ -101,7 +107,9 @@ export function App({
   useEffect(() => {
     if (!historyReady) return;
     const receive = (event: PopStateEvent) => {
-      setChildEditor(null);
+      setChildEditors([]);
+      pendingRef.current = [];
+      changePending(v => v + 1);
       toggle(false);
       diagnose(false);
       notify("");
@@ -157,17 +165,25 @@ export function App({
     nav(id);
     toggle(false);
     edit(null);
-    setChildEditor(null);
+    setChildEditors([]);
+    pendingRef.current = [];
+    changePending(v => v + 1);
     search("");
     archives(false);
     order(false);
     window.scrollTo(0, 0);
   };
   const openEditor = (row: Entity | "new") => {
+    pendingRef.current = [];
+    setChildEditors([]);
+    changePending(v => v + 1);
     pushAppRoute(makeRoute(page, row === "new" ? "new" : row.id));
     edit(row);
   };
   const closeEditor = () => {
+    pendingRef.current = [];
+    setChildEditors([]);
+    changePending(v => v + 1);
     if (isRoute(history.state) && history.state.editor) {
       history.back();
     } else {
@@ -179,7 +195,9 @@ export function App({
     pushAppRoute(makeRoute(row.module, row.id));
     nav(row.module);
     edit(row);
-    setChildEditor(null);
+    setChildEditors([]);
+    pendingRef.current = [];
+    changePending(v => v + 1);
     toggle(false);
     window.scrollTo(0, 0);
   };
@@ -549,36 +567,56 @@ export function App({
           row={editor === "new" ? undefined : editor}
           close={closeEditor}
           load={repo.file}
-          createRelated={(target, selected) => setChildEditor({ mod: target, selected })}
+          createRelated={(target, selected) => setChildEditors(prev => [...prev, {
+            mod: target, selected, checkpoint: pendingRef.current.length
+          }])}
           openRelated={openRelated}
-          save={(r, files) =>
-            write(
-              editor === "new" ? "Alta" : "Edición",
-              r.id,
-              (d) => putRecord(d, mod, r),
-              false,
-              files,
-            )
-          }
-        />
-      )}
-      {childEditor && (
-        <Editor
-          key={childEditor.mod.id}
-          data={data}
-          mod={childEditor.mod}
-          close={() => setChildEditor(null)}
-          openRelated={(related) => { go(related.module); edit(related); }}
-          load={repo.file}
           save={async (r, files) => {
-            await write("Alta relacionada", r.id,
-              (d) => putRecord(d, d.modules.find((m) => m.id === r.module)!, r),
-              false, files);
-            childEditor.selected(r);
-            setChildEditor(null);
+            const staged = [...pendingRef.current];
+            const binaries = new Map<string, Blob>(files);
+            for (const item of staged) for (const [hash, blob] of item.files) binaries.set(hash, blob);
+            await write(
+              editor === "new" ? "Alta y relaciones" : "Edición y relaciones",
+              r.id,
+              (d) => {
+                for (const item of staged) {
+                  const target = d.modules.find(m => m.id === item.row.module)!;
+                  putRecord(d, target, item.row);
+                }
+                putRecord(d, d.modules.find(m => m.id === r.module)!, r);
+              },
+              false,
+              binaries,
+            );
+            pendingRef.current = [];
+            changePending(v => v + 1);
           }}
         />
       )}
+      {childEditors.map((child, index) => (
+        <Editor
+          key={index + "-" + child.mod.id}
+          data={data}
+          mod={child.mod}
+          close={() => {
+            pendingRef.current = pendingRef.current.slice(0, child.checkpoint);
+            setChildEditors(prev => prev.slice(0, index));
+            changePending(v => v + 1);
+          }}
+          load={repo.file}
+          createRelated={(target, selected) => setChildEditors(prev => [...prev, {
+            mod: target, selected, checkpoint: pendingRef.current.length
+          }])}
+          save={async (r, files) => {
+            // Validamos contra los registros existentes y contra altas anteriores.
+            validate(child.mod, r.values, data.records, r.id);
+            pendingRef.current.push({ row: r, files: new Map(files) });
+            child.selected(r);
+            setChildEditors(prev => prev.slice(0, index));
+            changePending(v => v + 1);
+          }}
+        />
+      ))}
       {diag && (
         <Dialog name="Instalación y conexión" close={() => diagnose(false)}>
           <p>{statusPwa()}</p>

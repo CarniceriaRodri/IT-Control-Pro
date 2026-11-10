@@ -213,6 +213,12 @@ export function validate(
       if (f.required) fail("Campo obligatorio");
       continue;
     }
+    if (mod.id === "Movimientos" && f.id === "cantidad" &&
+      (!Number.isSafeInteger(Number(s)) || Number(s) <= 0))
+      fail("La cantidad debe ser un entero positivo");
+    if (mod.id === "Movimientos" && f.id === "devolucionPrevista" && s &&
+      values["fecha"] && String(s) < String(values["fecha"]))
+      fail("La devolución prevista no puede ser anterior al movimiento");
     if (
       (f.type === "entero" && !Number.isInteger(Number(s))) ||
       (f.type === "decimal" && !Number.isFinite(Number(s)))

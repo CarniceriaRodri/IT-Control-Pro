@@ -582,3 +582,23 @@ details > summary {
 .relationBacklink{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12px}
 .relationBacklink span{flex:1;overflow-wrap:anywhere}
 .relationBacklink button{font-size:12px;padding:4px 8px}
+
+/* Panel fotográfico inspirado en el flujo cámara / dispositivo / biblioteca del administrador Rodri */
+.photoWorkspace{gap:12px;min-width:0}
+.photoActions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+.photoAction{position:relative;display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:7px;min-height:75px;padding:10px 6px;border:1px solid var(--line);border-radius:10px;background:var(--pale);font-weight:650;font-size:12px;cursor:pointer;text-align:center;color:var(--ink)}
+.photoAction input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.photoAction:focus-within{outline:3px solid #289bde;outline-offset:2px}
+.photoAction:hover{border-color:var(--accent)}
+.photoLibrary,.recognitionResult,.photoLightbox{border:1px solid var(--line);border-radius:11px;padding:12px;display:grid;gap:10px}
+.photoLibrary{background:var(--panel)}.libraryHeading{display:flex;align-items:center;gap:8px}
+.photoLibraryList{max-height:255px;overflow:auto;display:grid;gap:4px}
+.photoLibraryItem{display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--line);padding:6px 0;font-size:12px}
+.photoLibraryItem span{flex:1;overflow-wrap:anywhere}.photoLibraryItem button{padding:5px 8px;font-size:12px}
+.photoEntry{border:1px solid var(--line);border-radius:10px;padding:10px;display:grid;gap:8px;min-width:0}
+.photoEntryTitle span{display:block;font-size:13px;font-weight:650;overflow-wrap:anywhere}
+.photoEntryButtons{display:flex;flex-wrap:wrap;gap:6px}
+.photoEntryButtons button{font-size:12px;padding:6px 8px}
+.photoLightbox .inline{justify-content:space-between}.photoLightbox img{width:100%;max-height:60vh;object-fit:contain}
+.recognitionResult textarea{width:100%;min-height:110px}.photoStatus{overflow-wrap:anywhere;font-size:13px}
+@media(max-width:520px){.photoActions{grid-template-columns:repeat(2,minmax(0,1fr))}.photoAction{min-height:65px}.photoEntryButtons button{flex:1}}

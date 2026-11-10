@@ -117,6 +117,7 @@ export function Admin({
               change={attach}
               load={repo.file}
               pending={work}
+              library={[...data.modules, ...data.records].flatMap((item) => item.files || [])}
             />
           </details>
           <button disabled={busy}>Crear módulo</button>

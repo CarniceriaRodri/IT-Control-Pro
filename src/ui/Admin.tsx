@@ -47,6 +47,10 @@ export function Admin({
     }
   }
   function update(fields: Field[]) {
+    for (const f of fields) if (
+      (f.type === "relación" || f.type === "relación múltiple") &&
+      f.target !== "*" && !data.modules.some(m => m.id === f.target)
+    ) throw Error("Selecciona un módulo relacionado válido.");
     return write("Configurar formulario", mod.id, (d) => {
       d.modules.find((m) => m.id === mod.id)!.fields = fields;
     });
@@ -182,8 +186,7 @@ export function Admin({
       <section>
         <h2>Copias y restauración</h2>
         <p>
-          Los datos se guardan en este navegador. Quien acceda a este perfil
-          podrá consultarlos y modificarlos.
+          Los datos se almacenan en {location.port === "8787" ? "el servicio Windows local" : "este navegador"}. Protege el acceso y realiza copias periódicas.
         </p>
         <div className="inline">
           <button onClick={() => void run(() => exportFull(data, repo.file))}>
@@ -309,7 +312,7 @@ export function Admin({
                   edit({
                     ...draft,
                     type: e.target.value as Field["type"],
-                    target: mod.id,
+                    target: ["relación", "relación múltiple"].includes(e.target.value) ? "*" : undefined,
                   })
                 }
               >
@@ -343,14 +346,14 @@ export function Admin({
                 />
               </label>
             )}
-            {draft.type === "relación" ? (
+            {["relación", "relación múltiple"].includes(draft.type) ? (
               <label>
                 Módulo relacionado
                 <select
                   value={draft.target}
-                  disabled={mod.fields.some((f) => f.id === draft.id)}
                   onChange={(e) => edit({ ...draft, target: e.target.value })}
                 >
+                  <option value="*">Cualquier módulo (relación libre)</option>
                   {data.modules.map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.name}

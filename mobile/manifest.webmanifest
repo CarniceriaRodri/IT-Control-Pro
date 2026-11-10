@@ -1,0 +1,22 @@
+{
+  "name": "IT Control Pro · Capturas OCR",
+  "short_name": "IT OCR",
+  "description": "Capturas, OCR local y envío a GitHub privado",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f1f5f8",
+  "theme_color": "#102c40",
+  "icons": [
+    {
+      "src": "../icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "../icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

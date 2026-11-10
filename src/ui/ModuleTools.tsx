@@ -6,6 +6,7 @@ import type { Repository } from "../data/repository";
 import { Attachments, emptyFiles, type FileDraft } from "./Attachments";
 import { ImportTable } from "./ImportTable";
 import { Dialog } from "./Fields";
+import { NetworkDiagnostics } from "./NetworkDiagnostics";
 import type { Write } from "./Admin";
 export function ModuleTools({
   mod,
@@ -24,6 +25,7 @@ export function ModuleTools({
     [busy, setBusy] = useState(false);
   return (
     <>
+      {mod.id === "Redes" && <NetworkDiagnostics />}
       <div className="inline moduleTools">
         <button onClick={() => set("table")}>Importar tabla</button>
         <button

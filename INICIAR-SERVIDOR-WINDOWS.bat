@@ -18,9 +18,11 @@ if not exist "index.html" (
  pause
  exit /b 1
 )
+if exist "configuracion-local.cmd" call "configuracion-local.cmd"
 echo.
 echo IT CONTROL PRO - SERVIDOR LOCAL DE PRUEBAS
-echo Carpeta de datos: %CD%\datos
+if defined IT_DATA_DIR (echo Carpeta de datos: %IT_DATA_DIR%) else (echo Carpeta de datos: %CD%\datos)
+if defined IT_BACKUP_DIR echo Carpeta de copias: %IT_BACKUP_DIR%
 echo Solo accesible desde este equipo. Sin acceso remoto por ahora.
 echo Sin autorizacion de Sistemas, no utilizar datos corporativos.
 echo.

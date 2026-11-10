@@ -42,13 +42,14 @@ export function Dialog({
   );
 }
 function Control({
-  f, v, set, data, createRelated,
+  f, v, set, data, createRelated, openRelated,
 }: {
   f: Field;
   v: unknown;
   set: (v: unknown) => void;
   data: Dataset;
   createRelated?: (module: Module, selected: (row: Entity) => void) => void;
+  openRelated?: (row: Entity) => void;
 }) {
   const [term, search] = useState("");
   const [expanded, expand] = useState(false);
@@ -92,6 +93,7 @@ function Control({
         <div className="relationChosen">
           {chosen.map((r) => <div className="relationChip" key={r.id}>
             <span>{optionText(r)}{r.archived ? " (archivado)" : ""}</span>
+            {openRelated && <button type="button" onClick={() => openRelated(r)}>Abrir</button>}
             <button type="button" aria-label={"Quitar relación " + r.id} onClick={() =>
               set(multi ? ids.filter((id) => id !== r.id) : "")}>×</button>
           </div>)}
@@ -168,6 +170,7 @@ export function Editor({
   save,
   close,
   createRelated,
+  openRelated,
 }: {
   mod: Module;
   row?: Entity;
@@ -176,6 +179,7 @@ export function Editor({
   save: (row: Entity, files: Binaries) => Promise<void>;
   close: () => void;
   createRelated?: (module: Module, selected: (row: Entity) => void) => void;
+  openRelated?: (row: Entity) => void;
 }) {
   const [files, attach] = useState<FileDraft>(() => ({
     refs: row?.files || [],
@@ -252,6 +256,7 @@ export function Editor({
                   set={(v) => set({ ...values, [f.id]: v })}
                   data={data}
                   createRelated={createRelated}
+                  openRelated={openRelated}
                 />
                 {f.hint && <small>{f.hint}</small>}
               </label>
@@ -269,7 +274,7 @@ export function Editor({
             <h3>Relacionado desde otros módulos ({links.length})</h3>
             {links.map((r) => {
               const m = data.modules.find((m) => m.id === r.module)!;
-              return <p key={r.id}>{m.name} · {title(r, m)}</p>;
+              return <div className="relationBacklink" key={r.id}><span>{m.name} · {title(r, m)}</span>{openRelated && <button type="button" onClick={() => openRelated(r)}>Abrir</button>}</div>;
             })}
           </section> : null;
         })()}

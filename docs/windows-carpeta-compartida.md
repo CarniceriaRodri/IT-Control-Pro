@@ -33,3 +33,14 @@ En el navegador de origen, generar antes una copia completa JSON desde Administr
 - El servidor guarda un JSON central con escritura por reemplazo; para uso corporativo, sustituirlo por una base de datos transaccional, controles de acceso y un sistema de copias de seguridad robusto.
 - Las copias automáticas del servidor tienen una primera implementación diaria, sin política completa de conservación semanal y mensual ni verificación automática de restauración.
 - El despliegue en red queda condicionado a la validación por Sistemas y Seguridad.
+
+
+## Paquete portátil para Windows
+
+Desde GitHub, pestaña **Actions** → **Preparar paquete Windows de pruebas** → ejecución completada → **Artifacts** → descargar `IT-Control-Pro-Windows-Pruebas`. Extrae todo el ZIP a una carpeta con permisos de escritura y ejecuta `INICIAR-SERVIDOR-WINDOWS.bat`. No es necesario instalar Node.js por separado porque incluye `runtime/node.exe`.
+
+**Almacenamiento en carpeta compartida:** el paquete incluye `CONFIGURACION-EJEMPLO.cmd`. Cópialo a `configuracion-local.cmd` y sustituye las rutas ficticias por carpetas aprobadas por Sistemas. `IT_DATA_DIR` guarda el archivo de datos y los adjuntos; `IT_BACKUP_DIR` guarda las copias. Sin este archivo, se utilizan rutas locales dentro de la carpeta de la aplicación. No almacenes simultáneamente los datos y sus únicas copias en la misma unidad o carpeta. El usuario Windows que ejecute el proceso debe tener los permisos necesarios.
+
+El paquete portátil sirve exclusivamente para pruebas en localhost. El soporte de red y usuarios requiere una fase posterior de autenticación, gestión de sesiones y acceso cifrado antes de conectar PCs adicionales o dispositivos móviles.
+
+**Importante:** la ejecución del paquete debe estar permitida por las políticas de la organización. No ejecutar `.exe` o scripts no autorizados en equipos corporativos.

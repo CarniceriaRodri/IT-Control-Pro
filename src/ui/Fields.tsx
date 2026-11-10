@@ -278,7 +278,7 @@ export function Editor({
             })}
           </section> : null;
         })()}
-        <Attachments value={files} change={attach} load={load} pending={work} />
+        <Attachments value={files} change={attach} load={load} pending={work} library={[...data.modules, ...data.records].flatMap((item) => item.files || [])} />
         {error && <p role="alert">{error}</p>}
         <button className="primary" disabled={busy}>
           Guardar registro

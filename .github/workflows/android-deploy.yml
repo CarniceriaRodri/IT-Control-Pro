@@ -1,0 +1,52 @@
+name: Publicar IT Control Pro Android con OCR sin conexión
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - name: Instalar dependencias verificadas
+        run: npm ci
+      - name: Incluir motor y modelos OCR en el paquete
+        run: node scripts/prepare-ocr.mjs
+      - name: Compilar version comun Windows y Android
+        run: npm run build
+      - name: Preparar carpeta de publicación
+        shell: bash
+        run: |
+          mkdir -p site
+          cp index.html app.html sw.js manifest.webmanifest icon.svg icon-192.png icon-512.png site/
+          cp -R assets android ocr mobile site/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: IT-Control-Pro-Android-PWA
+          path: site/
+          retention-days: 14
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Publicar aplicación
+        id: deploy
+        uses: actions/deploy-pages@v4

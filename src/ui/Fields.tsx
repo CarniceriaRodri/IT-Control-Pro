@@ -263,7 +263,7 @@ export function Editor({
             data.modules.some((m) => m.id === r.module && m.fields.some((f) =>
               (f.type === "relación" || f.type === "relación múltiple") &&
               (f.target === mod.id || f.target === "*") &&
-              (Array.isArray(r.values[f.id]) ? r.values[f.id].includes(row.id) : r.values[f.id] === row.id)
+              (Array.isArray(r.values[f.id]) ? (r.values[f.id] as unknown[]).includes(row.id) : r.values[f.id] === row.id)
             )));
           return links.length > 0 ? <section className="relatedBacklinks">
             <h3>Relacionado desde otros módulos ({links.length})</h3>

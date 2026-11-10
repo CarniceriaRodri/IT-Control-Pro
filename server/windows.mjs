@@ -6,6 +6,7 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID, createHash } from "node:crypto";
+import { diagnostics } from "./diagnostics.mjs";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const storage = path.resolve(process.env.IT_DATA_DIR || path.join(root, "datos"));
 const backupDir = path.resolve(process.env.IT_BACKUP_DIR || path.join(storage, "copias"));
@@ -69,6 +70,10 @@ async function handler(req,res){
   const url=new URL(req.url,"http://localhost");
   const u=url.pathname;
   if(u.startsWith("/api/")) {
+    if(req.method==="POST"&&u==="/api/diagnostics") {
+      const input=await body(req);
+      return diagnostics(req,res,reply,input);
+    }
     if(req.method==="GET"&&u==="/api/health")return reply(res,200,{app:"IT Control Pro",mode:"windows-server",version:1});
     if(req.method==="GET"&&u==="/api/state")return reply(res,200,{version:state.version,data:state.data});
     if(req.method==="GET"&&u==="/api/points")return reply(res,200,state.points);

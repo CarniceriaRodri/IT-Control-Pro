@@ -69,6 +69,8 @@ function Control({
         onChange={(e) => set(e.target.checked)} />
     );
   if (f.type === "relación" || f.type === "relación múltiple") {
+    const mode = f.relationMode || "full";
+    const readonly = mode === "read";
     const multi = f.type === "relación múltiple";
     const ids = multi ? (Array.isArray(v) ? v as string[] : []) : (v ? [String(v)] : []);
     const targets = data.modules.filter((m) => m.id === f.target || f.target === "*");
@@ -94,11 +96,11 @@ function Control({
           {chosen.map((r) => <div className="relationChip" key={r.id}>
             <span>{optionText(r)}{r.archived ? " (archivado)" : ""}</span>
             {openRelated && <button type="button" onClick={() => openRelated(r)}>Abrir</button>}
-            <button type="button" aria-label={"Quitar relación " + r.id} onClick={() =>
-              set(multi ? ids.filter((id) => id !== r.id) : "")}>×</button>
+            {!readonly && <button type="button" aria-label={"Quitar relación " + r.id} onClick={() =>
+              set(multi ? ids.filter((id) => id !== r.id) : "")}>×</button>}
           </div>)}
         </div>
-        <input
+        {!readonly && <input
           type="search"
           aria-label={"Buscar " + f.label}
           placeholder={"Buscar en " + (f.target === "*" ? "todos los módulos" : targets[0]?.name || "módulo") + "…"}
@@ -106,8 +108,8 @@ function Control({
           onChange={(e) => { search(e.target.value); expand(true); }}
           onFocus={() => expand(true)}
           onBlur={() => setTimeout(() => expand(false), 180)}
-        />
-        {expanded && (
+        />}
+        {!readonly && expanded && (
           <div className="relationOptions" role="listbox" aria-label={"Resultados " + f.label}>
             {matches.length ? matches.map((r) => (
               <button type="button" role="option" aria-selected={false}
@@ -118,7 +120,7 @@ function Control({
             )) : <p>Sin resultados. Puedes crear el registro desde aquí.</p>}
           </div>
         )}
-        {createRelated && targets.filter((m) => m.active).length > 0 && (
+        {mode === "full" && createRelated && targets.filter((m) => m.active).length > 0 && (
           <div className="relationCreate">
             {targets.filter((m) => m.active).map((m) => (
               <button type="button" key={m.id}
@@ -128,7 +130,7 @@ function Control({
             ))}
           </div>
         )}
-        {f.required && !ids.length && <span className="hint">Selecciona al menos un registro</span>}
+        {f.required && !ids.length && !readonly && <span className="hint">Selecciona al menos un registro</span>}
       </div>
     );
   }

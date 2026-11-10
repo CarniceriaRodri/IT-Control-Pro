@@ -27,6 +27,7 @@ jobs:
       - run: node scripts/prepare-ocr.mjs
       - run: npm run build
       - run: node --check server/windows.mjs
+      - run: node --check server/diagnostics.mjs
       - name: Preparar carpeta portable
         shell: pwsh
         run: |
@@ -35,7 +36,7 @@ jobs:
           Copy-Item -Recurse assets paquete/assets
           Copy-Item -Recurse ocr paquete/ocr
           Copy-Item -Recurse android paquete/android
-          Copy-Item server/windows.mjs paquete/server/windows.mjs
+          Copy-Item server/windows.mjs, server/diagnostics.mjs paquete/server/
           Copy-Item INICIAR-SERVIDOR-WINDOWS.bat, CONFIGURACION-EJEMPLO.cmd paquete/
           Copy-Item docs/windows-carpeta-compartida.md paquete/LEEME-WINDOWS.md
           $node = (Get-Command node).Source

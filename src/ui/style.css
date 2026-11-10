@@ -578,3 +578,7 @@ details > summary {
 .relatedBacklinks{padding:12px!important;margin:10px 0;background:var(--pale);border:1px solid var(--line);border-radius:9px}
 .relatedBacklinks h3{font-size:14px;margin-bottom:7px}
 .relatedBacklinks p{margin:4px 0;font-size:12px}
+
+.relationBacklink{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12px}
+.relationBacklink span{flex:1;overflow-wrap:anywhere}
+.relationBacklink button{font-size:12px;padding:4px 8px}

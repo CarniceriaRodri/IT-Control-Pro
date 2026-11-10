@@ -1,5 +1,5 @@
 import type { Repository, Snapshot } from "./repository";
-import type { Dataset } from "../domain/model";
+import { initialModules, type Dataset } from "../domain/model";
 import type { Binaries } from "./media";
 import type { Retention, RestorePoint } from "./periods";
 async function api<T>(route: string, data?: unknown): Promise<T> {
@@ -27,6 +27,8 @@ async function encode(blob:Blob):Promise<string>{
 export async function openNetworkRepository():Promise<Repository>{
   const health=await api<{mode:string}>("health");
   if(health.mode!=="windows-server")throw Error("Servidor incompatible");
+  const current=await api<Snapshot>("state");
+  if(!current.data.modules.length)await api("bootstrap",{data:{modules:initialModules(),records:[],history:[]}});
   return {
     read:()=>api<Snapshot>("state"),
     file:async(hash)=>{

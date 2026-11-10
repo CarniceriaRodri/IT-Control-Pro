@@ -71,6 +71,7 @@ export function App({
     [sort, order] = useState(false),
     [arch, archives] = useState(false),
     [editor, edit] = useState<Entity | "new" | null>(null),
+    [childEditor, setChildEditor] = useState<{ mod: Module; selected: (row: Entity) => void } | null>(null),
     [info, notify] = useState(""),
     [diag, diagnose] = useState(false),
     [, refresh] = useState(0);
@@ -103,6 +104,7 @@ export function App({
     nav(id);
     toggle(false);
     edit(null);
+    setChildEditor(null);
     search("");
     archives(false);
     order(false);
@@ -126,10 +128,12 @@ export function App({
   const display = (m: Module, r: Entity, k: string) => {
     const f = m.fields.find((f) => f.id === k),
       v = r.values[k];
-    if (f?.type === "relación") {
-      const linked = data.records.find((r) => r.id === v),
-        other = data.modules.find((m) => m.id === f.target);
-      if (linked && other) return title(linked, other);
+    if (f?.type === "relación" || f?.type === "relación múltiple") {
+      return (Array.isArray(v) ? v : v ? [v] : []).map((id) => {
+        const linked = data.records.find((row) => row.id === id);
+        const other = linked && data.modules.find((m) => m.id === linked.module);
+        return linked && other ? title(linked, other) : "";
+      }).filter(Boolean).join(", ");
     }
     return Array.isArray(v)
       ? v.join(", ")
@@ -471,6 +475,7 @@ export function App({
           row={editor === "new" ? undefined : editor}
           close={() => edit(null)}
           load={repo.file}
+          createRelated={(target, selected) => setChildEditor({ mod: target, selected })}
           save={(r, files) =>
             write(
               editor === "new" ? "Alta" : "Edición",
@@ -480,6 +485,22 @@ export function App({
               files,
             )
           }
+        />
+      )}
+      {childEditor && (
+        <Editor
+          key={childEditor.mod.id}
+          data={data}
+          mod={childEditor.mod}
+          close={() => setChildEditor(null)}
+          load={repo.file}
+          save={async (r, files) => {
+            await write("Alta relacionada", r.id,
+              (d) => putRecord(d, d.modules.find((m) => m.id === r.module)!, r),
+              false, files);
+            childEditor.selected(r);
+            setChildEditor(null);
+          }}
         />
       )}
       {diag && (

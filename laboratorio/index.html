@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IT Control Pro · Laboratorio modular</title>
+<style>
+:root{font:15px system-ui,-apple-system,sans-serif;color:#172a3a;background:#f5f7fa}
+*{box-sizing:border-box}body{margin:0}header{background:#142f42;color:white;padding:19px 24px}h1{font-size:21px;margin:0}h2{font-size:17px;margin:0 0 12px}small,.muted{color:#627486}header small{color:#b8d4e5}
+main{max-width:1100px;margin:20px auto;padding:0 15px}.layout{display:grid;grid-template-columns:220px 1fr;gap:16px}
+.panel{background:white;border:1px solid #dfe5ed;border-radius:12px;padding:17px;margin-bottom:15px}
+nav button{display:block;width:100%;text-align:left;margin:5px 0}.btn,button{border:1px solid #cbd5e1;border-radius:8px;background:white;color:#183146;padding:9px 12px;cursor:pointer;font:inherit}button:hover{background:#f0f6ff}.primary{background:#17649b;color:white;border-color:#17649b}.primary:hover{background:#11527f}
+input,select,textarea{font:inherit;padding:10px;border:1px solid #becbd6;border-radius:8px;width:100%}label{display:block;font-size:13px;font-weight:600;margin:12px 0 5px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.item{border:1px solid #e1e8ee;border-radius:9px;padding:11px;margin:7px 0}
+.chip{background:#e9f2fa;border-radius:20px;padding:3px 9px;font-size:12px}.sub{font-size:12px;color:#627486}.results{border:1px solid #dbe4ed;border-radius:9px;margin-top:7px;max-height:200px;overflow:auto}.results button{border:0;border-radius:0;display:block;width:100%;text-align:left;border-bottom:1px solid #edf1f4}
+.actions{display:flex;gap:8px;margin-top:15px;flex-wrap:wrap}.notice{background:#fff8df;padding:12px;border-radius:8px;color:#59480b}
+.overlay{position:fixed;inset:0;background:#081f2bbb;display:grid;place-items:center;padding:12px;z-index:10}.modal{background:white;padding:18px;border-radius:12px;width:min(570px,100%);max-height:90vh;overflow:auto}
+.hidden{display:none!important}.stack{padding-left:14px;border-left:3px solid #dbe9f2;margin-top:12px}
+@media(max-width:700px){.layout,.grid{grid-template-columns:1fr}main{margin:10px auto}}
+</style></head><body>
+<header><h1>IT Control Pro · Laboratorio modular</h1><small>Prototipo aislado de la aplicación publicada · datos de prueba locales</small></header>
+<main><div class="notice">Esta es una prueba funcional en una rama de desarrollo. No sustituye la aplicación actual. No introduzcas información corporativa ni datos personales reales.</div>
+<div class="layout" style="margin-top:16px">
+<nav class="panel"><h2>Módulos</h2><div id="nav"></div><hr><button id="addModule" class="btn">+ Crear módulo</button><button id="export" class="btn">Exportar JSON</button><label for="import">Importar JSON</label><input id="import" type="file" accept=".json,application/json"><button id="reset">Restablecer demo</button></nav>
+<section><div class="panel"><div class="row" style="justify-content:space-between"><h2 id="moduleTitle"></h2><button id="addRecord" class="primary">+ Nuevo registro</button></div><label for="filter">Buscar en el módulo</label><input id="filter" placeholder="Buscar por cualquiera de los campos..."><div id="records"></div></div>
+<div class="panel"><h2>Definición del módulo</h2><div id="schema"></div><div class="actions"><button id="addField">+ Añadir campo</button><button id="addRelation">+ Añadir relación</button></div></div></section></div></main>
+<div id="dialog" class="overlay hidden" role="dialog" aria-modal="true"><div class="modal"><div class="row" style="justify-content:space-between"><h2 id="dialogTitle"></h2><button id="closeDialog" aria-label="Cerrar">✕</button></div><div id="dialogBody"></div></div></div>
+<script>
+(()=>{
+const STORE='itcp_lab_modular_v1';
+const base=[
+{id:'centros',name:'Centros',fields:[{id:'nombre',label:'Nombre',type:'text',required:true},{id:'ubicacion',label:'Ubicación',type:'text'}]},
+{id:'contactos',name:'Contactos',fields:[{id:'nombre',label:'Nombre',type:'text',required:true},{id:'telefono',label:'Teléfono',type:'tel'},{id:'centro',label:'Centro',type:'relation',target:'centros'}]},
+{id:'equipos',name:'Equipos',fields:[{id:'nombre',label:'Nombre / hostname',type:'text',required:true},{id:'serie',label:'Número de serie',type:'text'},{id:'ip',label:'IP',type:'text'},{id:'marca',label:'Marca',type:'text'},{id:'centro',label:'Centro',type:'relation',target:'centros'}]},
+{id:'incidencias',name:'Incidencias',fields:[{id:'asunto',label:'Asunto',type:'text',required:true},{id:'estado',label:'Estado',type:'select',options:['Pendiente','En proceso','En espera','Finalizado','Cancelado']},{id:'equipo',label:'Equipo',type:'relation',target:'equipos'},{id:'contacto',label:'Contacto',type:'relation',target:'contactos'}]},
+{id:'tareas',name:'Tareas',fields:[{id:'titulo',label:'Título',type:'text',required:true},{id:'estado',label:'Estado',type:'select',options:['Pendiente','En proceso','Finalizado']},{id:'incidencia',label:'Incidencia',type:'relation',target:'incidencias'}]},
+{id:'agenda',name:'Agenda',fields:[{id:'asunto',label:'Asunto',type:'text',required:true},{id:'fecha',label:'Fecha',type:'date'},{id:'telefono',label:'Teléfono de llamada',type:'tel'},{id:'estado',label:'Estado',type:'select',options:['Pendiente','En proceso','En espera','Aplazado','Finalizado','Cancelado']},{id:'contacto',label:'Contacto',type:'relation',target:'contactos'},{id:'incidencia',label:'Incidencia',type:'relation',target:'incidencias'},{id:'tarea',label:'Tarea',type:'relation',target:'tareas'}]}
+];
+const empty=()=>({modules:structuredClone(base),records:{},next:1});
+let db;try{db=JSON.parse(localStorage.getItem(STORE));if(!db||!Array.isArray(db.modules)||!db.records)throw Error('format');}catch{db=empty()}
+let active=db.modules[0].id,filter='';
+const $=id=>document.getElementById(id), esc=v=>String(v??'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+const save=()=>localStorage.setItem(STORE,JSON.stringify(db)), mod=id=>db.modules.find(m=>m.id===id), rows=id=>db.records[id]||[], name=(id,rec)=>{if(!rec)return'';const m=mod(id);return String(rec[m.fields.find(f=>f.required&&f.type!=='relation')?.id||m.fields[0].id]||rec._id)};
+const lookup=(id,rid)=>rows(id).find(x=>x._id===rid);
+function render(){
+$('nav').innerHTML=db.modules.map(m=>'<button data-mod="'+esc(m.id)+'" '+(m.id===active?'class="primary"':'')+'>'+esc(m.name)+' <small>('+rows(m.id).length+')</small></button>').join('');
+const m=mod(active);$('moduleTitle').textContent=m.name;
+$('schema').innerHTML=m.fields.map(f=>'<div class="item"><strong>'+esc(f.label)+'</strong> <span class="chip">'+esc(f.type==='relation'?'Relación → '+(mod(f.target)?.name||f.target):f.type)+'</span></div>').join('');
+const q=filter.trim().toLocaleLowerCase('es');
+const found=rows(active).filter(r=>!q||m.fields.some(f=>String(f.type==='relation'?name(f.target,lookup(f.target,r[f.id])):r[f.id]||'').toLocaleLowerCase('es').includes(q)));
+$('records').innerHTML=found.length?found.map(r=>'<div class="item"><div class="row" style="justify-content:space-between"><strong>'+esc(name(active,r))+'</strong><button data-edit="'+esc(r._id)+'">Editar</button></div>'+m.fields.filter(f=>r[f.id]!==undefined&&r[f.id]!==null&&r[f.id]!=='').map(f=>'<div class="sub">'+esc(f.label)+': '+esc(f.type==='relation'?name(f.target,lookup(f.target,r[f.id])):r[f.id])+'</div>').join('')+'</div>').join(''):'<p class="muted">No hay registros coincidentes.</p>';
+}
+function dialog(title,body){$('dialogTitle').textContent=title;$('dialogBody').replaceChildren();$('dialogBody').append(body);$('dialog').classList.remove('hidden')}
+const div=(cls)=>{const e=document.createElement('div');if(cls)e.className=cls;return e},el=(tag,attrs={})=>{let e=document.createElement(tag);for(const [k,v] of Object.entries(attrs))e[k]=v;return e},btn=(text,fn,primary=false)=>{const b=el('button',{textContent:text});if(primary)b.className='primary';b.type='button';b.onclick=fn;return b};
+function inputRow(parent,f,val,update){
+const wrap=div(),label=el('label',{textContent:f.label+(f.required?' *':'')});wrap.append(label);
+let input=el(f.type==='select'?'select':'input');if(f.type==='select'){input.append(el('option',{value:'',textContent:'Seleccionar...'}));(f.options||[]).forEach(o=>input.append(el('option',{value:o,textContent:o})));}else input.type=f.type==='tel'?'tel':f.type==='date'?'date':'text';
+input.value=val??'';input.oninput=()=>update(input.value);wrap.append(input);parent.append(wrap);return input;
+}
+// A modal stack is used: linked records may be created repeatedly without losing parent drafts.
+let stack=[];
+function openRecord(mid,initial={},onSaved,record=null){
+const m=mod(mid);if(!m)return;
+const draft={...initial,...(record||{})},page=div(),form=div();
+m.fields.forEach(f=>{
+ if(f.type!=='relation'){inputRow(form,f,draft[f.id],v=>draft[f.id]=v);return}
+ const block=div(),lab=el('label',{textContent:f.label}),search=el('input',{placeholder:'Buscar o crear '+(mod(f.target)?.name||'registro')+'...',type:'search'}),list=div('results'),chosen=div('sub');
+ block.append(lab,chosen,search,list);form.append(block);
+ function renderMatches(){
+  chosen.textContent=draft[f.id]?'Seleccionado: '+name(f.target,lookup(f.target,draft[f.id])):'Sin seleccionar';
+  const q=search.value.trim().toLocaleLowerCase('es');
+  const matches=rows(f.target).filter(r=>!q||Object.entries(r).some(([k,v])=>String(v).toLocaleLowerCase('es').includes(q))).slice(0,8);
+  list.replaceChildren();
+  for(const r of matches)list.append(btn('✓ '+name(f.target,r),()=>{draft[f.id]=r._id;search.value='';renderMatches()}));
+  list.append(btn('+ Crear '+(mod(f.target)?.name||f.target)+(q?' («'+search.value.trim()+'»)':''),()=>{
+   const tm=mod(f.target),main=tm.fields.find(x=>x.required&&x.type!=='relation')||tm.fields.find(x=>x.type==='text');
+   const seed=main?{[main.id]:search.value.trim()}:{};
+   stack.push({title:$('dialogTitle').textContent,body:page});
+   openRecord(f.target,seed,created=>{draft[f.id]=created._id;search.value='';renderMatches();});
+  }));
+  if(draft[f.id])list.append(btn('✕ Quitar selección',()=>{delete draft[f.id];renderMatches()}));
+ }
+ search.oninput=renderMatches;renderMatches();
+});
+const actions=div('actions');
+actions.append(btn('Guardar y '+(onSaved?'seleccionar':'volver'),()=>{
+for(const f of m.fields){if(f.required&&!String(draft[f.id]||'').trim()){alert('Falta '+f.label);return}}
+const id=record?record._id:'r'+db.next++;
+const out={...draft,_id:id};db.records[mid]=rows(mid).filter(r=>r._id!==id);db.records[mid].push(out);save();
+if(onSaved)onSaved(out);
+restore();render();
+},true),btn('Cancelar',restore));
+page.append(form,actions);dialog((record?'Editar ':'Nuevo ')+m.name,page);
+}
+function restore(){if(stack.length){const p=stack.pop();dialog(p.title,p.body)}else $('dialog').classList.add('hidden')}
+$('closeDialog').onclick=restore;
+$('nav').onclick=e=>{const b=e.target.closest('[data-mod]');if(b){active=b.dataset.mod;filter='';$('filter').value='';render()}};
+$('records').onclick=e=>{const b=e.target.closest('[data-edit]');if(b)openRecord(active,{},null,lookup(active,b.dataset.edit))};
+$('addRecord').onclick=()=>openRecord(active);
+$('filter').oninput=e=>{filter=e.target.value;render()};
+function simpleForm(title,fields,done){const wrap=div();let values={};fields.forEach(f=>inputRow(wrap,f,'',v=>values[f.id]=v));const row=div('actions');row.append(btn('Crear',()=>{const err=done(values);if(err){alert(err);return}restore();render()},true),btn('Cancelar',restore));wrap.append(row);dialog(title,wrap)}
+$('addModule').onclick=()=>simpleForm('Crear módulo',[{id:'name',label:'Nombre del módulo',type:'text',required:true}],v=>{const name=(v.name||'').trim(),id='m'+db.next++;if(!name)return'Introduce un nombre';db.modules.push({id,name,fields:[{id:'nombre',label:'Nombre',type:'text',required:true}]});active=id;save()});
+$('addField').onclick=()=>simpleForm('Añadir campo',[{id:'label',label:'Nombre del campo',type:'text',required:true},{id:'type',label:'Tipo',type:'select',options:['text','tel','date','select']} ,{id:'options',label:'Opciones separadas por comas (solo desplegables)',type:'text'}],v=>{if(!v.label?.trim())return'Indica el nombre';const t=v.type||'text';mod(active).fields.push({id:'f'+db.next++,label:v.label,type:t,...(t==='select'?{options:(v.options||'').split(',').map(x=>x.trim()).filter(Boolean)}:{})});save()});
+$('addRelation').onclick=()=>{
+ const wrap=div(),l=el('label',{textContent:'Nombre del campo de relación'}),inp=el('input',{placeholder:'Ej. Equipo asignado'}),l2=el('label',{textContent:'Módulo de destino'}),sel=el('select');
+ for(const m of db.modules.filter(m=>m.id!==active))sel.append(el('option',{value:m.id,textContent:m.name}));
+ wrap.append(l,inp,l2,sel);const actions=div('actions');actions.append(btn('Añadir relación',()=>{if(!inp.value.trim())return alert('Escribe un nombre');mod(active).fields.push({id:'rel'+db.next++,label:inp.value.trim(),type:'relation',target:sel.value});save();restore();render()},true),btn('Cancelar',restore));wrap.append(actions);dialog('Relacionar módulos',wrap);
+};
+$('export').onclick=()=>{const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=el('a',{href:url,download:'itcp-laboratorio.json'});a.click();setTimeout(()=>URL.revokeObjectURL(url),2000)};
+$('import').onchange=async e=>{const f=e.target.files?.[0];if(!f)return;try{const data=JSON.parse(await f.text());if(!Array.isArray(data.modules)||!data.records||typeof data.records!=='object'||!Number.isInteger(data.next))throw Error('Estructura inválida');if(!confirm('¿Sustituir los datos locales del laboratorio?'))return;db=data;active=db.modules[0]?.id;save();render()}catch(err){alert('Importación no válida: '+err.message)}finally{e.target.value=''}};
+$('reset').onclick=()=>{if(confirm('¿Borrar los datos de prueba de este laboratorio?')){db=empty();active=db.modules[0].id;save();render()}};
+render();
+})();
+</script></body></html>

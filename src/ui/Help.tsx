@@ -35,8 +35,10 @@ const topics: Topic[] = [
   {title:"CSV y LibreOffice Calc",summary:"Importa tablas conservando los encabezados y el contenido.",steps:[
     "En Administración selecciona «Crear módulo desde una tabla», o dentro de un módulo pulsa «Importar tabla».",
     "Elige un archivo CSV o ODS; si es ODS selecciona la hoja deseada.",
-    "La primera fila contiene los encabezados. Las columnas nuevas crean campos automáticamente.",
-    "Puedes asignar una columna a un campo existente, crear uno nuevo u omitir una columna que no necesites.",
+    "La primera fila contiene los encabezados. La importación crea los campos nuevos automáticamente y reutiliza los antiguos solo cuando coinciden y son compatibles.",
+    "No hace falta adaptar el archivo a los campos antiguos ni seleccionar correspondencias: los datos son el punto de partida.",
+    "En las opciones avanzadas puedes excluir columnas, forzar campos nuevos o elegir correspondencias manuales si lo necesitas.",
+    "Puedes conservar todos los campos antiguos u ocultar los que no estén en el archivo, sin borrar sus datos.",
     "Revisa las primeras filas y los posibles errores. Por defecto se conservan las filas con contenido repetido.",
     "El archivo de origen no cambia. Se prepara un punto de recuperación al confirmar la importación.",
     "Puedes añadir, reorganizar, ocultar o quitar campos más adelante; los campos con datos se ocultan para no perder información."

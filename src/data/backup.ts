@@ -91,7 +91,8 @@ export function parseBackup(raw: string): Dataset {
   check(Object.keys(legacy).every((k) => mods.has(k)));
   for (const m of d.modules)
     for (const f of m.fields)
-      if (f.type === "relación") check(mods.has(f.target!));
+      if (f.type === "relación" || f.type === "relación múltiple")
+        check(f.target === "*" || mods.has(f.target!));
   for (const r of d.records) {
     check(
       uuid(r.id) &&

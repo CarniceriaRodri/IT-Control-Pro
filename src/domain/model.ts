@@ -101,16 +101,50 @@ export function tasksModule(): Module {
     ],
   };
 }
+
+// Módulos maestros y campos relacionales compartidos. No existe módulo Fabricantes.
+export function contactsModule(): Module {
+  return {
+    id: "Contactos",
+    name: "Contactos",
+    active: true,
+    fields: [
+      { ...field("nombre", "Nombre y apellidos"), required: true },
+      field("telefono", "Teléfono", "teléfono"),
+      field("extension", "Extensión"),
+      field("correo", "Correo", "correo"),
+      { ...field("centroId", "Centro", "relación"), target: "Centros" },
+      field("observaciones", "Observaciones", "texto largo"),
+    ],
+  };
+}
+export function agendaExtras(): Field[] {
+  return [
+    { ...field("asunto", "Asunto / motivo de la llamada") },
+    field("hora", "Hora", "hora"),
+    field("telefono", "Teléfono para llamar", "teléfono"),
+    { ...field("estado", "Estado", "estado"), options: ["Pendiente", "En proceso", "En espera", "Aplazado", "Finalizado", "Cancelado"], initial: "Pendiente" },
+    { ...field("contactoId", "Contacto relacionado", "relación"), target: "Contactos" },
+    { ...field("incidenciaId", "Incidencia relacionada", "relación"), target: "Incidencias" },
+    { ...field("tareaId", "Tarea relacionada", "relación"), target: "Tareas" },
+  ];
+}
+export function incidenceExtras(): Field[] {
+  return [{ ...field("contactoId", "Contacto relacionado", "relación"), target: "Contactos" }];
+}
+
 export function initialModules(): Module[] {
   return [...Object.entries(legacy).map(([id, keys]) => ({
     id,
     name: id,
     active: true,
     fields: [
-      ...keys.map((key, i) => ({
+      ...keys.filter((key) => id !== "Agenda" || key !== "estado").map((key, i) => ({
         ...field(key, key[0].toUpperCase() + key.slice(1)),
         required: i === 0,
       })),
+      ...(id === "Agenda" ? agendaExtras() : []),
+      ...(id === "Incidencias" ? incidenceExtras() : []),
       ...(id === "Incidencias"
         ? [
             {
@@ -120,7 +154,7 @@ export function initialModules(): Module[] {
           ]
         : []),
     ],
-  })), tasksModule()];
+  })), tasksModule(), contactsModule()];
 }
 export function shown(f: Field, values: Entity["values"]) {
   return (

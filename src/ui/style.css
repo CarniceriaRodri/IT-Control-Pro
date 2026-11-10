@@ -1,0 +1,529 @@
+@import "tailwindcss" source(none);
+@source "../ui";
+:root {
+  font:
+    15px/1.5 Inter,
+    system-ui,
+    sans-serif;
+  color-scheme: light;
+  --bg: #f4f7fa;
+  --panel: white;
+  --ink: #182d40;
+  --dim: #51677a;
+  --line: #d6e0e8;
+  --accent: #087361;
+  --pale: #e1f4ed;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #101d28;
+  --panel: #182935;
+  --ink: #eef5fa;
+  --dim: #b3c2ce;
+  --line: #344957;
+  --accent: #85dbc3;
+  --pale: #213f3a;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+}
+button,
+.fileBtn {
+  cursor: pointer;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: 8px;
+  color: inherit;
+  padding: 8px 13px;
+  font: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-weight: 560;
+}
+button:hover,
+.fileBtn:hover {
+  border-color: var(--accent);
+}
+button:disabled {
+  opacity: 0.45;
+}
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid #289bde;
+  outline-offset: 2px;
+}
+.primary {
+  background: #097663;
+  color: white;
+  border-color: #097663;
+}
+.shell {
+  min-height: 100vh;
+}
+.shell aside {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: 235px;
+  background: #132c3d;
+  color: #dce7ec;
+  padding: 27px 15px;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  z-index: 4;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: -1px;
+  padding: 0 7px 24px;
+  border-bottom: 1px solid #35505f;
+}
+.brand b {
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  width: 36px;
+  height: 36px;
+  background: #a5e4ce;
+  color: #163d39;
+}
+.brand em {
+  font-style: normal;
+  font-weight: 400;
+  color: #a5e4ce;
+}
+.navLabel {
+  font-size: 10px;
+  font-weight: 720;
+  letter-spacing: 1.6px;
+  margin: 25px 11px 10px;
+  color: #a4beca;
+}
+nav {
+  display: grid;
+  gap: 3px;
+}
+nav button {
+  justify-content: flex-start;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  padding: 10px 12px;
+  font-weight: 470;
+}
+nav button:hover,
+nav .selected {
+  background: #274859;
+  color: white;
+}
+nav .selected svg {
+  color: #99e1c8;
+}
+.asideFoot {
+  margin-top: auto;
+  padding: 24px 8px 0;
+  font-size: 12px;
+  color: #b6cbd3;
+  display: flex;
+  gap: 9px;
+  align-items: center;
+}
+main {
+  margin-left: 235px;
+}
+header {
+  height: 68px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 4vw;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+.crumb,
+.inline,
+.tools,
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.crumb {
+  font-size: 13px;
+  color: var(--dim);
+}
+article {
+  max-width: 1460px;
+  margin: auto;
+  padding: 34px 4vw 52px;
+}
+.title,
+.dialogTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+h1 {
+  font-size: clamp(28px, 3vw, 40px);
+  letter-spacing: -1.6px;
+  font-weight: 700;
+}
+h2 {
+  font-size: 20px;
+  letter-spacing: -0.5px;
+  font-weight: 650;
+}
+h3 {
+  font-size: 17px;
+  font-weight: 650;
+}
+p,
+small,
+.stats span {
+  color: var(--dim);
+}
+small {
+  display: block;
+  font-size: 12px;
+}
+.stats,
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 15px;
+}
+.stats button,
+.cards button,
+section {
+  position: relative;
+  display: block;
+  text-align: left;
+  border-radius: 13px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  padding: 20px;
+}
+.stats button {
+  background: var(--pale);
+  border-color: transparent;
+}
+.stats button div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  gap: 8px;
+}
+.stats svg {
+  color: var(--accent);
+}
+.stats strong {
+  font-size: 38px;
+  font-weight: 620;
+  line-height: 1.3;
+}
+.sectionTitle {
+  margin: 28px 0 13px;
+}
+.tileIcon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--pale);
+  color: var(--accent);
+  margin-bottom: 16px;
+}
+.arrow {
+  position: absolute;
+  right: 16px;
+  top: 17px;
+  color: var(--dim);
+}
+.cards p {
+  font-size: 13px;
+  font-weight: 400;
+  margin: 4px 0 16px;
+}
+.cards small {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+.tools,
+.inline {
+  flex-wrap: wrap;
+}
+.tools {
+  margin-bottom: 15px;
+}
+.search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+.tableScroll {
+  overflow: auto;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 14px;
+}
+td,
+th {
+  text-align: left;
+  padding: 11px;
+  border-bottom: 1px solid var(--line);
+}
+th {
+  color: var(--dim);
+  font-size: 12px;
+}
+td {
+  max-width: 350px;
+  overflow-wrap: anywhere;
+}
+.empty {
+  text-align: center;
+  padding: 48px 8px;
+}
+.empty svg {
+  margin: 0 auto 12px;
+  color: var(--dim);
+}
+.empty p {
+  margin-top: 5px;
+}
+.admin {
+  display: grid;
+  gap: 18px;
+}
+.admin section > *,
+dialog form > * {
+  margin-bottom: 12px;
+}
+.admin section > :last-child {
+  margin-bottom: 0;
+}
+input:not([type="checkbox"]),
+select,
+textarea {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: 7px;
+  color: var(--ink);
+  padding: 9px 11px;
+  max-width: 100%;
+  min-width: 0;
+}
+label:not(.check, .search, .fileBtn) {
+  display: grid;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 550;
+}
+input[type="checkbox"] {
+  accent-color: #087361;
+  width: 18px;
+  height: 18px;
+}
+.check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.fieldRow,
+.audit {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+.fieldRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fieldRow > div,
+.fieldRow > strong {
+  flex: 1;
+}
+.fileBtn {
+  position: relative;
+  overflow: hidden;
+}
+.fileBtn input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.audit small {
+  overflow-wrap: anywhere;
+}
+dialog {
+  margin: auto;
+  width: min(94vw, 500px);
+  max-height: 88dvh;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: var(--panel);
+  color: var(--ink);
+  padding: 23px;
+}
+dialog::backdrop {
+  background: #0e2239aa;
+}
+dialog p {
+  margin-bottom: 14px;
+}
+.bottom,
+.hamb,
+.scrim {
+  display: none;
+}
+@media (max-width: 1050px) {
+  .cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .shell aside {
+    width: 210px;
+  }
+  main {
+    margin-left: 210px;
+  }
+}
+@media (max-width: 760px) {
+  .shell aside {
+    transform: translateX(-100%);
+    width: 250px;
+  }
+  .shell aside.open {
+    transform: none;
+  }
+  .scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: #101e3090;
+    z-index: 3;
+    border: 0;
+    border-radius: 0;
+  }
+  main {
+    margin: 0;
+  }
+  header {
+    height: 58px;
+    padding: 0 15px;
+  }
+  .hamb {
+    display: inline-flex;
+  }
+  .crumb > svg,
+  .crumb strong {
+    display: none;
+  }
+  .bottom {
+    position: fixed;
+    bottom: 0;
+    inset-inline: 0;
+    display: flex;
+    background: var(--panel);
+    border-top: 1px solid var(--line);
+    justify-content: space-around;
+    padding: 5px 4px max(5px, env(safe-area-inset-bottom));
+    z-index: 2;
+  }
+  .bottom button {
+    flex-direction: column;
+    font-size: 11px;
+    gap: 2px;
+    border: 0;
+    min-height: 46px;
+  }
+  .bottom .selected {
+    color: var(--accent);
+    background: var(--pale);
+  }
+  article {
+    padding: 21px 15px 90px;
+  }
+  .cards,
+  .stats {
+    gap: 8px;
+  }
+  .cards button,
+  section {
+    padding: 14px;
+  }
+  .stats button {
+    padding: 12px 8px;
+  }
+  .stats svg {
+    display: none;
+  }
+  .stats span {
+    font-size: 11px;
+  }
+  .stats strong {
+    font-size: 27px;
+  }
+  .cards p {
+    min-height: 38px;
+  }
+  .title {
+    align-items: flex-start;
+  }
+  .title > .primary {
+    position: fixed;
+    bottom: 74px;
+    right: 15px;
+    z-index: 1;
+    box-shadow: 0 4px 16px #10213430;
+  }
+  .tools button,
+  button {
+    min-height: 40px;
+  }
+  .search {
+    flex-basis: 100%;
+  }
+  .search input {
+    width: 100%;
+  }
+}
+fieldset {
+  display: grid;
+  gap: 12px;
+  border: 0;
+  padding: 0;
+  min-width: 0;
+}
+legend {
+  font-weight: 700;
+  color: var(--accent);
+  padding: 12px 0 6px;
+}

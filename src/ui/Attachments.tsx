@@ -10,6 +10,18 @@ export interface FileDraft {
 export const emptyFiles = (): FileDraft => ({ refs: [], blobs: new Map() });
 type Recognition = { hash: string; name: string; text: string; method: "ocr" | "codes" };
 const isImage = (file: Attachment) => file.kind === "photo";
+type Preview = {
+  name: string;
+  kind: "photo" | "pdf" | "text";
+  url?: string;
+  content?: string;
+};
+// Un documento se visualiza siempre como texto sin ejecutar HTML ni scripts.
+const textFile = /\.(txt|text|md|markdown|csv|tsv|log|json|xml|yaml|yml|ini|cfg|conf|sql|bat|cmd|ps1|sh|html|htm|css|js|ts|py)$/i;
+const pdfFile = /\.pdf$/i;
+const maxTextPreview = 2 * 1024 * 1024;
+const isText = (f: Attachment) => textFile.test(f.name);
+const isPdf = (f: Attachment) => pdfFile.test(f.name);
 
 async function normalizeImage(file: File): Promise<File> {
   if (file.size <= maxFile && /^image\/(jpeg|png|webp|gif)$/i.test(file.type)) return file;
@@ -47,7 +59,7 @@ export function Attachments({
   load: (hash: string) => Promise<Blob | undefined>;
   library?: Attachment[];
 }) {
-  const [preview, show] = useState<{ url: string; name: string } | null>(null);
+  const [preview, show] = useState<Preview | null>(null);
   const [tab, setTab] = useState<"files" | "library">("files");
   const [filter, search] = useState("");
   const [recognition, setRecognition] = useState<Recognition | null>(null);
@@ -56,7 +68,7 @@ export function Attachments({
   const gate = useRef(false);
   const current = useRef(value);
   current.current = value;
-  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview.url); }, [preview]);
+  useEffect(() => () => { if (preview?.url) URL.revokeObjectURL(preview.url); }, [preview]);
   const uniqueLibrary = Array.from(new Map(library.filter(isImage).map((f) => [f.hash, f])).values());
   const searchResults = uniqueLibrary.filter((f) => f.name.toLocaleLowerCase().includes(filter.toLocaleLowerCase())).slice(0, 80);
 
@@ -80,12 +92,36 @@ export function Attachments({
       change({ refs, blobs });
     } finally { gate.current = false; setBusy(false); pending?.(false); }
   }
-  async function showPhoto(ref: Attachment) {
+  async function showFile(ref: Attachment) {
+    if (busy) return;
+    setBusy(true);
+    status("");
     try {
       const blob = current.current.blobs.get(ref.hash) || await load(ref.hash);
-      if (!blob) throw Error("Foto no disponible.");
-      show({ url: URL.createObjectURL(blob), name: ref.name });
+      if (!blob) throw Error("El archivo no está disponible.");
+      if (isImage(ref)) {
+        show({ url: URL.createObjectURL(blob), name: ref.name, kind:"photo" });
+      } else if (isPdf(ref)) {
+        // Los blobs del servicio Windows pueden recibirse como octet-stream.
+        // Forzamos el MIME para que el visor integrado reconozca el PDF.
+        if (blob.size < 5 || !new Uint8Array(await blob.slice(0, 5).arrayBuffer())
+          .every((n,i)=>n === [37,80,68,70,45][i]))
+          throw Error("Este archivo no tiene una cabecera PDF válida.");
+        show({ url: URL.createObjectURL(new Blob([blob], {type:"application/pdf"})),
+          name:ref.name, kind:"pdf" });
+      } else if (isText(ref)) {
+        if (blob.size > maxTextPreview)
+          throw Error("El documento supera 2 MB para la vista de texto. Descárgalo para abrirlo completo.");
+        const bytes = await blob.arrayBuffer();
+        let content = "";
+        try { content = new TextDecoder("utf-8", {fatal:true}).decode(bytes); }
+        catch { content = new TextDecoder("windows-1252").decode(bytes); }
+        show({ name:ref.name, kind:"text", content });
+      } else {
+        throw Error("No existe visor integrado para este formato. Puedes descargar el archivo.");
+      }
     } catch (e) { status(String(e)); }
+    finally { setBusy(false); }
   }
   async function recognize(ref: Attachment, method: "ocr" | "codes") {
     if (busy) return;
@@ -148,7 +184,7 @@ export function Attachments({
           <div className="photoLibraryList">
             {searchResults.map((f) => <div className="photoLibraryItem" key={f.hash}>
               <span title={f.name}>{f.name}</span>
-              <button type="button" onClick={() => void showPhoto(f)}>Ver</button>
+              <button type="button" onClick={() => void showFile(f)}>Ver</button>
               <button type="button" onClick={() => useFromLibrary(f)} disabled={value.refs.some((r) => r.hash === f.hash)}>
                 {value.refs.some((r) => r.hash === f.hash) ? <><Check size={15}/> Añadida</> : "Seleccionar"}
               </button>
@@ -163,10 +199,15 @@ export function Attachments({
           <div className="photoEntryTitle"><span>{ref.name}</span><small>{Math.ceil(ref.size / 1024)} KB · {ref.kind === "photo" ? "Fotografía" : "Documento"}</small></div>
           <div className="photoEntryButtons">
             {ref.kind === "photo" && <>
-              <button type="button" disabled={busy} onClick={() => void showPhoto(ref)}><Images size={15}/> Ver</button>
+              <button type="button" disabled={busy} onClick={() => void showFile(ref)}><Images size={15}/> Ver</button>
               <button type="button" disabled={busy} onClick={() => void recognize(ref, "ocr")}><ScanText size={15}/> OCR</button>
               <button type="button" disabled={busy} onClick={() => void recognize(ref, "codes")}><ScanLine size={15}/> Código</button>
             </>}
+            {ref.kind !== "photo" && (isPdf(ref) || isText(ref)) && (
+              <button type="button" disabled={busy} onClick={() => void showFile(ref)}>
+                <FolderOpen size={15}/> Ver documento
+              </button>
+            )}
             <button type="button" onClick={async () => {
               try { const blob = value.blobs.get(ref.hash) || await load(ref.hash); if (!blob) throw Error("Archivo no disponible."); downloadBlob(blob, ref.name); }
               catch (e) { status(String(e)); }
@@ -192,9 +233,29 @@ export function Attachments({
         </div>
       )}
       {preview && (
-        <div className="photoLightbox">
-          <div className="inline"><strong>{preview.name}</strong><button type="button" onClick={() => show(null)}>Cerrar foto</button></div>
-          <img src={preview.url} alt={preview.name} className="photoPreview"/>
+        <div className="photoLightbox documentPreview" role="region" aria-label={"Vista previa de " + preview.name}>
+          <div className="inline documentPreviewHeader">
+            <strong title={preview.name}>{preview.name}</strong>
+            {preview.kind === "pdf" && preview.url && (
+              <button type="button" onClick={() => window.open(preview.url, "_blank", "noopener,noreferrer")}>
+                Abrir PDF en otra pestaña
+              </button>
+            )}
+            <button type="button" onClick={() => show(null)}>Cerrar visor</button>
+          </div>
+          {preview.kind === "photo" && preview.url && (
+            <img src={preview.url} alt={preview.name} className="photoPreview"/>
+          )}
+          {preview.kind === "pdf" && preview.url && (
+            <>
+              <iframe title={"PDF: " + preview.name} className="documentPdfFrame"
+                src={preview.url} referrerPolicy="no-referrer"/>
+              <small>Si tu navegador no muestra el PDF integrado, usa «Abrir PDF en otra pestaña» o «Descargar».</small>
+            </>
+          )}
+          {preview.kind === "text" && (
+            <pre className="documentTextPreview" tabIndex={0}>{preview.content || "(Documento vacío)"}</pre>
+          )}
         </div>
       )}
       {statusText && <p role="status" className="photoStatus">{statusText}</p>}

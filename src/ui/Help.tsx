@@ -70,6 +70,9 @@ const topics: Topic[] = [
   ]},
   {title:"Archivos, OCR y documentos",summary:"Fotografías, ficheros y extracción de texto.",steps:[
     "En cada módulo encontrarás «Archivos y fotos» para gestionar adjuntos.",
+    "Los PDFs adjuntos disponen de «Ver documento»; se abren en un visor dentro de la aplicación si el navegador lo permite.",
+    "Los archivos de texto TXT, CSV, JSON, Markdown, LOG y otros formatos de texto se muestran sin descargarlos y se pueden seleccionar o copiar.",
+    "Los archivos DOC/DOCX y otros formatos no compatibles siguen ofreciendo descarga; no se simula una vista previa.",
     "Cuando el dispositivo y navegador lo permiten, «Tomar foto» puede abrir la cámara.",
     "La extracción OCR depende de la función y dispositivo disponibles; revisa los resultados antes de guardarlos.",
     "No cargues documentación corporativa sensible en un repositorio público.",

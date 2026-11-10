@@ -1,4 +1,5 @@
 import { ModuleTools } from "./ModuleTools";
+import { Help } from "./Help";
 import { useEffect, useRef, useState } from "react";
 import { makeRoute, routeFromUrl, initializeHistory, pushAppRoute, replaceAppRoute, isRoute, isGuard } from "./history";
 import {
@@ -13,6 +14,7 @@ import {
   Download,
   FileText,
   HardDrive,
+  CircleHelp,
   Layers3,
   LayoutDashboard,
   Menu,
@@ -42,6 +44,7 @@ const icons: Record<string, typeof Monitor> = {
   Documentación: FileText,
   Informes: ChartNoAxesColumn,
   Administración: Settings2,
+  Ayuda: CircleHelp,
 };
 const descriptions: Record<string, string> = {
   Centros: "Directorio de centros y ubicaciones",
@@ -52,6 +55,7 @@ const descriptions: Record<string, string> = {
   Redes: "Dispositivos y direcciones IP",
   Agenda: "Tareas, fechas y estados",
   Documentación: "Referencias y documentación técnica",
+  Ayuda: "Glosario y guías de uso",
 };
 const Icon = ({ id, size = 19 }: { id: string; size?: number }) => {
   const Glyph = icons[id] || Layers3;
@@ -89,7 +93,7 @@ export function App({
   useEffect(() => {
     const current = routeFromUrl();
     if (current.page !== "Panel" && current.page !== "Administración" &&
-      current.page !== "Informes" && !data.modules.some(m => m.id === current.page && m.active)) {
+      current.page !== "Informes" && current.page !== "Ayuda" && !data.modules.some(m => m.id === current.page && m.active)) {
       initializeHistory(makeRoute("Panel"));
       replaceAppRoute(makeRoute("Panel"));
       nav("Panel");
@@ -124,7 +128,7 @@ export function App({
       }
       const next = isRoute(event.state) ? event.state : routeFromUrl();
       const validPage = next.page === "Panel" || next.page === "Informes" ||
-        next.page === "Administración" || data.modules.some(m => m.id === next.page && m.active);
+        next.page === "Administración" || next.page === "Ayuda" || data.modules.some(m => m.id === next.page && m.active);
       const target = validPage ? next.page : "Panel";
       nav(target);
       search("");
@@ -246,7 +250,7 @@ export function App({
           r.module === page &&
           r.archived === arch &&
           mod.fields
-            .filter((f) => f.visible)
+            .filter((f) => f.visible && f.relationMode !== "off")
             .some((f) =>
               display(mod, r, f.id)
                 .toLocaleLowerCase()
@@ -276,6 +280,7 @@ export function App({
         <nav>
           {button("Informes")}
           {button("Administración")}
+          {button("Ayuda")}
         </nav>
         <div className="asideFoot">
           <Database size={16} /> {location.port === "8787" ? "Datos en servidor Windows" : "Almacenamiento local"}
@@ -369,6 +374,7 @@ export function App({
                         Informes: "Recuento de registros activos por módulo.",
                         Administración:
                           "Configura tu espacio de trabajo y protege tus datos.",
+                        Ayuda: "Guías prácticas y glosario de IT Control Pro.",
                       } as Record<string, string>
                     )[page]}
               </p>
@@ -434,6 +440,7 @@ export function App({
               ))}
             </section>
           )}
+          {page === "Ayuda" && <Help />}
           {page === "Administración" && (
             <Admin
               data={data}
@@ -480,7 +487,7 @@ export function App({
                   <thead>
                     <tr>
                       {mod.fields
-                        .filter((f) => f.visible)
+                        .filter((f) => f.visible && f.relationMode !== "off")
                         .map((f) => (
                           <th key={f.id}>{f.label}</th>
                         ))}
@@ -491,7 +498,7 @@ export function App({
                     {rows.map((r) => (
                       <tr key={r.id}>
                         {mod.fields
-                          .filter((f) => f.visible)
+                          .filter((f) => f.visible && f.relationMode !== "off")
                           .map((f) => (
                             <td key={f.id}>{display(mod, r, f.id) || "—"}</td>
                           ))}
@@ -558,6 +565,7 @@ export function App({
           Módulos
         </button>
         {button("Administración", "Ajustes")}
+        {button("Ayuda")}
       </div>
       {editor && mod && (
         <Editor

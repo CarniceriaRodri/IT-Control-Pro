@@ -31,6 +31,7 @@ export function ImportTable({
     [idx, choose] = useState(0),
     [mapping, map] = useState<string[]>([]),
     [skipDuplicates, setSkipDuplicates] = useState(false),
+    [fillMatching, setFillMatching] = useState(false),
     [label, setLabel] = useState(name || ""),
     [error, err] = useState(""),
     [busy, work] = useState(false),
@@ -60,8 +61,9 @@ export function ImportTable({
   }
   const plan = useMemo(() => {
     const problems: string[] = [],
-      rows: Entity[] = [];
-    let duplicates = 0;
+      rows: Entity[] = [],
+      updates: Entity[] = [];
+    let duplicates = 0, matchedByKey = 0, changedByKey = 0;
     // Se crea una nueva definición; nunca se modifica la del módulo hasta confirmar.
     const target: Module = mod
       ? { ...mod, fields: [...mod.fields] }
@@ -99,7 +101,9 @@ export function ImportTable({
         .filter((r) => r.module === target.id)
         .map((r) => key(r.values)),
     );
-    const existing = [...data.records];
+    const existing = data.records.map(r => ({ ...r, values: { ...r.values } }));
+    const primary = target.fields.find(f => f.keyRole === "primary" && f.type !== "relación");
+    const normal = (v: unknown) => String(v ?? "").normalize("NFKC").trim().toLocaleLowerCase("es");
     for (const [i, line] of (sheet?.rows.slice(1) || []).entries()) {
       const values: Entity["values"] = {},
         id = uid();
@@ -125,6 +129,45 @@ export function ImportTable({
                   : v
               : v;
       });
+      const same = mod && primary && normal(values[primary.id])
+        ? data.records.filter(r => r.module === target.id && !r.archived &&
+            normal(r.values[primary.id]) === normal(values[primary.id])) : [];
+      if (same.length > 1) {
+        problems.push("Fila " + (i + 2) + ": clave principal ambigua; revisa los registros existentes.");
+        continue;
+      }
+      if (same.length === 1) {
+        matchedByKey++;
+        if (!fillMatching) {
+          problems.push("Fila " + (i + 2) + ": identificador principal ya existente; activa «Completar campos vacíos» o revisa el archivo.");
+          continue;
+        }
+        const record = existing.find(r => r.id === same[0].id)!;
+        const additions: Entity["values"] = {};
+        for (const f of fields) {
+          const incoming = values[f.id], current = record.values[f.id];
+          if ((current === null || current === undefined || current === "") &&
+            incoming !== null && incoming !== undefined && incoming !== "")
+            additions[f.id] = incoming;
+        }
+        const candidate: Entity = { ...record, values: { ...record.values, ...additions }, rev: record.rev + 1 };
+        try {
+          validate(target, candidate.values, existing, candidate.id);
+          if (Object.keys(additions).length) {
+            const previous = updates.findIndex(item => item.id === candidate.id);
+            const original = data.records.find(item => item.id === candidate.id)!;
+            const staged = { ...candidate, rev: original.rev + 1 };
+            if (previous >= 0) updates[previous] = staged;
+            else updates.push(staged);
+            const where = existing.findIndex(r => r.id === candidate.id);
+            existing[where] = candidate;
+            changedByKey++;
+          }
+        } catch(e) {
+          problems.push("Fila " + (i + 2) + ": " + String(e));
+        }
+        continue;
+      }
       const signature = key(values);
       if (seen.has(signature)) {
         duplicates++;
@@ -146,8 +189,8 @@ export function ImportTable({
         problems.push("Fila " + (i + 2) + ": " + String(e));
       }
     }
-    return { target, created, problems, rows, duplicates };
-  }, [sheet, mapping, label, data, mod, skipDuplicates]);
+    return { target, created, problems, rows, updates, duplicates, matchedByKey, changedByKey };
+  }, [sheet, mapping, label, data, mod, skipDuplicates, fillMatching]);
   return (
     <Dialog
       name={
@@ -256,10 +299,20 @@ export function ImportTable({
                 onChange={(e) => setSkipDuplicates(e.target.checked)} />
               Omitir filas idénticas (por defecto se conservan todas)
             </label>
+            {mod?.fields.some(f => f.keyRole === "primary") && (
+              <label className="check">
+                <input type="checkbox" checked={fillMatching}
+                  onChange={e => setFillMatching(e.target.checked)} />
+                Completar únicamente campos vacíos de registros cuyo identificador principal coincida.
+                Nunca sustituir información existente.
+              </label>
+            )}
             <p>
-              {plan.created.length} campos nuevos · {plan.rows.length} registros a importar ·{" "}
-              {plan.duplicates} coincidencias de contenido{" "}
-              {skipDuplicates ? "omitidas" : "conservadas"} · {plan.problems.length} errores
+              {plan.created.length} campos nuevos · {plan.rows.length} altas ·
+              {plan.matchedByKey} coincidencias por identificador ·
+              {plan.changedByKey} registros para completar ·
+              {plan.duplicates} duplicados de contenido
+              {skipDuplicates ? " omitidos" : " conservados"} · {plan.problems.length} errores
             </p>
             {plan.problems.slice(0, 12).map((p, i) => (
               <small key={i}>{p}</small>
@@ -281,7 +334,7 @@ export function ImportTable({
             busy ||
             !sheet ||
             !!plan.problems.length ||
-            (!plan.rows.length && !!mod)
+            (!plan.rows.length && !plan.updates.length && !!mod)
           }
           onClick={async () => {
             work(true);
@@ -300,6 +353,18 @@ export function ImportTable({
                     previous.fields.push(...plan.created);
                   }
                   for (const r of plan.rows) d.records.push(r);
+                  for (const r of plan.updates) {
+                    const index = d.records.findIndex(item => item.id === r.id);
+                    if (index < 0) throw Error("Registro coincidente no encontrado; vuelve a cargar.");
+                    // Se vuelven a comprobar los valores para no sobrescribir cambios ajenos.
+                    const original = d.records[index];
+                    if (original.rev !== r.rev - 1)
+                      throw Error("Un registro cambió desde la vista previa; importa otra vez.");
+                    const merged = { ...original, values: { ...r.values } , rev: original.rev + 1 };
+                    const module = d.modules.find(item => item.id === merged.module)!;
+                    validate(module, merged.values, d.records, merged.id);
+                    d.records[index] = merged;
+                  }
                 },
                 true, // Crear punto de recuperación antes de importar.
                 files.blobs,

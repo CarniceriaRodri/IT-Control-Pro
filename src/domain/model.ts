@@ -37,6 +37,8 @@ export interface Field {
   section?: string;
   initial?: string;
   unique?: boolean;
+  relationMode?: "off" | "read" | "select" | "full";
+  keyRole?: "primary" | "alternate";
 }
 export interface Module {
   files?: Attachment[];
@@ -158,7 +160,7 @@ export function initialModules(): Module[] {
 }
 export function shown(f: Field, values: Entity["values"]) {
   return (
-    f.visible &&
+    f.visible && f.relationMode !== "off" &&
     (!f.when ||
       String(values[f.when.field] ?? "")
         .trim()
@@ -227,7 +229,7 @@ export function validate(
     )
       fail("Opción desconocida");
     if (
-      f.unique &&
+      (f.unique || f.keyRole === "primary") &&
       rows.some(
         (r) =>
           r.module === mod.id &&

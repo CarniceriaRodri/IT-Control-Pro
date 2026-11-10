@@ -618,3 +618,21 @@ details > summary {
 .networkCapabilities .inline span{font-size:12px;flex:1}
 .networkResult{background:var(--bg);border:1px solid var(--line);padding:10px;white-space:pre-wrap;overflow-wrap:anywhere;border-radius:8px;max-height:230px;overflow:auto;font:12px/1.55 ui-monospace,Consolas,monospace;color:var(--ink)}
 @media(max-width:520px){.networkDiagnosticGrid{grid-template-columns:1fr}.networkDiagnostics{padding:12px!important}}
+
+
+/* Ayuda interactiva: guías y glosario, accesible en escritorio y Android. */
+.helpScreen{display:grid;gap:18px}
+.helpScreen>section{padding:20px;display:grid;gap:12px;min-width:0}
+.helpScreen h2{margin:0;font-size:19px}
+.helpScreen p{margin:0;overflow-wrap:anywhere}
+.helpIntro label{display:grid;gap:5px;font-weight:600;max-width:600px}
+.helpTopics{display:grid;gap:8px}
+.helpTopics details{padding:9px 13px;border:1px solid var(--line);border-radius:9px;background:var(--bg)}
+.helpTopics summary{cursor:pointer;font-weight:650;list-style-position:inside}
+.helpTopics summary small{font-weight:400;margin:2px 0 0 20px}
+.helpTopics ol{padding-left:23px;display:grid;gap:8px;margin:12px 0 5px}
+.helpTopics li{font-size:14px}
+.helpGlossary{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:9px}
+.helpGlossary>div{border:1px solid var(--line);border-radius:8px;padding:11px;background:var(--bg)}
+.helpGlossary strong{font-size:14px}.helpGlossary p{font-size:13px;margin-top:4px}
+@media(max-width:760px){.helpScreen>section{padding:14px}.helpGlossary{grid-template-columns:1fr}}

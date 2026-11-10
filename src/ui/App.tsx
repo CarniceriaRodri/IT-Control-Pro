@@ -35,6 +35,7 @@ const icons: Record<string, typeof Monitor> = {
   Inventario: Monitor,
   Almacén: Warehouse,
   Incidencias: Ticket,
+  Tareas: ClipboardList,
   Redes: Network,
   Agenda: CalendarDays,
   Documentación: FileText,
@@ -45,6 +46,7 @@ const descriptions: Record<string, string> = {
   Centros: "Directorio de centros y ubicaciones",
   Inventario: "Equipos, modelos y números de serie",
   Incidencias: "Seguimiento de avisos y prioridades",
+  Tareas: "Pendientes, responsables, fechas y seguimiento",
   Almacén: "Artículos y cantidades registradas",
   Redes: "Dispositivos y direcciones IP",
   Agenda: "Tareas, fechas y estados",
@@ -65,6 +67,7 @@ export function App({
     [page, nav] = useState("Panel"),
     [menu, toggle] = useState(false),
     [query, search] = useState(""),
+    [globalQuery, globalSearch] = useState(""),
     [sort, order] = useState(false),
     [arch, archives] = useState(false),
     [editor, edit] = useState<Entity | "new" | null>(null),
@@ -136,6 +139,12 @@ export function App({
           : "No"
         : String(v ?? "");
   };
+  const globalMatches = globalQuery.trim().length >= 2
+    ? active.filter((r) => {
+        const m = mods.find((x) => x.id === r.module);
+        return m && (m.name + " " + m.fields.map((f) => display(m, r, f.id)).join(" ")).toLocaleLowerCase().includes(globalQuery.trim().toLocaleLowerCase());
+      }).slice(0, 100)
+    : [];
   const rows = mod
     ? data.records.filter(
         (r) =>
@@ -198,6 +207,15 @@ export function App({
             <strong>{mod?.name || page}</strong>
           </div>
           <div className="inline">
+            <label className="search globalSearch">
+              <Search size={17} />
+              <input
+                aria-label="Buscar en todos los módulos"
+                placeholder="Buscar en toda la aplicación…"
+                value={globalQuery}
+                onChange={(e) => globalSearch(e.target.value)}
+              />
+            </label>
             <button
               aria-label="Cambiar tema"
               onClick={() => {
@@ -222,6 +240,28 @@ export function App({
           </div>
         </header>
         <article>
+          {globalQuery.trim().length >= 2 && (
+            <section className="globalResults">
+              <div className="title">
+                <div>
+                  <h2>Resultados de búsqueda general</h2>
+                  <p>{globalMatches.length === 100 ? "Primeros 100 resultados" : globalMatches.length + " coincidencias"} en todos los módulos activos</p>
+                </div>
+                <button onClick={() => globalSearch("")}>Cerrar búsqueda</button>
+              </div>
+              <div className="tableScroll">
+                <table><thead><tr><th>Módulo</th><th>Registro</th><th>Información</th><th>Acción</th></tr></thead><tbody>
+                  {globalMatches.map((r) => {
+                    const m = mods.find((x) => x.id === r.module)!;
+                    return <tr key={r.id}><td>{m.name}</td><td>{title(r, m)}</td>
+                      <td>{m.fields.filter(f => f.visible).slice(1,4).map(f => display(m,r,f.id)).filter(Boolean).join(" · ") || "—"}</td>
+                      <td><button onClick={() => { go(m.id); globalSearch(""); edit(r); }}>Abrir</button></td></tr>;
+                  })}
+                </tbody></table>
+              </div>
+              {!globalMatches.length && <p>No hay registros coincidentes.</p>}
+            </section>
+          )}
           <div className="title">
             <div>
               <h1>{page === "Panel" ? "Panel principal" : heading}</h1>
@@ -251,6 +291,7 @@ export function App({
                   ["Activos inventariados", "Inventario", Monitor],
                   ["Centros registrados", "Centros", Building2],
                   ["Incidencias registradas", "Incidencias", ClipboardList],
+                  ["Tareas registradas", "Tareas", ClipboardList],
                 ]
                   .filter(([, id]) => mods.some((m) => m.id === id))
                   .map(([label, id, G]) => {

@@ -83,8 +83,25 @@ export const legacy: Record<string, string[]> = {
   Agenda: ["tarea", "fecha", "centro", "estado"],
   Documentación: ["título", "tipo", "referencia", "observaciones"],
 };
+export function tasksModule(): Module {
+  return {
+    id: "Tareas",
+    name: "Tareas",
+    active: true,
+    fields: [
+      { ...field("asunto", "Tarea"), required: true },
+      field("descripcion", "Descripción", "texto largo"),
+      field("responsable", "Responsable"),
+      { ...field("estado", "Estado", "estado"), options: ["Pendiente", "En curso", "Bloqueada", "Completada"], initial: "Pendiente" },
+      { ...field("prioridad", "Prioridad", "prioridad"), options: ["Baja", "Media", "Alta", "Urgente"], initial: "Media" },
+      field("fechaPrevista", "Fecha prevista", "fecha"),
+      { ...field("incidenciaId", "Incidencia relacionada", "relación"), target: "Incidencias" },
+      { ...field("equipoId", "Equipo relacionado", "relación"), target: "Inventario" },
+    ],
+  };
+}
 export function initialModules(): Module[] {
-  return Object.entries(legacy).map(([id, keys]) => ({
+  return [...Object.entries(legacy).map(([id, keys]) => ({
     id,
     name: id,
     active: true,
@@ -102,7 +119,7 @@ export function initialModules(): Module[] {
           ]
         : []),
     ],
-  }));
+  })), tasksModule()];
 }
 export function shown(f: Field, values: Entity["values"]) {
   return (

@@ -13,7 +13,10 @@ const topics: Topic[] = [
     "Abre Administración → Módulos y formularios → «Crear módulo».",
     "Selecciona el nuevo módulo y pulsa «Añadir campo». Puedes añadir texto, fechas, estados, opciones, fotos y relaciones.",
     "Ordena los campos con las flechas. «Mostrar según otro campo» permite que un formulario se adapte al valor elegido.",
-    "Para quitar un campo sin perder datos utiliza «Ocultar»; para un campo vacío, «Quitar» permite eliminarlo de la definición.",
+    "Puedes modificar y reordenar cualquier campo antiguo, importado o nuevo, aunque sus valores estén vacíos.",
+    "En Administración → Gestionar campos dispones de Editar, Mostrar/Ocultar y Eliminar. Borrar definitivamente una columna con datos exige confirmación especial y conserva una copia recuperable.",
+    "En cada módulo encontrarás el acceso directo «Gestionar campos». En cada fila, «Editar» permite modificar sus valores antiguos y nuevos.",
+    "Al editar un registro puedes activar «Mostrar y editar campos ocultos o condicionales» para acceder a los valores no visibles en la tabla.",
     "El campo «Marca» es texto editable; no existe un módulo Fabricantes obligatorio."
   ]},
   {title:"Relaciones y altas encadenadas",summary:"Busca, selecciona o crea registros de otros módulos sin abandonar el formulario.",steps:[

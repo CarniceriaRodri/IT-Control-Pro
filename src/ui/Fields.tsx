@@ -188,6 +188,7 @@ export function Editor({
     blobs: new Map(),
   }));
   const [busy, work] = useState(false);
+  const [editHidden, showHidden] = useState(false);
   const [id] = useState(() => row?.id || uid());
   const [values, set] = useState<Entity["values"]>(() => ({
     ...Object.fromEntries(
@@ -220,7 +221,7 @@ export function Editor({
           id,
           module: mod.id,
           values,
-          archived: false,
+          archived: row?.archived || false,
           rev: (row?.rev || 0) + 1,
         },
         files.blobs,
@@ -233,7 +234,11 @@ export function Editor({
     }
   }
   const grouped = new Map<string, Field[]>();
-  for (const f of mod.fields.filter((f) => shown(f, values))) {
+  // Los campos ocultos con datos anteriores se pueden consultar y editar
+  // bajo petición. No se pierde su contenido cuando otro archivo cambia el módulo.
+  const visibleFields = mod.fields.filter(f => shown(f, values));
+  const hiddenFields = mod.fields.filter(f => !shown(f, values));
+  for (const f of visibleFields) {
     const section = f.section || "";
     if (!grouped.has(section)) grouped.set(section, []);
     grouped.get(section)!.push(f);
@@ -245,6 +250,10 @@ export function Editor({
       close={close}
     >
       <form onSubmit={submit}>
+        {row && <div className="fieldRow">
+          <strong>Registro existente · todos los campos pueden editarse</strong>
+          <span>{row.archived ? "Archivado" : "Activo"}</span>
+        </div>}
         {groups.map(([section, fields]) => (
           <fieldset key={section}>
             {section && <legend>{section}</legend>}
@@ -265,6 +274,27 @@ export function Editor({
             ))}
           </fieldset>
         ))}
+        {hiddenFields.length > 0 && <section className="hiddenFieldsEditor">
+          <label className="check">
+            <input type="checkbox" checked={editHidden}
+              onChange={e=>showHidden(e.target.checked)}/>
+            Mostrar y editar campos ocultos o condicionales ({hiddenFields.length})
+          </label>
+          {editHidden && <fieldset>
+            <legend>Campos ocultos / anteriores</legend>
+            <p>Los valores se conservan aunque el campo no se muestre en la tabla.
+              Si vuelves a mostrar el campo desde Administración, aparecerá normalmente.</p>
+            {hiddenFields.map(f=><label key={f.id}>
+              {f.label} · {f.type}
+              <Control f={f} v={values[f.id]}
+                set={v=>set(before=>({...before,[f.id]:v}))}
+                data={data}
+                createRelated={createRelated}
+                openRelated={openRelated}/>
+              {f.hint && <small>{f.hint}</small>}
+            </label>)}
+          </fieldset>}
+        </section>}
         {row && (() => {
           const links = data.records.filter((r) => !r.archived && r.id !== row.id &&
             data.modules.some((m) => m.id === r.module && m.fields.some((f) =>

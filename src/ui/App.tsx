@@ -80,6 +80,7 @@ export function App({
     [sort, order] = useState(false),
     [arch, archives] = useState(false),
     [editor, edit] = useState<Entity | "new" | null>(null),
+    [adminModule, setAdminModule] = useState<string | null>(null),
     [childEditors, setChildEditors] = useState<{ mod: Module; selected: (row: Entity) => void; checkpoint: number; saved?: boolean }[]>([]),
     [info, notify] = useState(""),
     [diag, diagnose] = useState(false),
@@ -451,6 +452,7 @@ export function App({
               data={data}
               write={write}
               repo={repo}
+              initialModule={adminModule || undefined}
               recovery={repo.recovery}
             />
           )}
@@ -480,6 +482,7 @@ export function App({
                       .slice(0, 12)
                       .map((r) => <option key={r.id} value={title(r, mod)} />)}
                 </datalist>
+                <button onClick={() => {setAdminModule(mod.id);go("Administración");}}>Gestionar campos</button>
                 <button onClick={() => order(!sort)}>
                   {sort ? "Orden original" : "Ordenar A–Z"}
                 </button>
@@ -509,9 +512,7 @@ export function App({
                           ))}
                         <td>
                           <div className="inline">
-                            {!arch && (
-                              <button onClick={() => openEditor(r)}>Editar</button>
-                            )}
+                            <button onClick={() => openEditor(r)}>Editar</button>
                             <button
                               onClick={async () => {
                                 if (

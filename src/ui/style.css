@@ -636,3 +636,14 @@ details > summary {
 .helpGlossary>div{border:1px solid var(--line);border-radius:8px;padding:11px;background:var(--bg)}
 .helpGlossary strong{font-size:14px}.helpGlossary p{font-size:13px;margin-top:4px}
 @media(max-width:760px){.helpScreen>section{padding:14px}.helpGlossary{grid-template-columns:1fr}}
+
+
+/* Gestor universal de campos y edición de registros tras importar */
+.fieldManageRow{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.fieldManageRow>div:first-child{flex:1 1 205px;min-width:0}
+.fieldManageRow small{display:block;line-height:1.4}
+.fieldManageRow button{font-size:12px;padding:6px 9px}
+.hiddenFieldsEditor{margin:12px 0;padding:12px!important;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.hiddenFieldsEditor fieldset{margin-top:8px}
+.hiddenFieldsEditor legend{font-size:14px}
+@media(max-width:520px){.fieldManageRow button{flex:1 0 auto}.fieldManageRow>div:first-child{flex-basis:100%}}

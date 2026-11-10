@@ -562,3 +562,19 @@ details > summary {
 .globalResults{margin-bottom:22px}
 .globalResults .title{margin-bottom:12px}
 @media(max-width:740px){.globalSearch{min-width:150px;width:100%;max-width:none}header{height:auto;min-height:68px;gap:10px;flex-wrap:wrap;padding-block:10px}header .inline{flex:1;justify-content:flex-end}}
+
+/* Campos de relación configurables: resultados inmediatos y selección múltiple */
+.relationPicker{display:grid;gap:7px;min-width:0}
+.relationPicker input[type="search"]{width:100%}
+.relationChosen{display:flex;flex-wrap:wrap;gap:6px}
+.relationChip{display:inline-flex;align-items:center;gap:6px;max-width:100%;padding:4px 5px 4px 10px;border:1px solid var(--line);border-radius:9px;background:var(--pale);font-size:12px}
+.relationChip span{overflow-wrap:anywhere;min-width:0}
+.relationChip button{border:0;background:transparent;padding:1px 6px;min-height:auto}
+.relationOptions{max-height:230px;overflow:auto;border:1px solid var(--line);border-radius:9px;background:var(--panel);box-shadow:0 5px 15px #00000012;display:grid;gap:2px;padding:4px}
+.relationOptions button{display:block;text-align:left;width:100%;white-space:normal;overflow-wrap:anywhere;font-size:13px;padding:8px}
+.relationOptions p{padding:10px;font-size:12px}
+.relationCreate{display:flex;gap:5px;flex-wrap:wrap;max-height:110px;overflow:auto}
+.relationCreate button{font-size:12px;padding:6px 8px}
+.relatedBacklinks{padding:12px!important;margin:10px 0;background:var(--pale);border:1px solid var(--line);border-radius:9px}
+.relatedBacklinks h3{font-size:14px;margin-bottom:7px}
+.relatedBacklinks p{margin:4px 0;font-size:12px}

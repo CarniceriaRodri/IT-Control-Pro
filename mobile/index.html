@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#102c40">
+  <meta name="description" content="IT Control Pro Móvil: fotografías, OCR local y transferencia a repositorio privado de GitHub">
+  <link rel="icon" href="../icon.svg">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <title>IT Control Pro · Capturas OCR</title>
+  <style>
+    :root{font:15px/1.48 system-ui,Segoe UI,sans-serif;color:#183047;background:#f1f5f8}*{box-sizing:border-box}
+    body{margin:0}button,input,textarea{font:inherit}button{border:1px solid #cbd7e2;border-radius:11px;padding:11px 13px;background:#fff;color:#183047;font-weight:650;cursor:pointer}
+    button.primary{background:#08755f;color:#fff;border-color:#08755f}button:disabled{opacity:.55;cursor:not-allowed}button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:3px solid #39a6ef;outline-offset:2px}
+    header{background:linear-gradient(115deg,#102b40,#145d79);color:#fff;padding:21px 15px 23px;border-radius:0 0 24px 24px}
+    header h1{font-size:22px;margin:0 0 3px}header p{margin:0;color:#d4e8f1;font-size:13px}
+    main{max-width:850px;margin:0 auto;padding:16px 12px 80px;display:grid;gap:15px}
+    .panel{background:#fff;border:1px solid #dae3eb;border-radius:16px;padding:17px;box-shadow:0 3px 15px #142c4308}
+    .panel h2{margin:0 0 8px;font-size:19px}.panel p{margin:5px 0 12px;color:#526679;font-size:14px}
+    .fileBtn{display:flex;justify-content:center;align-items:center;gap:7px;padding:20px;border:2px dashed #9abdc5;border-radius:14px;background:#eaf8f3;color:#064f47;font-weight:700;cursor:pointer}
+    .fileBtn input{position:absolute;width:1px;height:1px;opacity:0}.fileBtn:focus-within{outline:3px solid #38a1e7}
+    .row{display:flex;align-items:center;flex-wrap:wrap;gap:8px}.row>*{max-width:100%}.grow{flex:1}
+    .hint{font-size:12px;color:#566e7b}.warning{border-left:4px solid #db9f36;padding:10px 12px;background:#fff7e7;border-radius:7px;color:#62450c;font-size:13px}
+    .photo{border:1px solid #dce5ea;border-radius:13px;overflow:hidden;margin:12px 0;background:#fbfdff}
+    .photoHeader{display:flex;gap:12px;align-items:center;padding:11px}.photo img{width:80px;height:80px;object-fit:cover;border-radius:8px;background:#e5edf2}
+    .photoHead{flex:1;min-width:0}.photoHead strong{display:block;overflow-wrap:anywhere}.photoHead small{display:block;color:#627786}
+    .photoBody{padding:0 11px 12px;display:grid;gap:8px}textarea{width:100%;min-height:120px;border:1px solid #b5c9d7;border-radius:9px;padding:12px;resize:vertical;color:#1a3545;background:#fff}
+    input[type=text],input[type=password]{width:100%;border:1px solid #bbcbd7;border-radius:9px;padding:11px;background:#fff;color:#1a3545}
+    label{display:grid;gap:5px;font-weight:650;font-size:13px;margin:10px 0}
+    .status{font-size:13px;color:#245a55}.error{color:#a52424}.success{color:#08755f}
+    #resultSummary{display:none}#resultSummary[aria-hidden=false]{display:block}
+    .muted{color:#617788;font-size:13px}a{color:#096c98;word-break:break-word}
+    @media(min-width:600px){.photo img{width:110px;height:100px}main{padding:23px 20px}.panel{padding:22px}}
+  </style>
+  <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+  <script defer src="./app.js"></script>
+</head>
+<body>
+<header>
+  <h1>IT Control Pro · Capturas OCR</h1>
+  <p>Fotografía → texto editable → GitHub privado → ordenador</p>
+</header>
+<main>
+  <section class="panel">
+    <h2>1. Fotografiar o seleccionar</h2>
+    <p>Selecciona imágenes del móvil. El OCR se procesa en el navegador del teléfono.</p>
+    <label class="fileBtn">📷 Abrir cámara o galería
+      <input id="photos" type="file" accept="image/*" capture="environment" multiple aria-label="Fotografías">
+    </label>
+    <p class="hint">Las fotografías no se enviarán a GitHub hasta que pulses «Enviar a GitHub». Se eliminarán los metadatos de la imagen al preparar la copia JPEG.</p>
+    <div class="row">
+      <button id="recognizeAll" class="primary" disabled>Reconocer texto de todas</button>
+      <button id="clearAll" disabled>Vaciar selección</button>
+    </div>
+    <p id="ocrStatus" role="status" class="status"></p>
+  </section>
+  <section id="photosPanel" class="panel" hidden>
+    <h2>2. Revisar y corregir el texto</h2>
+    <p>Corrige el OCR antes de guardarlo. También puedes descargar las fotos y los TXT directamente sin usar GitHub.</p>
+    <div id="photosList"></div>
+  </section>
+  <section class="panel">
+    <h2>3. Enviar a GitHub privado</h2>
+    <p>Se enviará cada fotografía junto a su archivo de texto OCR para poder descargarlos desde Windows.</p>
+    <div class="warning"><strong>Solo pruebas autorizadas.</strong> No utilices imágenes, códigos de equipos, capturas o documentación corporativa real sin aprobación de Sistemas y Seguridad. Un repositorio privado de GitHub no equivale a almacenamiento corporativo autorizado.</div>
+    <label>Repositorio GitHub privado (propietario/nombre)
+      <input id="repo" type="text" placeholder="usuario/Repositorio-OCR-Privado" autocomplete="off" spellcheck="false" />
+    </label>
+    <label>Token temporal de GitHub (permisos Contents: Read and write)
+      <input id="token" type="password" placeholder="Pegar token solo para este envío" autocomplete="off" spellcheck="false" />
+    </label>
+    <label style="display:flex;align-items:flex-start;gap:9px;font-weight:450;font-size:13px">
+      <input id="authorized" type="checkbox" style="margin-top:3px" />
+      <span>Confirmo que las imágenes son de prueba o están expresamente autorizadas para alojarse en GitHub.</span>
+    </label>
+    <button id="send" class="primary" disabled>Enviar fotos + OCR a GitHub</button>
+    <p class="hint">El token solo se mantiene en la memoria de esta página durante el envío. No se incluye en archivos, URL ni configuraciones. Debes utilizar un repositorio privado independiente, no el repositorio público de IT Control Pro.</p>
+    <p id="uploadStatus" role="status" class="status"></p>
+    <div id="resultSummary" aria-hidden="true"></div>
+  </section>
+  <section class="panel">
+    <h2>En el ordenador Windows</h2>
+    <p>Entra con tu cuenta en el repositorio privado de GitHub. Abre <strong>capturas/</strong>, selecciona la carpeta correspondiente y descarga la foto y el archivo <strong>.txt</strong> de cada captura.</p>
+    <p class="muted">Esta herramienta es independiente del servidor local de IT Control Pro para Windows. No sincroniza automáticamente los datos del inventario con GitHub.</p>
+    <a href="../" aria-label="Volver a IT Control Pro">Volver a IT Control Pro</a>
+  </section>
+</main>
+</body>
+</html>

@@ -39,6 +39,31 @@ async function initialize() {
     state.version++;
     await persist();
   }
+  // Altas de esquema opcionales: no se reemplazan módulos ni registros del usuario.
+  if(state.data?.modules?.length && !state.data.modules.some(m=>m.id==="Movimientos")){
+    const field=(id,label,type="texto",extra={})=>({
+      id,label,type,required:false,visible:true,options:[],...extra
+    });
+    state.data.modules.push({
+      id:"Movimientos",name:"Movimientos",active:true,fields:[
+        field("referencia","Referencia de movimiento","texto",{required:true,unique:true}),
+        field("fecha","Fecha","fecha",{required:true}),
+        field("tipo","Operación","lista",{required:true,options:["Entrada","Salida","Préstamo","Devolución","Traslado"]}),
+        field("equipoId","Equipo o material","relación",{target:"Inventario"}),
+        field("centroOrigen","Centro de origen","relación",{target:"Centros"}),
+        field("centroDestino","Centro de destino","relación",{target:"Centros"}),
+        field("serie","Número de serie / referencia adicional"),
+        field("cantidad","Cantidad","entero",{initial:"1"}),
+        field("incidenciaId","Incidencia asociada","relación",{target:"Incidencias"}),
+        field("responsableId","Contacto responsable","relación",{target:"Contactos"}),
+        field("devolucionPrevista","Devolución prevista","fecha"),
+        field("estado","Situación","estado",{options:["Pendiente","Entregado","Devuelto","Finalizado","Cancelado"],initial:"Pendiente"}),
+        field("observaciones","Observaciones","texto largo")
+      ]
+    });
+    state.version++;
+    await persist();
+  }
 }
 async function backup(force=false) {
   const day=new Date().toISOString().slice(0,10);

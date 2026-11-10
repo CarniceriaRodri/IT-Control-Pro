@@ -1,24 +1,35 @@
 @echo off
 setlocal
-title IT Control Pro - Servidor Windows
-pushd "%~dp0" || (echo No se puede acceder a la carpeta del proyecto. & pause & exit /b 1)
-where node >nul 2>&1 || (echo ERROR: Se necesita Node.js 22 o superior. & pause & exit /b 1)
-where npm >nul 2>&1 || (echo ERROR: npm no disponible. & pause & exit /b 1)
-if not exist "node_modules" (
- echo No se han instalado las dependencias. Ejecuta PREPARAR-WINDOWS.bat en un entorno autorizado.
+title IT Control Pro - Servidor Windows (pruebas)
+pushd "%~dp0" || (echo ERROR: No se puede acceder a la carpeta. & pause & exit /b 1)
+if exist "runtime\node.exe" (
+ set "NODE=runtime\node.exe"
+) else (
+ where node >nul 2>&1 || (echo ERROR: Falta Node.js 22+ o el paquete Windows portatil. & pause & exit /b 1)
+ set "NODE=node"
+ if exist "node_modules" (
+  echo Compilando la version de desarrollo...
+  call npm run build
+  if errorlevel 1 (echo ERROR: Fallo la compilacion. & pause & exit /b 1)
+ )
+)
+if not exist "index.html" (
+ echo ERROR: Falta index.html. Descarga el paquete Windows completo.
  pause
  exit /b 1
 )
-echo Preparando la version de Windows...
-call npm run build
-if errorlevel 1 (echo ERROR: No se pudo compilar. & pause & exit /b 1)
 echo.
-echo Datos centrales en: %CD%\datos
+echo IT CONTROL PRO - SERVIDOR LOCAL DE PRUEBAS
+echo Carpeta de datos: %CD%\datos
+echo Solo accesible desde este equipo. Sin acceso remoto por ahora.
+echo Sin autorizacion de Sistemas, no utilizar datos corporativos.
 echo.
-echo El acceso en red requiere autorizacion, autenticacion y HTTPS adicionales.
-echo Por seguridad, el servidor se inicia solo en el equipo local.
 set "IT_HOST=127.0.0.1"
 set "IT_PORT=8787"
 start "" "http://127.0.0.1:8787/"
-node server\windows.mjs
+"%NODE%" server\windows.mjs
+if errorlevel 1 (
+ echo.
+ echo El servidor se ha detenido o hay otra instancia abierta.
+)
 pause

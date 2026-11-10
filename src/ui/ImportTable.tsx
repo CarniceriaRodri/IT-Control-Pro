@@ -30,49 +30,56 @@ export function ImportTable({
   const [sheets, setSheets] = useState<Sheet[]>([]),
     [idx, choose] = useState(0),
     [mapping, map] = useState<string[]>([]),
+    [skipDuplicates, setSkipDuplicates] = useState(false),
     [label, setLabel] = useState(name || ""),
     [error, err] = useState(""),
     [busy, work] = useState(false),
     [files, setFiles] = useState(emptyFiles);
   const sheet = sheets[idx],
-    head = sheet?.rows[0] || [];
+    // Algunas hojas tienen celdas con datos más allá de los encabezados.
+    // Nunca descartamos esas columnas: les damos un nombre provisional.
+    width = sheet ? Math.max(...sheet.rows.map(row => row.length), 0) : 0,
+    head = Array.from({ length: width }, (_, i) => sheet?.rows[0]?.[i] ?? ""),
+    columnLabel = (i: number) => head[i]?.trim() ? head[i] : "Columna " + (i + 1);
   function select(s: Sheet) {
-    map(
-      (s.rows[0] || []).map(
-        (h) =>
-          mod?.fields.find(
-            (f) =>
-              f.visible &&
-              (norm(f.label) === norm(h) || norm(f.id) === norm(h)),
-          )?.id || (mod ? "" : "new"),
-      ),
-    );
+    const columns = Math.max(...s.rows.map(row => row.length), 0);
+    const used = new Set<string>();
+    map(Array.from({ length: columns }, (_, i) => {
+      const heading = s.rows[0]?.[i] ?? "";
+      const existing = heading.trim() && mod?.fields.find(f =>
+        f.visible && f.type !== "identificador" && !used.has(f.id) &&
+        (norm(f.label) === norm(heading) || norm(f.id) === norm(heading))
+      );
+      if (existing) {
+        used.add(existing.id);
+        return existing.id;
+      }
+      // Por defecto nunca se omiten columnas desconocidas.
+      return "new";
+    }));
   }
   const plan = useMemo(() => {
     const problems: string[] = [],
       rows: Entity[] = [];
     let duplicates = 0;
-    const target: Module = mod || {
-      id: uid(),
-      name: label.trim(),
-      active: true,
-      fields: [],
-    };
+    // Se crea una nueva definición; nunca se modifica la del módulo hasta confirmar.
+    const target: Module = mod
+      ? { ...mod, fields: [...mod.fields] }
+      : { id: uid(), name: label.trim(), active: true, fields: [] };
     const matched = mapping.map((id, i) =>
       id === "new"
-        ? field(uid(), head[i]?.trim() || "")
+        ? field(uid(), columnLabel(i))
         : target.fields.find((f) => f.id === id),
     );
-    if (!mod) target.fields = matched.flatMap((f) => (f ? [f] : []));
-    const fields = matched.filter((f) => f !== undefined);
-    if (
-      !fields.length ||
-      fields.some((f) => !f.label) ||
-      new Set(fields.map((f) => norm(f.label))).size !== fields.length
-    )
-      problems.push(
-        "Selecciona al menos una columna y evita encabezados vacíos o repetidos.",
-      );
+    const created = matched.filter((f): f is NonNullable<typeof f> =>
+      !!f && !target.fields.some(old => old.id === f.id)
+    );
+    target.fields.push(...created);
+    const fields = matched.filter((f): f is NonNullable<typeof f> => !!f);
+    // Los encabezados repetidos se admiten como campos separados (UUID distintos).
+    // Dos columnas no pueden volcarse al mismo campo existente.
+    if (!fields.length || new Set(fields.map(f => f.id)).size !== fields.length)
+      problems.push("Selecciona campos distintos para cada columna importada.");
     if (
       !mod &&
       (!target.name ||
@@ -96,17 +103,16 @@ export function ImportTable({
     for (const [i, line] of (sheet?.rows.slice(1) || []).entries()) {
       const values: Entity["values"] = {},
         id = uid();
-      if (line.slice(head.length).some((v) => v.trim())) {
-        problems.push("Fila " + (i + 2) + ": contiene valores sin encabezado.");
-        continue;
-      }
+      // Una fila completamente vacía no constituye un registro.
+      if (line.every(v => !v.trim())) continue;
       for (const f of target.fields) {
         if (f.type === "identificador") values[f.id] = id;
         else if (f.initial) values[f.id] = f.initial;
       }
       matched.forEach((f, j) => {
         if (!f) return;
-        const v = line[j]?.trim() || "";
+        // Se preserva el texto original de la celda, incluidos sus espacios.
+        const v = line[j] ?? "";
         if (f.type === "identificador") return;
         values[f.id] =
           f.type === "selección múltiple"
@@ -122,7 +128,7 @@ export function ImportTable({
       const signature = key(values);
       if (seen.has(signature)) {
         duplicates++;
-        continue;
+        if (skipDuplicates) continue;
       }
       try {
         if (
@@ -140,8 +146,8 @@ export function ImportTable({
         problems.push("Fila " + (i + 2) + ": " + String(e));
       }
     }
-    return { target, problems, rows, duplicates };
-  }, [sheet, mapping, label, data, mod]);
+    return { target, created, problems, rows, duplicates };
+  }, [sheet, mapping, label, data, mod, skipDuplicates]);
   return (
     <Dialog
       name={
@@ -202,7 +208,8 @@ export function ImportTable({
                 ))}
               </select>
             </label>
-            <p>La primera fila contiene los nombres de las columnas.</p>
+            <p>Los nombres y valores del archivo se conservan. Cada columna desconocida crea
+              automáticamente un campo nuevo; los campos existentes no se sustituyen.</p>
             {head.map((h, i) => (
               <label key={i}>
                 {h || "Columna " + (i + 1)}
@@ -213,18 +220,13 @@ export function ImportTable({
                     map(mapping.map((v, j) => (j === i ? e.target.value : v)))
                   }
                 >
-                  <option value="">Omitir</option>
-                  {mod ? (
-                    mod.fields
-                      .filter((f) => f.visible && f.type !== "identificador")
-                      .map((f) => (
-                        <option key={f.id} value={f.id}>
-                          {f.label}
-                        </option>
-                      ))
-                  ) : (
-                    <option value="new">Crear campo de texto</option>
-                  )}
+                  <option value="new">Crear campo nuevo: {columnLabel(i)}</option>
+                  <option value="">Omitir columna (opcional)</option>
+                  {mod?.fields
+                    .filter((f) => f.visible && f.type !== "identificador")
+                    .map((f) => (
+                      <option key={f.id} value={f.id}>{f.label}</option>
+                    ))}
                 </select>
               </label>
             ))}
@@ -249,9 +251,15 @@ export function ImportTable({
                 </tbody>
               </table>
             </div>
+            <label className="check">
+              <input type="checkbox" checked={skipDuplicates}
+                onChange={(e) => setSkipDuplicates(e.target.checked)} />
+              Omitir filas idénticas (por defecto se conservan todas)
+            </label>
             <p>
-              {plan.rows.length} altas · {plan.duplicates} duplicadas omitidas ·{" "}
-              {plan.problems.length} errores
+              {plan.created.length} campos nuevos · {plan.rows.length} registros a importar ·{" "}
+              {plan.duplicates} coincidencias de contenido{" "}
+              {skipDuplicates ? "omitidas" : "conservadas"} · {plan.problems.length} errores
             </p>
             {plan.problems.slice(0, 12).map((p, i) => (
               <small key={i}>{p}</small>
@@ -283,10 +291,17 @@ export function ImportTable({
                 "Importar tabla",
                 target.id,
                 (d) => {
-                  if (!mod) d.modules.push({ ...target, files: files.refs });
+                  if (!mod) {
+                    d.modules.push({ ...target, files: files.refs });
+                  } else {
+                    const previous = d.modules.find(m => m.id === target.id);
+                    if (!previous) throw Error("Módulo inexistente.");
+                    // Solo se anexan los campos nuevos. Nunca se eliminan los anteriores.
+                    previous.fields.push(...plan.created);
+                  }
                   for (const r of plan.rows) d.records.push(r);
                 },
-                false,
+                true, // Crear punto de recuperación antes de importar.
                 files.blobs,
               );
               close();

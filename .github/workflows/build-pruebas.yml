@@ -18,6 +18,8 @@ jobs:
       - run: npm run build
       - run: node --check server/windows.mjs
       - run: node --check server/diagnostics.mjs
+      - run: node --check server/monitor.mjs
+      - run: node --test tests/monitor-node.test.mjs
       - run: node --test tests/diagnostics-node.test.mjs
       - name: Publicar compilado en la rama de pruebas
         run: |

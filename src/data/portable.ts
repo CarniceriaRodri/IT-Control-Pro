@@ -45,14 +45,12 @@ export async function importFull(raw: string) {
   }
   for (const r of data.records) {
     const m = data.modules.find((m) => m.id === r.module)!;
-    for (const f of m.fields.filter((f) => f.type === "relación")) {
+    for (const f of m.fields.filter((f) => f.type === "relación" || f.type === "relación múltiple")) {
       const v = r.values[f.id];
-      if (
-        v &&
-        !data.records.some(
-          (other) => other.id === v && other.module === f.target,
-        )
-      )
+      const ids = f.type === "relación múltiple" ? (Array.isArray(v) ? v : null) : v ? [v] : [];
+      if (!ids || ids.some((id) => !data.records.some(
+        (other) => other.id === id && (f.target === "*" || other.module === f.target)
+      )))
         throw Error("Referencia inexistente en " + m.name + " · " + f.label);
     }
   }

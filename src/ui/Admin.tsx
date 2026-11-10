@@ -3,6 +3,7 @@ import {
   field,
   types,
   uid,
+  validate,
   type Dataset,
   type Field,
   type Module,
@@ -54,6 +55,43 @@ export function Admin({
     return write("Configurar formulario", mod.id, (d) => {
       d.modules.find((m) => m.id === mod.id)!.fields = fields;
     });
+  }
+  // Administrador único para campos originales, importados y creados después.
+  const hasValue = (v: unknown) => v !== null && v !== undefined &&
+    v !== "" && (!Array.isArray(v) || v.length > 0);
+  const columnUsed = (id: string) => data.records.filter(r =>
+    r.module === mod.id && hasValue(r.values[id])).length;
+  const columnDependencies = (id: string) =>
+    mod.fields.filter(f => f.id !== id && f.when?.field === id).length;
+  async function permanentlyDeleteField(f: Field) {
+    if (mod.fields.length < 2)
+      throw Error("El módulo debe conservar al menos un campo.");
+    const records = columnUsed(f.id);
+    const dependencies = columnDependencies(f.id);
+    if (records || dependencies || f.keyRole === "primary" ||
+        f.type === "relación" || f.type === "relación múltiple") {
+      const answer = prompt(
+        "Eliminar definitivamente «" + f.label + "» de " + mod.name + "?\n" +
+        "Registros con datos: " + records + ". Reglas dependientes: " + dependencies +
+        ".\nSe perderán los valores de esta columna y sus relaciones; se creará " +
+        "una copia de recuperación. Para confirmar escribe ELIMINAR."
+      );
+      if (answer !== "ELIMINAR") return;
+    } else if (!confirm("¿Eliminar el campo vacío «" + f.label +
+        "»? Los demás campos y registros se conservarán.")) return;
+    await write("Eliminar campo y valores", mod.id + ":" + f.id, d => {
+      const target = d.modules.find(m => m.id === mod.id);
+      if (!target || target.fields.length < 2) throw Error("Módulo inválido.");
+      target.fields = target.fields.filter(item => item.id !== f.id)
+        .map(item => item.when?.field === f.id ? {...item, when:undefined} : item);
+      for (const row of d.records) if (row.module === mod.id &&
+          Object.prototype.hasOwnProperty.call(row.values, f.id)) {
+        const values = {...row.values};
+        delete values[f.id];
+        row.values = values;
+        row.rev++;
+      }
+    }, true);
   }
   const [table, setTable] = useState(false),
     [files, attach] = useState(emptyFiles),
@@ -158,45 +196,34 @@ export function Admin({
           />{" "}
           Módulo activo
         </label>
-        {mod.fields.map((f, i) => (
-          <div className="fieldRow" key={f.id}>
+        <h3>Gestionar campos: antiguos, importados y nuevos</h3>
+        <p>Todos se pueden editar. Mostrar u ocultar no modifica los valores de las filas.
+          Puedes eliminar definitivamente una columna, previa confirmación y copia recuperable.</p>
+        {mod.fields.map((f, i) => {
+          const used = columnUsed(f.id);
+          return <div className="fieldRow fieldManageRow" key={f.id}>
             <div>
               <strong>{f.label}</strong>
-              <small>
-                {f.type} · {f.visible ? "Visible" : "Oculto"}
+              <small>{f.type} · {f.visible && f.relationMode !== "off" ? "Visible" : "Oculto"}
+                {" · "}{used} con dato · {data.records.filter(r=>r.module===mod.id).length-used} vacíos
+                {f.keyRole === "primary" ? " · Identificador principal" : ""}
               </small>
             </div>
-            <button
-              aria-label={"Subir " + f.label}
-              disabled={!i}
+            <button type="button" aria-label={"Subir " + f.label} disabled={!i}
               onClick={() => {
-                const a = [...mod.fields];
-                [a[i], a[i - 1]] = [a[i - 1], a[i]];
-                void run(() => update(a));
-              }}
-            >
-              ↑
-            </button>
-            <button onClick={() => edit({ ...f })}>Editar</button>
-            <button type="button" aria-label={"Quitar campo " + f.label}
-              onClick={() => void run(async () => {
-                const hasValues = data.records.some(r => r.module === mod.id &&
-                  r.values[f.id] !== undefined && r.values[f.id] !== null &&
-                  String(r.values[f.id]) !== "");
-                const referenced = mod.fields.some(other => other.id !== f.id &&
-                  other.when?.field === f.id);
-                if (hasValues || referenced) {
-                  if (!confirm("Este campo contiene datos o se utiliza en otros campos. Se ocultará sin borrar sus valores ni sus relaciones. ¿Continuar?")) return;
-                  await update(mod.fields.map(other => other.id === f.id
-                    ? { ...other, visible: false, required: false } : other));
-                } else {
-                  if (!confirm("Este campo no tiene datos guardados. ¿Eliminarlo de la definición del módulo?")) return;
-                  if (mod.fields.length <= 1) throw Error("Un módulo debe conservar al menos un campo.");
-                  await update(mod.fields.filter(other => other.id !== f.id));
-                }
-              })}>Quitar</button>
-          </div>
-        ))}
+                const changed = [...mod.fields];
+                [changed[i],changed[i-1]] = [changed[i-1],changed[i]];
+                void run(()=>update(changed));
+              }}>↑</button>
+            <button type="button" onClick={()=>edit({...f,options:[...f.options]})}>Editar</button>
+            <button type="button" aria-label={(f.visible ? "Ocultar " : "Mostrar ") + f.label}
+              onClick={() => void run(()=>update(mod.fields.map(x=>x.id === f.id
+                ? {...x,visible:!x.visible,required:x.visible?false:x.required}
+                : x)))}>{f.visible ? "Ocultar" : "Mostrar"}</button>
+            <button type="button" aria-label={"Eliminar campo " + f.label}
+              onClick={()=>void run(()=>permanentlyDeleteField(f))}>Eliminar</button>
+          </div>;
+        })}
         <button className="primary" onClick={() => edit(field(uid(), ""))}>
           Añadir campo
         </button>
@@ -311,6 +338,17 @@ export function Admin({
                 if (!f.label) throw Error("Indica un nombre");
                 if (f.keyRole === "primary" && mod.fields.some(x => x.id !== f.id && x.keyRole === "primary"))
                   throw Error("Solo puede haber un identificador principal por módulo. Puedes usar otros como alternativos.");
+                // Cambiar tipos o reglas nunca transforma ni descarta datos en silencio.
+                // Validamos los valores preexistentes con las nuevas restricciones.
+                const trial = {...mod, fields:[f]};
+                for (const row of data.records.filter(r=>r.module===mod.id && !r.archived)) {
+                  try { validate(trial, row.values, data.records, row.id); }
+                  catch (e) {
+                    throw Error("No se puede guardar «" + f.label +
+                      "» porque un registro existente no cumple el nuevo tipo o reglas: " +
+                      String(e) + ". Corrige el valor en su fila antes.");
+                  }
+                }
                 await update(
                   mod.fields.some((x) => x.id === f.id)
                     ? mod.fields.map((x) => (x.id === f.id ? f : x))
@@ -329,9 +367,8 @@ export function Admin({
               />
             </label>
             <label>
-              Tipo
+              Tipo de campo (puedes cambiarlo si los valores actuales son compatibles)
               <select
-                disabled={mod.fields.some((f) => f.id === draft.id)}
                 value={draft.type}
                 onChange={(e) =>
                   edit({

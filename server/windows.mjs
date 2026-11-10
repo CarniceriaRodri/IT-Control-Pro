@@ -81,6 +81,18 @@ async function handler(req,res){
       if(!existsSync(p))return reply(res,404,{error:"Archivo no encontrado"});
       res.writeHead(200,{"Content-Type":"application/octet-stream","X-Content-Type-Options":"nosniff","Cache-Control":"private, no-store"});res.end(await readFile(p));return;
     }
+    if(req.method==="POST"&&u==="/api/bootstrap") {
+      const input=await body(req);
+      return await serial(async()=>{
+        if(state.data.modules.length)return reply(res,200,{ok:true});
+        if(!validData(input.data) || input.data.modules.length<1 || input.data.records.length>0 || input.data.history.length>0)
+          return reply(res,400,{error:"Inicialización no válida"});
+        state.data=input.data;
+        state.version++;
+        await persist();
+        return reply(res,200,{ok:true});
+      });
+    }
     if(req.method==="POST"&&u==="/api/commit") {
       const input=await body(req);
       return await serial(async()=>{

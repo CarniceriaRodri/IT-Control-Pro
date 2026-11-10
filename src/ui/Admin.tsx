@@ -7,7 +7,7 @@ import {
   type Field,
   type Module,
 } from "../domain/model";
-import { exportFull, importFull } from "../data/portable";
+import { exportFull, shareFull, importFull } from "../data/portable";
 import type { Binaries } from "../data/media";
 import type { Repository } from "../data/repository";
 import { ImportTable } from "./ImportTable";
@@ -193,6 +193,11 @@ export function Admin({
           <button onClick={() => void run(() => exportFull(data, repo.file))}>
             Exportar JSON
           </button>
+          {typeof navigator.share === "function" && (
+            <button onClick={() => void run(() => shareFull(data, repo.file))}>
+              Compartir copia (Android)
+            </button>
+          )}
           <label className="fileBtn">
             Importar JSON
             <input

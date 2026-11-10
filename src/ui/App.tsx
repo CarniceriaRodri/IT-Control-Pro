@@ -84,6 +84,7 @@ export function App({
     const current = routeFromUrl();
     if (current.page !== "Panel" && current.page !== "Administración" &&
       current.page !== "Informes" && !data.modules.some(m => m.id === current.page && m.active)) {
+      initializeHistory(makeRoute("Panel"));
       replaceAppRoute(makeRoute("Panel"));
       nav("Panel");
     } else {
@@ -542,6 +543,7 @@ export function App({
       </div>
       {editor && mod && (
         <Editor
+          key={editor === "new" ? mod.id + "-new" : editor.id}
           data={data}
           mod={mod}
           row={editor === "new" ? undefined : editor}

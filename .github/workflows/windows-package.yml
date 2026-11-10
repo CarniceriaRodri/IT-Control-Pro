@@ -28,6 +28,7 @@ jobs:
       - run: npm run build
       - run: node --check server/windows.mjs
       - run: node --check server/diagnostics.mjs
+      - run: node --test tests/diagnostics-node.test.mjs
       - name: Preparar carpeta portable
         shell: pwsh
         run: |

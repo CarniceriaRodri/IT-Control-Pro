@@ -101,6 +101,12 @@ export async function openRepository(): Promise<Repository> {
     const meta = t.objectStore("meta");
     const existingVersion = await request<number | undefined>(meta.get("version"));
     if (existingVersion) {
+      const agenda = await request<Module | undefined>(t.objectStore("modules").get("Agenda"));
+      if (agenda?.fields.some(f => f.id === "tarea" && f.visible)) {
+        agenda.fields = agenda.fields.map(f => f.id === "tarea" ? { ...f, visible: false, required: false } : f);
+        t.objectStore("modules").put(agenda);
+        meta.put(existingVersion + 1, "version");
+      }
       if (!(await request(t.objectStore("modules").get("Tareas")))) {
         t.objectStore("modules").add(tasksModule());
         meta.put(existingVersion + 1, "version");

@@ -14,6 +14,9 @@ import {
   validate,
   uid,
   tasksModule,
+  contactsModule,
+  agendaExtras,
+  incidenceExtras,
 } from "../domain/model";
 import { fromLegacy } from "./backup";
 export interface Snapshot {
@@ -101,16 +104,55 @@ export async function openRepository(): Promise<Repository> {
     const meta = t.objectStore("meta");
     const existingVersion = await request<number | undefined>(meta.get("version"));
     if (existingVersion) {
-      const agenda = await request<Module | undefined>(t.objectStore("modules").get("Agenda"));
-      if (agenda?.fields.some(f => f.id === "tarea" && f.visible)) {
-        agenda.fields = agenda.fields.map(f => f.id === "tarea" ? { ...f, visible: false, required: false } : f);
-        t.objectStore("modules").put(agenda);
-        meta.put(existingVersion + 1, "version");
+      const modules = t.objectStore("modules");
+      let changed = false;
+      const agenda = await request<Module | undefined>(modules.get("Agenda"));
+      if (agenda) {
+        if (agenda.fields.some(f => f.id === "tarea" && f.visible)) {
+          agenda.fields = agenda.fields.map(f => f.id === "tarea" ? { ...f, visible: false, required: false } : f);
+          changed = true;
+        }
+        const existingState = agenda.fields.find(f => f.id === "estado");
+        if (existingState && existingState.type !== "estado") {
+          const standard = ["Pendiente", "En proceso", "En espera", "Aplazado", "Finalizado", "Cancelado"];
+          const existing = await request<Entity[]>(t.objectStore("records").getAll());
+          const previous = existing.filter(row => row.module === "Agenda").map(row => String(row.values.estado || "").trim()).filter(Boolean);
+          agenda.fields = agenda.fields.map(f => f.id === "estado"
+            ? { ...f, type: "estado", options: [...new Set([...standard, ...previous])], initial: "Pendiente" }
+            : f);
+          changed = true;
+        }
+        for (const f of agendaExtras()) {
+          if (!agenda.fields.some(existing => existing.id === f.id)) {
+            agenda.fields.push(f);
+            changed = true;
+          }
+        }
+        if (changed) modules.put(agenda);
       }
-      if (!(await request(t.objectStore("modules").get("Tareas")))) {
-        t.objectStore("modules").add(tasksModule());
-        meta.put(existingVersion + 1, "version");
+      if (!(await request(modules.get("Tareas")))) {
+        modules.add(tasksModule());
+        changed = true;
       }
+      if (!(await request(modules.get("Contactos")))) {
+        modules.add(contactsModule());
+        changed = true;
+      }
+      const incidents = await request<Module | undefined>(modules.get("Incidencias"));
+      if (incidents) {
+        let touched = false;
+        for (const f of incidenceExtras()) {
+          if (!incidents.fields.some(existing => existing.id === f.id)) {
+            incidents.fields.push(f);
+            touched = true;
+          }
+        }
+        if (touched) {
+          modules.put(incidents);
+          changed = true;
+        }
+      }
+      if (changed) meta.put(existingVersion + 1, "version");
       return;
     }
     const raw = localStorage.getItem("it-control-pro-demo-v01"),

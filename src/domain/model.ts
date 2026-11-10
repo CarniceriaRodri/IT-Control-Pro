@@ -229,7 +229,7 @@ export function validate(
     )
       fail("Opción desconocida");
     if (
-      f.unique &&
+      (f.unique || f.keyRole === "primary") &&
       rows.some(
         (r) =>
           r.module === mod.id &&

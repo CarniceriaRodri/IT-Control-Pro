@@ -25,7 +25,7 @@ export function ModuleTools({
     [busy, setBusy] = useState(false);
   return (
     <>
-      {mod.id === "Redes" && <NetworkDiagnostics />}
+      {mod.id === "Redes" && <NetworkDiagnostics saved={data.records.filter(r=>r.module===mod.id && !r.archived).map(r=>({ip:String(r.values.ip||""),device:String(r.values.dispositivo||"Equipo")}))}/>}
       <div className="inline moduleTools">
         <button onClick={() => set("table")}>Importar tabla</button>
         <button

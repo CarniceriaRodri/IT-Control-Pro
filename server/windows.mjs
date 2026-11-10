@@ -130,8 +130,9 @@ async function handler(req,res){
   }
   if(req.method!=="GET"&&req.method!=="HEAD")return reply(res,405,{error:"Método no permitido"});
   const p=resolveSafe(u);if(!p)return reply(res,403,{error:"Acceso denegado"});
-  const relative=path.relative(root,p);
-  if(relative.startsWith("datos")||relative.startsWith("server")||relative.startsWith("src")||relative.startsWith(".git")||relative.startsWith("tests")||relative.startsWith("scripts")||relative.startsWith("node_modules")||relative.startsWith("windows"))return reply(res,403,{error:"Ruta restringida"});
+  const relative=path.relative(root,p).replaceAll("\\","/");
+  const publicFiles=new Set(["index.html","app.html","sw.js","manifest.webmanifest","icon.svg","icon-192.png","icon-512.png"]);
+  if(!publicFiles.has(relative) && !/^assets\/[a-zA-Z0-9._-]+$/.test(relative))return reply(res,403,{error:"Ruta restringida"});
   if(!existsSync(p)||!(await stat(p)).isFile())return reply(res,404,{error:"No encontrado"});
   const bytes=await readFile(p);
   res.writeHead(200,{"Content-Type":mime[path.extname(p)]||"application/octet-stream","X-Content-Type-Options":"nosniff","Cache-Control":"no-cache"});

@@ -555,3 +555,10 @@ details > summary {
   object-fit: contain;
   margin: auto;
 }
+
+/* Buscador de toda la aplicación y resultados */
+.globalSearch{min-width:270px;max-width:460px;padding:5px 8px;border:1px solid var(--line);border-radius:9px;background:var(--panel)}
+.globalSearch input{flex:1;min-width:0;width:100%;background:transparent;border:0!important;padding:4px!important}
+.globalResults{margin-bottom:22px}
+.globalResults .title{margin-bottom:12px}
+@media(max-width:740px){.globalSearch{min-width:150px;width:100%;max-width:none}header{height:auto;min-height:68px;gap:10px;flex-wrap:wrap;padding-block:10px}header .inline{flex:1;justify-content:flex-end}}

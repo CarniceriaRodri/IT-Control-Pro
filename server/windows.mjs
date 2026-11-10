@@ -7,6 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID, createHash } from "node:crypto";
 import { diagnostics } from "./diagnostics.mjs";
+import { monitorApi } from "./monitor.mjs";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const storage = path.resolve(process.env.IT_DATA_DIR || path.join(root, "datos"));
 const backupDir = path.resolve(process.env.IT_BACKUP_DIR || path.join(storage, "copias"));
@@ -104,6 +105,15 @@ async function handler(req,res){
   const url=new URL(req.url,"http://localhost");
   const u=url.pathname;
   if(u.startsWith("/api/")) {
+    if(req.method==="GET"&&u==="/api/monitor/status")
+      return monitorApi(req,res,reply,"status");
+    if(req.method==="POST"&&u.startsWith("/api/monitor/")) {
+      const kind=u.slice("/api/monitor/".length);
+      if(!["add","remove","start","stop"].includes(kind))
+        return reply(res,404,{error:"Acción desconocida"});
+      const input=await body(req);
+      return monitorApi(req,res,reply,kind,input);
+    }
     if(req.method==="POST"&&u==="/api/diagnostics") {
       const input=await body(req);
       return diagnostics(req,res,reply,input);

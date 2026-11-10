@@ -130,7 +130,7 @@ export function ImportTable({
               : v;
       });
       const same = mod && primary && normal(values[primary.id])
-        ? existing.filter(r => r.module === target.id && !r.archived &&
+        ? data.records.filter(r => r.module === target.id && !r.archived &&
             normal(r.values[primary.id]) === normal(values[primary.id])) : [];
       if (same.length > 1) {
         problems.push("Fila " + (i + 2) + ": clave principal ambigua; revisa los registros existentes.");
@@ -142,7 +142,7 @@ export function ImportTable({
           problems.push("Fila " + (i + 2) + ": identificador principal ya existente; activa «Completar campos vacíos» o revisa el archivo.");
           continue;
         }
-        const record = same[0];
+        const record = existing.find(r => r.id === same[0].id)!;
         const additions: Entity["values"] = {};
         for (const f of fields) {
           const incoming = values[f.id], current = record.values[f.id];
@@ -154,7 +154,11 @@ export function ImportTable({
         try {
           validate(target, candidate.values, existing, candidate.id);
           if (Object.keys(additions).length) {
-            updates.push(candidate);
+            const previous = updates.findIndex(item => item.id === candidate.id);
+            const original = data.records.find(item => item.id === candidate.id)!;
+            const staged = { ...candidate, rev: original.rev + 1 };
+            if (previous >= 0) updates[previous] = staged;
+            else updates.push(staged);
             const where = existing.findIndex(r => r.id === candidate.id);
             existing[where] = candidate;
             changedByKey++;

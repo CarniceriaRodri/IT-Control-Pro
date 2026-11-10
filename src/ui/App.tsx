@@ -183,7 +183,7 @@ export function App({
           {button("Administración")}
         </nav>
         <div className="asideFoot">
-          <Database size={16} /> Almacenamiento local
+          <Database size={16} /> {location.port === "8787" ? "Datos en servidor Windows" : "Almacenamiento local"}
         </div>
       </aside>
       {menu && (

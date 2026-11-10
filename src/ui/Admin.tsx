@@ -27,13 +27,15 @@ export function Admin({
   write,
   repo,
   recovery,
+  initialModule,
 }: {
+  initialModule?: string;
   repo: Repository;
   data: Dataset;
   write: Write;
   recovery: () => Promise<Dataset | undefined>;
 }) {
-  const [mid, select] = useState(data.modules[0].id),
+  const [mid, select] = useState(initialModule || data.modules[0].id),
     [name, setName] = useState(""),
     [draft, edit] = useState<Field | null>(null),
     [preview, stage] = useState<Dataset | null>(null),

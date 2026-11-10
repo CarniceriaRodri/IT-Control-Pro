@@ -12,6 +12,8 @@ mkdirSync("android", { recursive: true });
 rmSync("android/assets", { recursive: true, force: true });
 cpSync("dist/assets", "android/assets", { recursive: true });
 cpSync("dist/app.html", "android/index.html");
+rmSync("android/ocr", { recursive: true, force: true });
+if (existsSync("ocr")) cpSync("ocr", "android/ocr", { recursive: true });
 
 function allFiles(folder, base = folder) {
   if (!existsSync(folder)) return [];
@@ -29,7 +31,7 @@ const mainFiles = [
 const androidFiles = [
   "index.html", "manifest.webmanifest",
   ...allFiles("android/assets").map((file) => "assets/" + file),
-  ...allFiles("ocr").map((file) => "../ocr/" + file),
+  ...allFiles("android/ocr").map((file) => "ocr/" + file),
   ...icons.map((file) => "../" + file),
 ];
 function createWorker(file, files, sourceRoot) {

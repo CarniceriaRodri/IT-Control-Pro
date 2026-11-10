@@ -157,6 +157,14 @@ export function ImportTable({
       }
     }
 
+    // Los campos del archivo se muestran primero en el formulario y en la tabla.
+    // Los anteriores permanecen al final, visibles u ocultos según el usuario.
+    const prioritized = assigned.filter((f): f is Field => !!f);
+    target.fields = [
+      ...prioritized,
+      ...target.fields.filter(f => !used.has(f.id) && !made.some(x => x.id === f.id)),
+    ];
+
     const signatures = new Set<string>();
     for (const row of data.records.filter(r => r.module === target.id)) {
       signatures.add(JSON.stringify(assigned.map(f => f ? String(row.values[f.id] ?? "") : null)));

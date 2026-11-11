@@ -204,9 +204,8 @@ class Monitor:
                     still_running = self.running
                 if not still_running:
                     break
-                if self.wake.wait(interval):
-                    self.wake.clear()
-                    continue
+                self.wake.wait(interval)
+                self.wake.clear()
 
     def _record(self, ip, value):
         with self.lock:
@@ -216,11 +215,8 @@ class Monitor:
             raw = value["status"]
             consecutive = old.get("failCount", 0) + 1 if raw in ("unreachable", "error") else 0
             # "unreachable" no es avería confirmada hasta N comprobaciones.
-            status = "alert" if consecutive >= self.failures else (
-                old.get("status", "pending") if raw in ("unreachable", "error") and
-                old.get("status") not in (None, "pending", "alert") else
-                "suspect" if raw in ("unreachable", "error") else raw
-            )
+            status = ("alert" if consecutive >= self.failures else "suspect") if raw in (
+                "unreachable", "error") else raw
             # Alertas cambian solo con transiciones significativas, no cada sondeo.
             previous = old.get("status", "pending")
             if previous != status and (status in ("alert", "online", "tcp") or previous == "alert"):

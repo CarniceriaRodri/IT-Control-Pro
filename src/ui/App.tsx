@@ -112,7 +112,11 @@ export function App({
   }, [operator]);
   const [historyReady, setHistoryReady] = useState(false);
   useEffect(() => {
-    const current = routeFromUrl();
+    const incoming = routeFromUrl();
+    const preferred = operator.settings.home;
+    const startingPage = !location.hash && preferred !== "Panel" && data.modules.some(m=>m.id===preferred && m.active)
+      ? preferred : incoming.page;
+    const current = makeRoute(startingPage, incoming.editor);
     if (current.page !== "Panel" && current.page !== "Administración" &&
       current.page !== "Informes" && current.page !== "Ayuda" && !data.modules.some(m => m.id === current.page && m.active)) {
       initializeHistory(makeRoute("Panel"));

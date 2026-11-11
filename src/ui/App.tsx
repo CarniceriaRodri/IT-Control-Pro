@@ -1,5 +1,6 @@
 import { ModuleTools } from "./ModuleTools";
 import { DueOverview } from "./DueOverview";
+import { AlarmCenter } from "./AlarmCenter";
 import { Help } from "./Help";
 import { useEffect, useRef, useState } from "react";
 import { readProfiles, currentProfile, persistProfiles, applyProfile, type ProfilesState } from "../data/profiles";
@@ -457,6 +458,7 @@ export function App({
                   </button>
                 ))}
               </div>
+              <AlarmCenter data={data} open={openRelated} />
               <DueOverview data={data} open={openRelated} />
             </>
           )}

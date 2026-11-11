@@ -71,6 +71,20 @@ export function ProfileSettingsPanel({
         act(()=>{if(confirm("¿Eliminar este perfil local? No se borrarán registros.")) onChange(removeProfile(profiles,current.id));})
       }><Trash2 size={16}/> Eliminar perfil</button>
     </form>
+    <h3>Módulos favoritos</h3>
+    <p>Los favoritos aparecerán primero en el menú y en las tarjetas del Panel principal.</p>
+    <div className="profileFavoriteGrid">
+      {modules.filter(m=>m.active).map(m=>(
+        <label key={m.id} className="profileFavorite">
+          <input type="checkbox" aria-label={"Favorito "+m.name}
+            checked={current.settings.favorites.includes(m.id)}
+            onChange={e=>settings({favorites:e.target.checked
+              ? [...current.settings.favorites.filter(x=>x!==m.id),m.id].slice(0,12)
+              : current.settings.favorites.filter(x=>x!==m.id)})}/>
+          {m.name}
+        </label>
+      ))}
+    </div>
     <h3><Palette size={18}/> Apariencia de este perfil</h3>
     <div className="profileSettingsGrid">
       <label>Tema

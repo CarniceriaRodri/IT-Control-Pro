@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - 'src/ui/App.tsx'
+      - 'src/main.tsx'
       - 'src/ui/history.ts'
       - 'src/ui/Fields.tsx'
       - 'tests/navigation.spec.ts'

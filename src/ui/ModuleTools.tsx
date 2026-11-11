@@ -82,7 +82,7 @@ export function ModuleTools({
                   for(const [id,label] of [["nombre","Nombre"],["zona","Zona"],["grupo","Grupo / dependencia"],["ambito","Ámbito"]]){
                     if(!target.fields.some(f=>f.id===id))target.fields.push(field(id,label));
                   }
-                  const clean=(v:unknown)=>String(v??"").normalize("NFKC").trim().toLocaleLowerCase("es").replace(/\\s+/g," ");
+                  const clean=(v:unknown)=>String(v??"").normalize("NFKC").trim().toLocaleLowerCase("es").replace(/\s+/g," ");
                   const known=new Set(d.records.filter(r=>r.module===mod.id && !r.archived).map(r=>
                     [clean(r.values.nombre),clean(r.values.zona),clean(r.values.grupo)].join("|")));
                   // Para registros antiguos sin zona/grupo, respetamos sus nombres sin duplicarlos.

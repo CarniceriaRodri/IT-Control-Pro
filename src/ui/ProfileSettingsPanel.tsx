@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { UserRound, Palette, UserPlus, Trash2, ShieldAlert } from "lucide-react";
 import {
   addProfile, currentProfile, removeProfile,
@@ -13,8 +13,10 @@ export function ProfileSettingsPanel({
   modules: { id: string; name: string; active: boolean }[];
 }) {
   const [newName, setNewName] = useState("");
+  const [draftName, setDraftName] = useState(() => currentProfile(profiles).name);
   const [error, setError] = useState("");
   const current = currentProfile(profiles);
+  useEffect(() => { setDraftName(current.name); }, [current.id]);
   const update = (patch: Partial<OperatorProfile>) => {
     onChange({...profiles,profiles:profiles.profiles.map(p=>
       p.id===current.id ? {...p,...patch} : p)});
@@ -38,9 +40,12 @@ export function ProfileSettingsPanel({
         </select>
       </label>
       <label>Nombre visible
-        <input aria-label="Nombre del perfil" maxLength={48} value={current.name}
-          onChange={e=>update({name:e.target.value})}
-          onBlur={()=>{if(!current.name.trim()) update({name:"Usuario local"});}}/>
+        <input aria-label="Nombre del perfil" maxLength={48} value={draftName}
+          onChange={e=>setDraftName(e.target.value)}
+          onBlur={()=>act(()=>{
+            if(!draftName.trim()) {setDraftName(current.name);return;}
+            update({name:draftName.trim()});
+          })}/>
       </label>
       <label>Área o función (opcional)
         <input aria-label="Función del perfil" maxLength={60}

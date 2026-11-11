@@ -40,3 +40,15 @@ test("el cambio de operador no elimina los módulos ni inventarios",async({page}
   await page.getByLabel("Cambiar perfil de trabajo").selectOption("local-default");
   await expect(page.getByRole("heading",{name:"Inventario",exact:true})).toBeVisible();
 });
+
+test("los favoritos del perfil se destacan primero en el panel y se guardan",async({page})=>{
+  await page.goto("./");
+  await page.getByRole("navigation").getByRole("button",{name:"Administración"}).click();
+  await page.getByLabel("Favorito Redes").check();
+  await page.getByRole("navigation").getByRole("button",{name:"Panel principal"}).click();
+  await expect(page.locator(".cards button").first()).toContainText("Redes");
+  await page.reload();
+  await expect(page.locator(".cards button").first()).toContainText("Redes");
+  await page.getByRole("navigation").getByRole("button",{name:"Administración"}).click();
+  await expect(page.getByLabel("Favorito Redes")).toBeChecked();
+});

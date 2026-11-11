@@ -1,6 +1,27 @@
-# IT Control Pro · 0.4
+# IT Control Pro · Windows y Android
 
 Aplicación web local de gestión informática, en español. [Abrir la aplicación](https://carniceriarodri.github.io/IT-Control-Pro/).
+
+## Perfiles y personalización (11/11/2026)
+
+En **Administración → Perfiles de trabajo** puedes crear hasta 20 perfiles locales
+y cambiar de perfil desde el selector situado en la cabecera. Cada perfil puede
+tener nombre, función, módulo de inicio, módulos favoritos, tema claro/oscuro/automático,
+color de acento (verde, azul, violeta, ámbar), densidad y tamaño de texto.
+Los favoritos aparecen primero en el menú y las tarjetas del Panel principal.
+
+**Estos perfiles no son usuarios autenticados y NO establecen permisos de acceso**:
+todos los operadores del mismo navegador comparten registros, archivos y funciones.
+Las etiquetas con el nombre del operador en el historial son informativas y se
+pueden falsificar. Las preferencias se guardan en el dispositivo, no se incluyen
+en el backup de datos y no se sincronizan entre Android y Windows.
+
+El servidor Windows de pruebas está restringido a loopback, valida Host y origen,
+y deliberadamente no ofrece acceso compartido por LAN. Para una aplicación
+corporativa multiusuario hay que incorporar primero un backend autenticado,
+controles de permisos, TLS y auditoría de servidor.
+
+[Informe de auditoría y mejoras propuestas](docs/auditoria-usuarios-diseno-2026-11-11.md).
 
 ## Uso
 
@@ -20,7 +41,7 @@ En Administración puedes crear un módulo, elegir sus campos y activar o desact
 | Administración | Módulos, campos, orden, relaciones, copias y auditoría |
 | Entradas y salidas; préstamos y devoluciones | Fase posterior con reglas de existencias |
 
-La aplicación solo usa el almacenamiento del perfil de navegador. Exporta una copia JSON antes de cambiar de equipo, navegador, dominio o puerto. Importar muestra una vista previa y conserva un punto de recuperación. La auditoría local es editable por quien controle el dispositivo. La edición actual carga las colecciones en memoria. La paginación por índices y los permisos de servidor quedan para una fase posterior.
+En modo web/PWA, la aplicación usa el almacenamiento del perfil de navegador; en modo de pruebas Windows también existe un servicio Node local sin autenticación. Exporta una copia JSON antes de cambiar de equipo, navegador, dominio o puerto. Importar muestra una vista previa y conserva un punto de recuperación. La auditoría local es editable por quien controle el dispositivo. La edición actual carga las colecciones en memoria. La paginación por índices y los permisos de servidor quedan para una fase posterior.
 
 ## Tablas, fotografías y copias
 

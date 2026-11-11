@@ -47,7 +47,7 @@ export interface Repository {
 const tables = ["modules", "records", "history"] as const;
 const CENTROS_SEED_KEY = "centros-catalogo-noviembre-2026";
 const normalized = (value: unknown) =>
-  String(value ?? "").normalize("NFKC").trim().toLocaleLowerCase("es").replace(/\\s+/g, " ");
+  String(value ?? "").normalize("NFKC").trim().toLocaleLowerCase("es").replace(/\s+/g, " ");
 
 /** Inserta solo centros ausentes, manteniendo datos y registros archivados. */
 function missingCenters(center: Module, existing: Entity[]): { added: Entity[]; fieldsChanged: boolean } {

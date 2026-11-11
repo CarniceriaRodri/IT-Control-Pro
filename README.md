@@ -1,5 +1,41 @@
 # IT Control Pro · Windows y Android
 
+## Monitorización de Redes desde Windows sin Node.js
+
+La aplicación incorpora un **Centro de monitorización** en Redes para trabajar con
+las IP válidas de registros de Inventario, Redes y otros módulos, incluidos los
+importados de CSV y LibreOffice Calc. Cada IP se selecciona explícitamente antes
+de comprobarla; no se exploran rangos ni se hace descubrimiento de subredes.
+
+El motor se ejecuta en `monitor_python.py` como parte de `servidor_python.py`
+cuando se inicia `INICIAR-PYTHON.bat` en Windows. No necesita Node.js,
+PowerShell ni librerías Python de terceros. Reproduce el criterio del script
+`verificar_ips.ps1` aportado por el usuario: ping ICMP y, si falla, comprobaciones
+TCP para distinguir «sin ping / servicio accesible» de «sin respuesta». La ausencia
+de respuesta no equivale necesariamente a equipo apagado.
+
+Pasos: abre **Redes → Centro de monitorización → Seleccionar equipos e intervalo**,
+revisa las IP encontradas y marca solo aquellas autorizadas; guarda y pulsa
+**Iniciar**. Los estados disponibles son ONLINE, TCP accesible, pendiente,
+fallo transitorio y SIN RESPUESTA, este último tras el número configurado de
+fallos consecutivos. El panel se actualiza cada 10 segundos y ofrece historial
+de transiciones y exportación TXT. Los diagnósticos individuales de Redes
+también funcionan en el puerto Python 8788 con ping, DNS y TCP.
+
+Límites de la versión local: hasta 250 IP privadas autorizadas por proceso,
+6 pruebas concurrentes e intervalos de 30/60/120/300/600 segundos; parámetros
+TCP controlados. No sustituye Zabbix, no consulta SNMP, no supervisa equipos
+con el servidor detenido y no admite acceso remoto sin infraestructura
+corporativa aprobada. Las selecciones e historial reciente se guardan
+en `%USERPROFILE%\.it_control_pro\monitor\monitor.json` (fuera de la
+carpeta web), pero **la vigilancia no se reinicia automáticamente** al volver a
+abrir el servidor: pulsa Iniciar. Los resultados de ping se obtienen desde
+la máquina Windows donde se ejecuta Python, no desde el móvil.
+
+Las notificaciones del navegador son opcionales, dependen de permisos y de
+que la aplicación esté abierta. Para vigilancia 24/7 y alertas Android con
+la aplicación cerrada hará falta un servidor o servicio autorizado.
+
 ## Visualización de documentos y aplicaciones externas
 
 En «Archivos y fotos» se incluye vista previa de PDF en el navegador y lectura de texto

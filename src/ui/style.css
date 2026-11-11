@@ -734,3 +734,9 @@ details > summary {
 .networkMonitorAlertsList{margin:10px 0;display:grid;gap:8px}
 .networkMonitorAlertsList>div{display:flex;align-items:center;gap:9px;padding:10px;background:var(--pale);border:1px solid var(--line);border-radius:8px;word-break:break-word;font-size:13px}
 .networkMonitorAlertsList svg{color:#c83f42;flex-shrink:0}
+
+/* Aviso de alarma siempre visible aunque el usuario navegue fuera de Agenda. */
+.alarmToast{position:fixed;right:18px;bottom:20px;z-index:1500;max-width:min(420px,calc(100vw - 30px));width:100%;padding:16px;border:2px solid var(--accent);border-radius:12px;background:var(--surface,Canvas);color:var(--text,CanvasText);box-shadow:0 12px 38px #0004}
+.alarmToast p{margin:8px 0 12px;overflow-wrap:anywhere}
+.alarmToast .alarmButtons{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:620px){.alarmToast{right:12px;bottom:70px;max-width:calc(100vw - 24px)}}

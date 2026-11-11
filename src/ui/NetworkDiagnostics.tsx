@@ -5,8 +5,8 @@ import { analyzeIPv4, ipv4Number, type IPv4Analysis } from "../data/ip-tools";
 import { downloadBlob } from "../data/media";
 
 type Result = {kind:string;ok:boolean;detail:string;host?:string;port?:number;ms?:number;interfaces?:Array<{adapter:string;ip:string;mask:string;mac:string}>;addresses?:string[]};
-const windows = location.port==="8787" && ["localhost","127.0.0.1"].includes(location.hostname);
-const ports=[53,80,443,445,3389,8080,8443,9100];
+const windows = ["8787","8788"].includes(location.port) && ["localhost","127.0.0.1"].includes(location.hostname);
+const ports=[22,80,443,445,515,631,8080,8443,9100];
 function reportItem(r:Result) {
   const extra=r.interfaces?.map(x=>x.adapter+": "+x.ip+" / "+x.mask+" ("+x.mac+")").join("\n") || r.addresses?.join(", ") || "";
   return r.kind.toUpperCase()+" "+(r.host||"")+(r.port?":"+r.port:"")+
@@ -121,7 +121,7 @@ export function NetworkDiagnostics({saved = []}:{saved?:Array<{ip:string;device:
         <button type="button" disabled={busy} onClick={()=>void run("tcp")}>Probar TCP</button>
       </div>
     </div> : <p>En Android, el navegador no permite ping ICMP, consulta de interfaces de red ni conexiones TCP arbitrarias. Estas pruebas requieren un programa nativo autorizado; no se simulan resultados.</p>}
-    {windows && <LocalMonitor defaultIp={ip} />}
+    {windows && location.port==="8787" && <LocalMonitor defaultIp={ip} />}
     {busy && <p role="status">Ejecutando comprobación…</p>}
     {error && <p role="alert">{error}</p>}
     {!!results.length && <div className="networkResults">

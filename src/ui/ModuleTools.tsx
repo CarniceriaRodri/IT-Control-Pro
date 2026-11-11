@@ -9,6 +9,7 @@ import { Attachments, emptyFiles, type FileDraft } from "./Attachments";
 import { ImportTable } from "./ImportTable";
 import { Dialog } from "./Fields";
 import { NetworkDiagnostics } from "./NetworkDiagnostics";
+import { NetworkMonitor } from "./NetworkMonitor";
 import type { Write } from "./Admin";
 export function ModuleTools({
   mod,
@@ -28,6 +29,7 @@ export function ModuleTools({
     [centersPreview, setCentersPreview] = useState(false);
   return (
     <>
+      {mod.id === "Redes" && <NetworkMonitor data={data} />}
       {mod.id === "Redes" && <NetworkDiagnostics saved={data.records.filter(r=>r.module===mod.id && !r.archived).map(r=>({ip:String(r.values.ip||""),device:String(r.values.dispositivo||"Equipo")}))}/>}
       <div className="inline moduleTools">
         <button onClick={() => set("table")}>Importar tabla</button>

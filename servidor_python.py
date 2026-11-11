@@ -11,6 +11,8 @@ from pathlib import Path
 import os
 import threading
 import webbrowser
+import json
+from monitor_python import MONITOR, MAX_REQUEST_BYTES
 
 ROOT = Path(__file__).resolve().parent
 PORT = int(os.environ.get("IT_CONTROL_PORT", "8788"))
@@ -28,11 +30,45 @@ class LocalHandler(SimpleHTTPRequestHandler):
             "127.0.0.1", "localhost",
         )
 
+    def _api_headers(self, status=200):
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+
+    def _json(self, status, data):
+        self._api_headers(status)
+        self.wfile.write(json.dumps(data, ensure_ascii=False).encode("utf-8"))
+
     def do_GET(self):
         if not self._allowed_host():
             self.send_error(400, "Host no permitido")
             return
+        if self.path == "/api/monitor/status":
+            return self._json(200, MONITOR.snapshot())
         return super().do_GET()
+
+    def do_POST(self):
+        if not self._allowed_host():
+            return self._json(403, {"error": "Acceso solo desde el propio equipo"})
+        origin = self.headers.get("Origin")
+        if origin and origin not in (f"http://127.0.0.1:{PORT}", f"http://localhost:{PORT}"):
+            return self._json(403, {"error": "Origen no autorizado"})
+        if self.headers.get("Sec-Fetch-Site") == "cross-site":
+            return self._json(403, {"error": "Operación entre sitios denegada"})
+        if self.path not in ("/api/monitor/configure", "/api/monitor/start",
+                             "/api/monitor/stop", "/api/monitor/run"):
+            return self._json(404, {"error": "Ruta desconocida"})
+        try:
+            length = int(self.headers.get("Content-Length", "-1"))
+            if not 0 <= length <= MAX_REQUEST_BYTES:
+                return self._json(413, {"error": "Solicitud demasiado grande"})
+            data = json.loads(self.rfile.read(length)) if length else {}
+            result = MONITOR.configure(data) if self.path.endswith("/configure") else (
+                MONITOR.command(self.path.rsplit("/", 1)[-1]))
+            return self._json(200, result)
+        except (ValueError, TypeError, json.JSONDecodeError) as error:
+            return self._json(400, {"error": str(error)})
 
     def do_HEAD(self):
         if not self._allowed_host():

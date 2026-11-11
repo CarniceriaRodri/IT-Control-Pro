@@ -1,5 +1,30 @@
 # IT Control Pro · Windows y Android
 
+## OCR en Windows sin conexión a Internet
+
+El botón **OCR** de Documentos y fotografías utiliza Tesseract.js 5.1.1.
+La distribución requiere `ocr/tesseract.min.js`, `ocr/worker.min.js`,
+los archivos WebAssembly de `ocr/core/` y los idiomas `ocr/lang/spa.traineddata.gz`
+y `ocr/lang/eng.traineddata.gz`. No basta con el ZIP del código fuente.
+
+En GitHub, abre **Actions → Paquete portable Windows - IT Control Pro**.
+Ejecuta **Run workflow** si está permitido, y descarga el artefacto
+**IT-Control-Pro-Portable-Windows** de una ejecución completada correctamente.
+Descomprime el ZIP completo, sin separar la carpeta `ocr` de `index.html`.
+En Windows ejecuta `INICIAR-PYTHON.bat` y entra en `http://127.0.0.1:8788/`.
+Selecciona una fotografía con letras claras y pulsa **OCR**.
+El texto se muestra en un editor y puedes incorporarlo como archivo TXT al registro.
+
+El workflow genera los recursos en GitHub (con Internet) antes de compilar y
+verifica que están empaquetados. Si no consigue descargarlos, la construcción
+falla en vez de producir una versión sin OCR. El navegador no necesita recurrir
+a servicios externos en tiempo de reconocimiento.
+
+Si el OCR indica que falta un recurso, comprueba la ruta de `ocr/` dentro
+del paquete y que no estás ejecutando una versión anterior en caché.
+El reconocimiento y el funcionamiento offline completo necesitan validarse en
+el navegador Windows del entorno corporativo.
+
 ## Inicio con Python en Windows (sin npm)
 
 Para ejecutar **la versión ya compilada** sin instalar Node.js ni descargar Vite,

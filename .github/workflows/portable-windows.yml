@@ -13,6 +13,7 @@ on:
       - 'INICIAR-PYTHON.bat'
       - 'servidor_python.py'
       - 'monitor_python.py'
+      - 'tests/test_monitor_python.py'
       - '.github/workflows/portable-windows.yml'
 permissions:
   contents: read
@@ -25,6 +26,10 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
+      - name: Verificar motor Python y restricciones de destino
+        run: |
+          python3 -m py_compile servidor_python.py monitor_python.py
+          python3 -m unittest discover -s tests -p 'test_monitor_python.py'
       - name: Instalar dependencias en GitHub
         run: npm ci
       - name: Incluir motor OCR e idiomas para uso sin Internet
@@ -48,6 +53,7 @@ jobs:
         run: |
           mkdir -p portable
           cp index.html manifest.webmanifest icon.svg icon-192.png icon-512.png sw.js INICIAR-PYTHON.bat servidor_python.py monitor_python.py portable/
+          test -s monitor_python.py
           cp -R assets portable/
           cp -R ocr portable/
           cd portable && zip -q -r ../IT-Control-Pro-Portable-Windows.zip .

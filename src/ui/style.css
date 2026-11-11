@@ -727,3 +727,10 @@ details > summary {
 .networkMonitor td small{font-size:11px}
 .networkMonitor .inline{flex-wrap:wrap}
 @media(max-width:620px){.networkMonitorStats{grid-template-columns:repeat(2,minmax(0,1fr))}.networkMonitor .inline button{min-height:36px}}
+
+.monitorAlerts{margin:14px 0}
+.monitorAlerts .inline{margin-bottom:9px}
+.monitorAlerts p{font-size:13px}
+.networkMonitorAlertsList{margin:10px 0;display:grid;gap:8px}
+.networkMonitorAlertsList>div{display:flex;align-items:center;gap:9px;padding:10px;background:var(--pale);border:1px solid var(--line);border-radius:8px;word-break:break-word;font-size:13px}
+.networkMonitorAlertsList svg{color:#c83f42;flex-shrink:0}

@@ -1,0 +1,42 @@
+name: Paquete portable Windows - IT Control Pro
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'scripts/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vite.config.ts'
+      - 'app.html'
+      - 'INICIAR-PYTHON.bat'
+      - 'servidor_python.py'
+permissions:
+  contents: read
+jobs:
+  portable:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - name: Instalar dependencias en GitHub
+        run: npm ci
+      - name: Validar TypeScript y compilar distribución
+        run: npm run build
+      - name: Preparar ZIP portable
+        run: |
+          mkdir -p portable
+          cp index.html manifest.webmanifest icon.svg icon-192.png icon-512.png sw.js INICIAR-PYTHON.bat servidor_python.py portable/
+          cp -R assets portable/
+          if [ -d ocr ]; then cp -R ocr portable/; fi
+          cd portable && zip -q -r ../IT-Control-Pro-Portable-Windows.zip .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: IT-Control-Pro-Portable-Windows
+          path: IT-Control-Pro-Portable-Windows.zip
+          if-no-files-found: error
+          retention-days: 14

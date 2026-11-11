@@ -82,12 +82,13 @@ function sound() {
     oscillator.onended = () => { void audio.close(); };
   } catch { /* El navegador puede bloquear sonido sin una interacción previa. */ }
 }
-export function AlarmCenter({ data, open }: { data: Dataset; open: (row: Entity) => void }) {
+export function AlarmCenter({ data, open, showControls = true }: { data: Dataset; open: (row: Entity) => void; showControls?: boolean }) {
   const [setting, setSetting] = useState(readSettings);
   const [overrides, setOverrides] = useState(readOverrides);
   const [clock, setClock] = useState(Date.now);
   const [visible, setVisible] = useState(false);
   const [active, setActive] = useState<string | null>(null);
+  const [testVisible, setTestVisible] = useState(false);
   const lastSeen = useRef(new Set<string>());
   const initialized = useRef(false);
   const updateSetting = (next: Setting) => {setSetting(next); save(SETTINGS,next);};
@@ -95,6 +96,7 @@ export function AlarmCenter({ data, open }: { data: Dataset; open: (row: Entity)
   const items = useMemo(()=>compute(data,overrides,setting),[data,overrides,setting]);
   const due = items.filter(item=>item.when<=clock && clock-item.due<24*60*60*1000);
   const next = items.filter(item=>item.when>clock).slice(0,12);
+  const activeItem = active ? items.find(item=>item.key===active) : undefined;
   useEffect(()=>{
     const tick = () => setClock(Date.now());
     const sync = () => {setSettingsFromStorage();tick();};
@@ -114,6 +116,8 @@ export function AlarmCenter({ data, open }: { data: Dataset; open: (row: Entity)
     for (const item of due) {
       if(lastSeen.current.has(item.key)) continue;
       lastSeen.current.add(item.key);
+      // Aviso visible dentro de la aplicación, incluso sin permiso de Windows.
+      setActive(item.key);
       if(setting.sound) sound();
       if("Notification" in window && Notification.permission==="granted" && window.isSecureContext) {
         try {
@@ -130,8 +134,8 @@ export function AlarmCenter({ data, open }: { data: Dataset; open: (row: Entity)
   const amend = (item:AlarmItem, patch: Partial<Override>)=>{
     updateOverrides({...overrides,[item.row.id]:{...{enabled:true,minutes:item.minutes},...overrides[item.row.id],...patch}});
   };
-  const dismiss=(item:AlarmItem)=>amend(item,{dismissedEvent:item.key,snoozedUntil:undefined});
-  const snooze=(item:AlarmItem,minutes:number)=>amend(item,{snoozedUntil:Date.now()+minutes*60000});
+  const dismiss=(item:AlarmItem)=>{amend(item,{dismissedEvent:item.key,snoozedUntil:undefined});setActive(null);};
+  const snooze=(item:AlarmItem,minutes:number)=>{amend(item,{snoozedUntil:Date.now()+minutes*60000});setActive(null);};
   const canNotify = "Notification" in window && window.isSecureContext;
   const askPermission = async ()=>{
     if(canNotify) {
@@ -139,7 +143,16 @@ export function AlarmCenter({ data, open }: { data: Dataset; open: (row: Entity)
       catch { /* Denegación o política del navegador. */ }
     }
   };
-  return <section className="alarmCenter" aria-label="Alarmas y recordatorios">
+  const testAlarm=()=>{
+    setTestVisible(true);
+    if(setting.sound) sound();
+    if("Notification" in window && Notification.permission==="granted" && window.isSecureContext) {
+      try { new Notification("IT Control Pro · Prueba de alarma",{body:"El aviso de prueba funciona correctamente.",icon:"./icon-192.png"}); }
+      catch { /* El aviso visual permanece disponible. */ }
+    }
+  };
+  return <>
+  {showControls && <section className="alarmCenter" aria-label="Alarmas y recordatorios">
     <div className="sectionTitle"><h2>Alarmas y recordatorios</h2></div>
     <p>Los avisos se comprueban mientras IT Control Pro esté abierto. Con la aplicación cerrada no hay alarmas garantizadas. La configuración es local de este navegador.</p>
     <div className="alarmControls">
@@ -154,6 +167,7 @@ export function AlarmCenter({ data, open }: { data: Dataset; open: (row: Entity)
         {canNotify ? Notification.permission==="granted"?"Notificaciones permitidas":Notification.permission==="denied"?"Notificaciones bloqueadas":"Permitir notificaciones Windows":"Notificaciones no disponibles"}
       </button>
       <button type="button" onClick={()=>setVisible(v=>!v)} aria-expanded={visible}>{visible?"Ocultar próximos avisos":"Configurar próximos avisos"}</button>
+      <button type="button" onClick={testAlarm}>Probar aviso ahora</button>
     </div>
     {!!due.length && <div className="alarmDue" role="status" aria-live="polite">
       <strong>{due.length} recordatorio(s) pendiente(s)</strong>
@@ -181,5 +195,21 @@ export function AlarmCenter({ data, open }: { data: Dataset; open: (row: Entity)
         <button type="button" onClick={()=>amend(item,{enabled:false})}>Desactivar</button>
       </div>)}
     </div>}
-  </section>;
+  </section>}
+  {(testVisible || activeItem) && <aside className="alarmToast" role="alert" aria-live="assertive">
+    {testVisible ? <>
+      <strong>Prueba de alarma correcta</strong>
+      <p>IT Control Pro puede mostrar avisos mientras esta pestaña esté abierta. Las notificaciones de Windows requieren permiso del navegador.</p>
+      <button type="button" onClick={()=>setTestVisible(false)}>Cerrar prueba</button>
+    </> : activeItem ? <>
+      <strong>Recordatorio · {activeItem.row.module}</strong>
+      <p>{activeItem.label} · {new Date(activeItem.due).toLocaleString("es-ES")}</p>
+      <div className="alarmButtons">
+        <button type="button" onClick={()=>{open(activeItem.row);setActive(null);}}>Abrir</button>
+        <button type="button" onClick={()=>snooze(activeItem,5)}>Posponer 5 min</button>
+        <button type="button" onClick={()=>dismiss(activeItem)}>Descartar</button>
+      </div>
+    </> : null}
+  </aside>}
+  </>;
 }

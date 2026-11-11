@@ -102,7 +102,8 @@ export function App({
       ? { ...snap.data, records: [...snap.data.records, ...pendingRef.current.map(x => x.row)] }
       : snap.data,
     mods = data.modules.filter((m) => m.active),
-    mod = mods.find((m) => m.id === page);
+    mod = mods.find((m) => m.id === page),
+    orderedMods = [...mods].sort((a,b)=>Number(operator.settings.favorites.includes(b.id))-Number(operator.settings.favorites.includes(a.id)));
   useEffect(() => {
     applyProfile(operator);
     const media = matchMedia("(prefers-color-scheme: dark)");
@@ -299,7 +300,7 @@ export function App({
         <div className="navLabel">ESPACIO DE TRABAJO</div>
         <nav>
           {button("Panel", "Panel principal")}
-          {mods.map((m) => button(m.id, m.name))}
+          {orderedMods.map((m) => button(m.id, m.name))}
         </nav>
         <div className="navLabel">GESTIÓN</div>
         <nav>

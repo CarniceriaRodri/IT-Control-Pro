@@ -13,6 +13,7 @@ import {
   type Change,
   validate,
   uid,
+  field,
   tasksModule,
   contactsModule,
   agendaExtras,
@@ -20,6 +21,7 @@ import {
   movementsModule,
 } from "../domain/model";
 import { fromLegacy } from "./backup";
+import { CENTROS_DOCUMENTO } from "./centrosCatalog";
 export interface Snapshot {
   version: number;
   data: Dataset;
@@ -43,6 +45,43 @@ export interface Repository {
   recovery(): Promise<Dataset | undefined>;
 }
 const tables = ["modules", "records", "history"] as const;
+const CENTROS_SEED_KEY = "centros-catalogo-noviembre-2026";
+const normalized = (value: unknown) =>
+  String(value ?? "").normalize("NFKC").trim().toLocaleLowerCase("es").replace(/\\s+/g, " ");
+
+/** Inserta solo centros ausentes, manteniendo datos y registros archivados. */
+function missingCenters(center: Module, existing: Entity[]): { added: Entity[]; fieldsChanged: boolean } {
+  let fieldsChanged = false;
+  for (const [id, label] of [
+    ["nombre", "Nombre"], ["zona", "Zona"],
+    ["grupo", "Grupo / dependencia"], ["ambito", "Ámbito"],
+  ]) {
+    if (!center.fields.some((f) => f.id === id)) {
+      center.fields.push(field(id, label));
+      fieldsChanged = true;
+    }
+  }
+  const records = existing.filter((r) => r.module === "Centros");
+  const known = new Set(records.map((r) => [
+    normalized(r.values.nombre), normalized(r.values.zona), normalized(r.values.grupo),
+  ].join("|")));
+  // Un centro histórico sin agrupación no debe duplicarse.
+  const oldNames = new Set(records.filter((r) =>
+    !String(r.values.zona ?? "").trim() && !String(r.values.grupo ?? "").trim(),
+  ).map((r) => normalized(r.values.nombre)));
+  const added: Entity[] = [];
+  for (const item of CENTROS_DOCUMENTO) {
+    const key = [normalized(item.nombre), normalized(item.zona), normalized(item.grupo)].join("|");
+    if (known.has(key) || oldNames.has(normalized(item.nombre))) continue;
+    added.push({
+      id: uid(), module: "Centros",
+      values: { nombre: item.nombre, zona: item.zona, grupo: item.grupo, ambito: item.ambito },
+      rev: 1, archived: false,
+    });
+    known.add(key);
+  }
+  return { added, fieldsChanged };
+}
 function request<T>(r: IDBRequest<T>): Promise<T> {
   return new Promise((ok, fail) => {
     r.onsuccess = () => ok(r.result);
@@ -157,11 +196,30 @@ export async function openRepository(): Promise<Repository> {
           changed = true;
         }
       }
+      // Cargar el catálogo una sola vez en instalaciones existentes.
+      // No se sobrescriben centros añadidos por el usuario ni se reactivan archivados.
+      if (!(await request<boolean | undefined>(meta.get(CENTROS_SEED_KEY)))) {
+        const centros = await request<Module | undefined>(modules.get("Centros"));
+        if (centros) {
+          const records = await request<Entity[]>(t.objectStore("records").getAll());
+          const result = missingCenters(centros, records);
+          if (result.fieldsChanged) modules.put(centros);
+          for (const row of result.added) t.objectStore("records").add(row);
+          if (result.fieldsChanged || result.added.length > 0) changed = true;
+          meta.put(true, CENTROS_SEED_KEY);
+        }
+      }
       if (changed) meta.put(existingVersion + 1, "version");
       return;
     }
     const raw = localStorage.getItem("it-control-pro-demo-v01"),
       d = fromLegacy(raw === null ? {} : JSON.parse(raw), true);
+    // En instalaciones nuevas, Centros ya aparece poblado al primer arranque.
+    const centros = d.modules.find((m) => m.id === "Centros");
+    if (centros) {
+      d.records.push(...missingCenters(centros, d.records).added);
+      meta.put(true, CENTROS_SEED_KEY);
+    }
     for (const k of tables) for (const item of d[k]) t.objectStore(k).add(item);
     meta.put(1, "version");
   });

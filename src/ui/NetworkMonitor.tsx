@@ -9,7 +9,6 @@ type MonitorEvent={ip:string;at:string;kind:string;from:string;to:string};
 type Status={running:boolean;intervalSeconds:number;failureThreshold:number;hosts:Host[];events:MonitorEvent[];lastCycle:string|null;nextCycle:string|null;message:string};
 const isWindowsPython=location.port==="8788" && ["localhost","127.0.0.1"].includes(location.hostname);
 const ipValid=(v:string)=>{const a=v.trim().split(".");return a.length===4&&a.every(s=>/^(0|[1-9]\d{0,2})$/.test(s)&&Number(s)<256)&&!["127","0","224","239","240","255"].includes(a[0]);};
-const targetKey=(row:Entity)=>String(row.id);
 const norm=(v:unknown)=>String(v??"").trim();
 const normalizeHeader=(s:string)=>s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]/g,"");
 const ipCandidates=["ip","ipprincipal","direccionip","direccionipv4","ipv4"];
@@ -51,7 +50,7 @@ export function NetworkMonitor({data}:{data:Dataset}) {
  const candidates=useMemo(()=>{
   const found=new Map<string,Target>();
   for(const row of data.records){
-   if(row.archived||!["Inventario","Redes"].includes(row.module))continue;
+   if(row.archived)continue;
    const target=readDetail(row,data);
    if(target&&!found.has(target.ip))found.set(target.ip,target);
   }
@@ -132,7 +131,7 @@ export function NetworkMonitor({data}:{data:Dataset}) {
    <small>Última ronda: {displayDate(status?.lastCycle)} · Próxima: {displayDate(status?.nextCycle)}</small>
    <details className="networkMonitorConfig">
     <summary>Seleccionar equipos e intervalo de monitorización ({candidates.length} IP detectadas)</summary>
-    <p>Detectadas automáticamente en los campos IP de Redes e Inventario, incluso si proceden de importaciones CSV/Calc. Evita activar dispositivos no autorizados.</p>
+    <p>Detectadas automáticamente en los campos IP de Redes, Inventario y otros módulos, incluso si proceden de importaciones CSV/Calc. Evita activar dispositivos no autorizados.</p>
     <div className="inline">
       <label>Intervalo
        <select value={interval} onChange={e=>setIntervalSeconds(Number(e.target.value))}>
@@ -154,7 +153,7 @@ export function NetworkMonitor({data}:{data:Dataset}) {
        <input type="checkbox" checked={selection.includes(t.ip)} onChange={e=>setSelection(before=>e.target.checked?[...before,t.ip]:before.filter(x=>x!==t.ip))}/>
        <span>{t.device} · {t.ip} · {t.center}</span>
      </label>)}
-     {!candidates.length&&<p>No se han encontrado campos de IP válidos en Redes o Inventario.</p>}
+     {!candidates.length&&<p>No se han encontrado campos de IP válidos en los registros de la aplicación.</p>}
      {candidates.length>250&&<small>Se muestran las primeras 250 IP. Ampliaremos el motor por lotes cuando sea necesario.</small>}
     </div>
     <button type="button" className="primary" disabled={busy} onClick={()=>void act("configure")}>Guardar equipos seleccionados y ajustes</button>

@@ -12,6 +12,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const storage = path.resolve(process.env.IT_DATA_DIR || path.join(root, "datos"));
 const backupDir = path.resolve(process.env.IT_BACKUP_DIR || path.join(storage, "copias"));
 const host = process.env.IT_HOST || "127.0.0.1";
+if (!["127.0.0.1", "::1", "localhost"].includes(host))
+  throw Error("El servidor de pruebas no admite exposición LAN; un servidor multiusuario requiere autenticación y TLS.");
 const port = Number(process.env.IT_PORT || 8787);
 const sourceFile = path.join(storage, "sistema.json");
 const mime = {".html":"text/html; charset=utf-8",".js":"text/javascript; charset=utf-8",".css":"text/css; charset=utf-8",".svg":"image/svg+xml",".png":"image/png",".webmanifest":"application/manifest+json",".json":"application/json",".wasm":"application/wasm",".gz":"application/gzip"};
@@ -104,6 +106,23 @@ async function handler(req,res){
  try {
   const url=new URL(req.url,"http://localhost");
   const u=url.pathname;
+  // El servicio de pruebas solo atiende al host local y rechaza envíos entre sitios.
+  const hostHeader = (req.headers.host || "").toLowerCase();
+  const expected = new Set(["127.0.0.1:"+port,"localhost:"+port,"[::1]:"+port]);
+  if (!expected.has(hostHeader))
+    return reply(res,403,{error:"Acceso permitido únicamente desde localhost."});
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    const origin = req.headers.origin;
+    if (origin) {
+      let parsed;
+      try { parsed = new URL(origin); } catch { return reply(res,403,{error:"Origen no válido."}); }
+      if (!["127.0.0.1","localhost","[::1]"].includes(parsed.hostname) ||
+          parsed.port !== String(port) || parsed.protocol !== "http:")
+        return reply(res,403,{error:"Origen no autorizado."});
+    }
+    if (req.headers["sec-fetch-site"] === "cross-site")
+      return reply(res,403,{error:"Operación entre sitios denegada."});
+  }
   if(u.startsWith("/api/")) {
     if(req.method==="GET"&&u==="/api/monitor/status")
       return monitorApi(req,res,reply,"status");

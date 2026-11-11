@@ -2,6 +2,8 @@ import { ModuleTools } from "./ModuleTools";
 import { DueOverview } from "./DueOverview";
 import { Help } from "./Help";
 import { useEffect, useRef, useState } from "react";
+import { readProfiles, currentProfile, persistProfiles, applyProfile, type ProfilesState } from "../data/profiles";
+import { ProfileSettingsPanel } from "./ProfileSettingsPanel";
 import { makeRoute, routeFromUrl, initializeHistory, pushAppRoute, replaceAppRoute, isRoute, isGuard } from "./history";
 import {
   ArrowUpRight,
@@ -26,6 +28,7 @@ import {
   Search,
   Settings2,
   SunMoon,
+  UserRound,
   Ticket,
   Warehouse,
 } from "lucide-react";
@@ -72,6 +75,12 @@ export function App({
   repo: Repository;
   initial: Snapshot;
 }) {
+  const [profiles, setProfiles] = useState<ProfilesState>(() => readProfiles());
+  const operator = currentProfile(profiles);
+  const changeProfiles = (next: ProfilesState) => {
+    try { setProfiles(persistProfiles(next)); }
+    catch (e) { notify("No se pudo guardar el perfil: " + String(e)); }
+  };
   const [snap, state] = useState(initial),
     [page, nav] = useState(() => routeFromUrl().page),
     [menu, toggle] = useState(false),
@@ -94,6 +103,13 @@ export function App({
       : snap.data,
     mods = data.modules.filter((m) => m.active),
     mod = mods.find((m) => m.id === page);
+  useEffect(() => {
+    applyProfile(operator);
+    const media = matchMedia("(prefers-color-scheme: dark)");
+    const update = () => applyProfile(operator);
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, [operator]);
   const [historyReady, setHistoryReady] = useState(false);
   useEffect(() => {
     const current = routeFromUrl();
@@ -211,7 +227,7 @@ export function App({
     window.scrollTo(0, 0);
   };
   const write: Write = async (a, t, fn, checkpoint, files) => {
-    await repo.commit(snap.version, a, t, fn, checkpoint, files);
+    await repo.commit(snap.version, "[" + operator.name + "] " + a, t, fn, checkpoint, files);
     state(await repo.read());
   };
   const button = (id: string, label = id) => (
@@ -321,15 +337,19 @@ export function App({
                 onChange={(e) => globalSearch(e.target.value)}
               />
             </label>
+            <label className="operatorSwitch" title="Perfil de trabajo de este dispositivo">
+              <UserRound size={17}/>
+              <select aria-label="Cambiar perfil de trabajo" value={profiles.activeId}
+                onChange={e=>changeProfiles({...profiles,activeId:e.target.value})}>
+                {profiles.profiles.map(p=><option value={p.id} key={p.id}>{p.name}</option>)}
+              </select>
+            </label>
             <button
               aria-label="Cambiar tema"
-              onClick={() => {
-                const dark = document.documentElement.dataset.theme !== "dark";
-                document.documentElement.dataset.theme = dark
-                  ? "dark"
-                  : "light";
-                localStorage.setItem("it-theme", dark ? "dark" : "light");
-              }}
+              onClick={() => changeProfiles({...profiles, profiles: profiles.profiles.map(p =>
+                p.id === operator.id ? {...p, settings: {...p.settings,
+                  theme: document.documentElement.dataset.theme === "dark" ? "light" : "dark" }} : p
+              )})}
             >
               <SunMoon size={18} />
             </button>
@@ -448,13 +468,13 @@ export function App({
           )}
           {page === "Ayuda" && <Help />}
           {page === "Administración" && (
-            <Admin
+            <><ProfileSettingsPanel profiles={profiles} onChange={changeProfiles} modules={data.modules}/><Admin
               data={data}
               write={write}
               repo={repo}
               initialModule={adminModule || undefined}
               recovery={repo.recovery}
-            />
+            /></>
           )}
           {mod && (
             <section>

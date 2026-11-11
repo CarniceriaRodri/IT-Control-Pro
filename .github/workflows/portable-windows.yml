@@ -12,6 +12,7 @@ on:
       - 'app.html'
       - 'INICIAR-PYTHON.bat'
       - 'servidor_python.py'
+      - 'monitor_python.py'
       - '.github/workflows/portable-windows.yml'
 permissions:
   contents: read
@@ -46,7 +47,7 @@ jobs:
       - name: Preparar ZIP portable
         run: |
           mkdir -p portable
-          cp index.html manifest.webmanifest icon.svg icon-192.png icon-512.png sw.js INICIAR-PYTHON.bat servidor_python.py portable/
+          cp index.html manifest.webmanifest icon.svg icon-192.png icon-512.png sw.js INICIAR-PYTHON.bat servidor_python.py monitor_python.py portable/
           cp -R assets portable/
           cp -R ocr portable/
           cd portable && zip -q -r ../IT-Control-Pro-Portable-Windows.zip .

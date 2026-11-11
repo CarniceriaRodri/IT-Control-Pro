@@ -1,11 +1,11 @@
-"""IT Control Pro: servidor estático LOCAL para la versión compilada.
+"""IT Control Pro: interfaz estática y monitor local ICMP/TCP.
 
-No ofrece base de datos compartida, API, autenticación ni acceso LAN.
+Solo loopback: no ofrece autenticación corporativa, datos compartidos ni acceso LAN.
+El monitor tiene una API local separada de los datos del inventario.
 Arrancar mediante INICIAR-PYTHON.bat (Python 3, sin dependencias externas).
 """
 from __future__ import annotations
 
-from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import os
@@ -14,7 +14,6 @@ import webbrowser
 import json
 import socket
 import subprocess
-import os
 import re
 import time
 from monitor_python import MONITOR, MAX_REQUEST_BYTES, permitted, ALLOWED_PORTS
@@ -157,7 +156,8 @@ def main():
 
     url = f"http://{HOST}:{PORT}/"
     print(f"IT Control Pro abierto en {url}", flush=True)
-    print("Modo LOCAL: los datos permanecen en este navegador.", flush=True)
+    print("Modo LOCAL: los datos de inventario permanecen en este navegador.", flush=True)
+    print("Monitor Python disponible en Redes; selecciona IP autorizadas y pulsa Iniciar.", flush=True)
     print("No es un servidor multiusuario. Para finalizar, Ctrl+C.", flush=True)
     threading.Timer(0.7, lambda: webbrowser.open(url)).start()
     try:

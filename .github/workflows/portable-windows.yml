@@ -25,14 +25,29 @@ jobs:
           cache: 'npm'
       - name: Instalar dependencias en GitHub
         run: npm ci
+      - name: Incluir motor OCR e idiomas para uso sin Internet
+        run: node scripts/prepare-ocr.mjs
+      - name: Verificar recursos OCR
+        run: |
+          test -s ocr/tesseract.min.js
+          test -s ocr/worker.min.js
+          test -s ocr/core/tesseract-core.wasm.js
+          test -s ocr/core/tesseract-core.wasm
+          test -s ocr/lang/spa.traineddata.gz
+          test -s ocr/lang/eng.traineddata.gz
       - name: Validar TypeScript y compilar distribución
         run: npm run build
+      - name: Verificar manifiesto offline
+        run: |
+          test -s sw.js
+          grep -q 'ocr/tesseract.min.js' sw.js
+          grep -q 'ocr/lang/spa.traineddata.gz' sw.js
       - name: Preparar ZIP portable
         run: |
           mkdir -p portable
           cp index.html manifest.webmanifest icon.svg icon-192.png icon-512.png sw.js INICIAR-PYTHON.bat servidor_python.py portable/
           cp -R assets portable/
-          if [ -d ocr ]; then cp -R ocr portable/; fi
+          cp -R ocr portable/
           cd portable && zip -q -r ../IT-Control-Pro-Portable-Windows.zip .
       - uses: actions/upload-artifact@v4
         with:

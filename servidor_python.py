@@ -17,6 +17,7 @@ import subprocess
 import re
 import time
 from monitor_python import MONITOR, MAX_REQUEST_BYTES, permitted, ALLOWED_PORTS
+from alarmas_windows import DESKTOP_ALARMS
 
 ROOT = Path(__file__).resolve().parent
 PORT = int(os.environ.get("IT_CONTROL_PORT", "8788"))
@@ -50,6 +51,8 @@ class LocalHandler(SimpleHTTPRequestHandler):
             return
         if self.path == "/api/monitor/status":
             return self._json(200, MONITOR.snapshot())
+        if self.path == "/api/alarms/status":
+            return self._json(200, DESKTOP_ALARMS.snapshot())
         return super().do_GET()
 
 
@@ -116,16 +119,23 @@ class LocalHandler(SimpleHTTPRequestHandler):
         if self.headers.get("Sec-Fetch-Site") == "cross-site":
             return self._json(403, {"error": "Operación entre sitios denegada"})
         if self.path not in ("/api/monitor/configure", "/api/monitor/start",
-                             "/api/monitor/stop", "/api/monitor/run", "/api/diagnostics"):
+                             "/api/monitor/stop", "/api/monitor/run", "/api/diagnostics",
+                             "/api/alarms/configure", "/api/alarms/test"):
             return self._json(404, {"error": "Ruta desconocida"})
         try:
             length = int(self.headers.get("Content-Length", "-1"))
             if not 0 <= length <= MAX_REQUEST_BYTES:
                 return self._json(413, {"error": "Solicitud demasiado grande"})
             data = json.loads(self.rfile.read(length)) if length else {}
-            result = self._diagnose(data) if self.path == "/api/diagnostics" else (
-                MONITOR.configure(data) if self.path.endswith("/configure") else
-                MONITOR.command(self.path.rsplit("/", 1)[-1]))
+            if self.path == "/api/diagnostics":
+                result = self._diagnose(data)
+            elif self.path == "/api/alarms/configure":
+                result = DESKTOP_ALARMS.configure(data)
+            elif self.path == "/api/alarms/test":
+                result = DESKTOP_ALARMS.test(data.get("sound", "alarma"))
+            else:
+                result = (MONITOR.configure(data) if self.path.endswith("/configure") else
+                          MONITOR.command(self.path.rsplit("/", 1)[-1]))
             return self._json(200, result)
         except (ValueError, TypeError, json.JSONDecodeError) as error:
             return self._json(400, {"error": str(error)})
@@ -157,7 +167,9 @@ def main():
         raise SystemExit(f"No se puede abrir {HOST}:{PORT}: {error}") from error
 
     url = f"http://{HOST}:{PORT}/"
+    DESKTOP_ALARMS.start(url)
     print(f"IT Control Pro abierto en {url}", flush=True)
+    print("Alarmas nativas de Windows listas: configurar desde Agenda.", flush=True)
     print("Modo LOCAL: los datos de inventario permanecen en este navegador.", flush=True)
     print("Monitor Python disponible en Redes; selecciona IP autorizadas y pulsa Iniciar.", flush=True)
     print("No es un servidor multiusuario. Para finalizar, Ctrl+C.", flush=True)

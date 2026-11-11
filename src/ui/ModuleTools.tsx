@@ -1,6 +1,6 @@
 import { writeCsv } from "../data/calc";
 import { CENTROS_DOCUMENTO } from "../data/centrosCatalog";
-import { field, uid, type Field } from "../domain/model";
+import { field, uid } from "../domain/model";
 import { downloadBlob } from "../data/media";
 import { useState } from "react";
 import type { Dataset, Module } from "../domain/model";
@@ -103,6 +103,7 @@ export function ModuleTools({
           </div>
         </Dialog>
       )}
+      {mod.id === "Centros" && error && !centersPreview && mode !== "files" && <p role="status">{error}</p>}
       {mode === "table" && (
         <ImportTable
           mod={mod}

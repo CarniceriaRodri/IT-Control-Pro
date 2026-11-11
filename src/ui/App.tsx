@@ -1,5 +1,6 @@
 import { ModuleTools } from "./ModuleTools";
 import { DueOverview } from "./DueOverview";
+import { MonitorAlerts } from "./MonitorAlerts";
 import { AlarmCenter } from "./AlarmCenter";
 import { Help } from "./Help";
 import { useEffect, useRef, useState } from "react";
@@ -459,6 +460,7 @@ export function App({
                   </button>
                 ))}
               </div>
+              <MonitorAlerts open={() => go("Redes")} />
               <DueOverview data={data} open={openRelated} />
             </>
           )}

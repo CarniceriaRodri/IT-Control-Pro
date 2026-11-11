@@ -110,7 +110,7 @@ export function Attachments({
       } else if (canPreviewDocument(ref.name)) {
         show({ name:ref.name, kind:"text", content:await previewDocument(blob, ref.name) });
       } else {
-        throw Error("Este formato necesita una aplicación externa. Pulsa «Abrir en aplicación» para obtener el archivo original.");
+        throw Error("Este formato necesita una aplicación externa. Pulsa «Descargar y abrir» para obtener el archivo original.");
       }
     } catch (e) { status(String(e)); }
     finally { setBusy(false); }
@@ -208,7 +208,7 @@ export function Attachments({
                 <FolderOpen size={15}/> Ver documento
               </button>
             )}
-            {ref.kind !== "photo" && <button type="button" disabled={busy} onClick={() => void openExternal(ref)}><FolderOpen size={15}/> Abrir en aplicación</button>}
+            {ref.kind !== "photo" && <button type="button" disabled={busy} onClick={() => void openExternal(ref)}><FolderOpen size={15}/> Descargar y abrir</button>}
             <button type="button" onClick={async () => {
               try { const blob = value.blobs.get(ref.hash) || await load(ref.hash); if (!blob) throw Error("Archivo no disponible."); downloadBlob(blob, ref.name); }
               catch (e) { status(String(e)); }
@@ -255,7 +255,7 @@ export function Attachments({
             </>
           )}
           {preview.kind === "text" && (
-            <><small>Vista rápida del texto, sin formato ni macros. Para ver el documento original con su diseño, usa «Abrir en aplicación».</small><pre className="documentTextPreview" tabIndex={0}>{preview.content || "(Documento vacío)"}</pre></>
+            <><small>Vista rápida del texto, sin formato ni macros. Para ver el documento original con su diseño, usa «Descargar y abrir».</small><pre className="documentTextPreview" tabIndex={0}>{preview.content || "(Documento vacío)"}</pre></>
           )}
         </div>
       )}

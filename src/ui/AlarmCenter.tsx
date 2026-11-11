@@ -9,6 +9,10 @@ const KEY = "it-control-pro-alarms-v1";
 const SETTINGS = "it-control-pro-alarm-settings-v1";
 const options: Delay[] = [0, 5, 10, 15, 30, 60];
 const defaultSetting: Setting = { enabled: true, minutes: 15, sound: false };
+type WindowsSound = "aviso" | "alarma" | "campana" | "silencio";
+const sounds: WindowsSound[] = ["alarma","aviso","campana","silencio"];
+const WINDOWS_SETTING = "it-control-pro-windows-alarm-v1";
+const isLocalPython = location.port === "8788" && ["127.0.0.1","localhost"].includes(location.hostname);
 const validDelay = (v: unknown): v is Delay => options.includes(v as Delay);
 function safeJson<T>(key: string, fallback: T): T {
   try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) as T : fallback; }
@@ -89,6 +93,8 @@ export function AlarmCenter({ data, open, showControls = true }: { data: Dataset
   const [visible, setVisible] = useState(false);
   const [active, setActive] = useState<string | null>(null);
   const [testVisible, setTestVisible] = useState(false);
+  const [desktop, setDesktop] = useState(() => safeJson<{enabled:boolean;sound:WindowsSound}>(WINDOWS_SETTING,{enabled:false,sound:"alarma"}));
+  const [desktopMessage, setDesktopMessage] = useState("");
   const lastSeen = useRef(new Set<string>());
   const initialized = useRef(false);
   const updateSetting = (next: Setting) => {setSetting(next); save(SETTINGS,next);};
@@ -97,6 +103,35 @@ export function AlarmCenter({ data, open, showControls = true }: { data: Dataset
   const due = items.filter(item=>item.when<=clock && clock-item.due<24*60*60*1000);
   const next = items.filter(item=>item.when>clock).slice(0,12);
   const activeItem = active ? items.find(item=>item.key===active) : undefined;
+  // Las alarmas quedan en Python: puede cerrarse Chrome, no el servidor.
+  useEffect(()=>{
+    if(!isLocalPython) return;
+    const sync = async ()=>{
+      try {
+        const now=Date.now();
+        const selected=items.filter(item=>item.when>=now-24*60*60*1000 && item.when<=now+180*24*60*60*1000)
+          .slice(0,250).map(item=>({key:item.key,label:item.label.slice(0,200),module:item.row.module,at:item.when}));
+        const response=await fetch("/api/alarms/configure",{
+          method:"POST",headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({enabled:desktop.enabled && setting.enabled,sound:desktop.sound,items:selected}),
+        });
+        if(!response.ok) throw Error("Respuesta del servidor: "+response.status);
+        setDesktopMessage(desktop.enabled ? "Alarmas Windows sincronizadas." : "Avisos de Windows desactivados.");
+      }catch(e){setDesktopMessage("No se pudieron sincronizar las alarmas: "+String(e));}
+    };
+    void sync();
+  },[items,desktop.enabled,desktop.sound,setting.enabled]);
+  const changeDesktop=(next:{enabled:boolean;sound:WindowsSound})=>{
+    setDesktop(next);
+    save(WINDOWS_SETTING,next);
+  };
+  const testDesktop=async()=>{
+    try{
+      const response=await fetch("/api/alarms/test",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sound:desktop.sound})});
+      if(!response.ok) throw Error("Respuesta "+response.status);
+      setDesktopMessage("Prueba enviada: comprueba la ventana de Windows.");
+    }catch(e){setDesktopMessage("No se pudo ejecutar la prueba: "+String(e));}
+  };
   useEffect(()=>{
     const tick = () => setClock(Date.now());
     const sync = () => {setSettingsFromStorage();tick();};
@@ -167,8 +202,22 @@ export function AlarmCenter({ data, open, showControls = true }: { data: Dataset
         {canNotify ? Notification.permission==="granted"?"Notificaciones permitidas":Notification.permission==="denied"?"Notificaciones bloqueadas":"Permitir notificaciones Windows":"Notificaciones no disponibles"}
       </button>
       <button type="button" onClick={()=>setVisible(v=>!v)} aria-expanded={visible}>{visible?"Ocultar próximos avisos":"Configurar próximos avisos"}</button>
-      <button type="button" onClick={testAlarm}>Probar aviso ahora</button>
+      <button type="button" onClick={testAlarm}>Probar aviso dentro de la aplicación</button>
     </div>
+    {isLocalPython && <div className="alarmWindowsControls">
+      <strong>Alarmas de escritorio de Windows (sin Chrome)</strong>
+      <p>Un cuadro de Windows con sonido puede avisarte aun con Chrome cerrado; el servidor Python debe seguir ejecutándose.</p>
+      <div className="inline">
+        <label><input type="checkbox" checked={desktop.enabled} onChange={e=>changeDesktop({...desktop,enabled:e.target.checked})}/> Activar avisos de Windows</label>
+        <label>Sonido
+          <select value={desktop.sound} onChange={e=>changeDesktop({...desktop,sound:e.target.value as WindowsSound})}>
+            {sounds.map(v=><option key={v} value={v}>{({alarma:"Alarma",aviso:"Aviso",campana:"Campana",silencio:"Sin sonido"} as Record<WindowsSound,string>)[v]}</option>)}
+          </select>
+        </label>
+        <button type="button" onClick={()=>void testDesktop()}>Probar ventana de Windows</button>
+      </div>
+      {desktopMessage && <p role="status">{desktopMessage}</p>}
+    </div>}
     {!!due.length && <div className="alarmDue" role="status" aria-live="polite">
       <strong>{due.length} recordatorio(s) pendiente(s)</strong>
       {due.slice(0,10).map(item=><div className="alarmEntry" key={item.key}>

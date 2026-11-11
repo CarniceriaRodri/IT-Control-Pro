@@ -694,3 +694,18 @@ details > summary {
 .profileFavorite{display:flex!important;flex-direction:row!important;align-items:center;gap:8px;cursor:pointer;
  padding:8px 11px;border:1px solid var(--line);border-radius:9px;background:var(--pale);font-size:13px;}
 .profileFavorite input{flex-shrink:0}
+
+/* Alarmas de Agenda, Tareas y devoluciones: solo navegador abierto */
+.alarmCenter{margin:18px 0;}
+.alarmCenter p{font-size:13px;}
+.alarmControls{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:12px 0;}
+.alarmControls label,.alarmUpcoming label{display:flex;gap:6px;align-items:center;font-size:13px;}
+.alarmControls select,.alarmUpcoming select{max-width:180px;}
+.alarmControls label:has(select){flex-direction:column;align-items:flex-start;}
+.alarmDue{border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:12px;margin:12px 0;}
+.alarmUpcoming{border-top:1px solid var(--line);padding-top:12px;}
+.alarmEntry{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);flex-wrap:wrap;}
+.alarmEntry>div:first-child{display:grid;gap:4px;flex:1;min-width:190px;}
+.alarmEntry small{color:var(--muted);}
+.alarmButtons{display:flex;gap:6px;flex-wrap:wrap;}
+@media(max-width:620px){.alarmControls,.alarmEntry{align-items:stretch;flex-direction:column}.alarmButtons button{flex:1}}

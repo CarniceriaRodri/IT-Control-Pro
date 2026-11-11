@@ -709,3 +709,21 @@ details > summary {
 .alarmEntry small{color:var(--muted);}
 .alarmButtons{display:flex;gap:6px;flex-wrap:wrap;}
 @media(max-width:620px){.alarmControls,.alarmEntry{align-items:stretch;flex-direction:column}.alarmButtons button{flex:1}}
+
+/* Centro de monitorización LAN: panel compacto Windows/Android */
+.networkMonitor{margin-bottom:18px}
+.networkMonitor>p{font-size:13px}
+.networkMonitorStats{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:9px;margin:12px 0}
+.networkMonitorStats>div{padding:13px;border:1px solid var(--line);border-radius:10px;background:var(--pale);display:grid;gap:5px}
+.networkMonitorStats small{font-size:12px;color:var(--muted)}
+.networkMonitorStats strong{font-size:24px;font-variant-numeric:tabular-nums}
+.networkMonitorConfig{margin:13px 0;padding:12px;border:1px solid var(--line);border-radius:10px}
+.networkMonitorConfig summary{cursor:pointer;font-weight:650}
+.networkMonitorConfig .inline{margin:10px 0;flex-wrap:wrap}
+.networkMonitorConfig label{font-size:13px}
+.networkMonitorSelect{max-height:270px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:8px;margin:12px 0}
+.networkMonitorSelect label{display:flex;align-items:center;gap:8px;padding:5px 3px;word-break:break-word}
+.networkMonitorSelect input{flex-shrink:0}
+.networkMonitor td small{font-size:11px}
+.networkMonitor .inline{flex-wrap:wrap}
+@media(max-width:620px){.networkMonitorStats{grid-template-columns:repeat(2,minmax(0,1fr))}.networkMonitor .inline button{min-height:36px}}

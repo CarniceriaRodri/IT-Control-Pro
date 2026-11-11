@@ -128,7 +128,7 @@ export function AlarmCenter({ data, open }: { data: Dataset; open: (row: Entity)
     }
   },[due,clock,setting.sound,open]);
   const amend = (item:AlarmItem, patch: Partial<Override>)=>{
-    updateOverrides({...overrides,[item.row.id]:{enabled:true,minutes:item.minutes,...overrides[item.row.id],...patch}});
+    updateOverrides({...overrides,[item.row.id]:{...{enabled:true,minutes:item.minutes},...overrides[item.row.id],...patch}});
   };
   const dismiss=(item:AlarmItem)=>amend(item,{dismissedEvent:item.key,snoozedUntil:undefined});
   const snooze=(item:AlarmItem,minutes:number)=>amend(item,{snoozedUntil:Date.now()+minutes*60000});

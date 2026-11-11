@@ -417,7 +417,10 @@ export function App({
               </button>
             )}
           </div>
-          <AlarmCenter data={data} open={openRelated} />
+          {/* Mantener el temporizador montado, pero mostrar el panel solo en Agenda. */}
+          <div hidden={page !== "Agenda"}>
+            <AlarmCenter data={data} open={openRelated} />
+          </div>
           {page === "Panel" && (
             <>
               <div className="stats">

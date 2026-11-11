@@ -14,6 +14,25 @@ autenticado. Consulta [instrucciones y limitaciones](docs/arranque-python-y-mult
 
 Aplicación web local de gestión informática, en español. [Abrir la aplicación](https://carniceriarodri.github.io/IT-Control-Pro/).
 
+## Alarmas en Agenda y seguimiento de tareas
+
+El centro de alarmas está disponible en todas las pantallas y comprueba los avisos
+cada 15 segundos mientras la aplicación esté abierta. Se aplica a citas de Agenda
+(con fecha y hora), Tareas (fecha prevista) y préstamos pendientes de Movimientos
+(devolución prevista). Si una tarea o devolución no tiene hora utiliza las 09:00.
+La antelación predeterminada es 15 minutos, configurable a 0, 5, 10, 15, 30 o 60;
+también se puede personalizar para los próximos avisos, posponer 5/15 minutos,
+descartar avisos individuales y activar opcionalmente una señal sonora.
+Las notificaciones de Windows requieren un navegador compatible, contexto seguro
+(localhost o HTTPS), permiso explícito e interacción del usuario en algunos casos.
+La señal sonora también puede quedar bloqueada hasta que el usuario interactúe.
+
+**Limitaciones:** no funciona con el navegador cerrado, el equipo suspendido o sin la
+aplicación cargada. Los navegadores pueden ralentizar la comprobación en segundo
+plano. Las preferencias y avisos descartados se guardan solo en el perfil local
+del navegador; no constituyen alertas compartidas entre técnicos. Los avisos visuales
+siguen disponibles cuando no se conceden notificaciones del sistema.
+
 ## Perfiles y personalización (11/11/2026)
 
 En **Administración → Perfiles de trabajo** puedes crear hasta 20 perfiles locales

@@ -8,7 +8,7 @@ type TesseractWorker = {
   terminate: () => Promise<unknown>;
 };
 type TesseractApi = {
-  createWorker: (language: string, oem?: number, options?: {
+  createWorker: (language: string | string[], oem?: number, options?: {
     workerPath?: string; corePath?: string; langPath?: string;
     workerBlobURL?: boolean;
   }) => Promise<TesseractWorker>;
@@ -18,6 +18,11 @@ declare global {
 }
 let loader: Promise<TesseractApi> | undefined;
 const local = (name: string) => new URL("./ocr/" + name, document.baseURI).href;
+async function assertResource(name: string): Promise<void> {
+  const response = await fetch(local(name), { method: "GET", cache: "no-store" });
+  if (!response.ok) throw Error("Falta el recurso OCR local " + name + " (HTTP " + response.status + "). Actualiza el paquete Windows completo, incluida la carpeta ocr.");
+  await response.body?.cancel();
+}
 function getTesseract(): Promise<TesseractApi> {
   if (window.Tesseract) return Promise.resolve(window.Tesseract);
   if (loader) return loader;
@@ -29,15 +34,21 @@ function getTesseract(): Promise<TesseractApi> {
       ? resolve(window.Tesseract)
       : reject(Error("No se pudo iniciar el motor OCR local."));
     script.onerror = () => reject(Error(
-      "No están disponibles los archivos OCR locales. Instala o actualiza el paquete Android completo."
+      "No están disponibles los archivos OCR locales. Actualiza el paquete Windows/Android completo y conserva la carpeta ocr."
     ));
     document.head.append(script);
   }).catch((error: unknown) => { loader = undefined; throw error; });
   return loader;
 }
 export async function recognizeOcr(photo: Blob): Promise<string> {
+  // Comprobación rápida con mensajes claros, antes de inicializar WebAssembly.
+  for (const name of [
+    "tesseract.min.js", "worker.min.js",
+    "core/tesseract-core.wasm.js", "core/tesseract-core-simd-lstm.wasm.js",
+    "lang/spa.traineddata.gz", "lang/eng.traineddata.gz"
+  ]) await assertResource(name);
   const engine = await getTesseract();
-  const worker = await engine.createWorker("spa+eng", 1, {
+  const worker = await engine.createWorker(["spa", "eng"], 1, {
     workerPath: local("worker.min.js"),
     corePath: local("core"),
     langPath: local("lang"),

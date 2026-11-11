@@ -12,7 +12,12 @@ import os
 import threading
 import webbrowser
 import json
-from monitor_python import MONITOR, MAX_REQUEST_BYTES
+import socket
+import subprocess
+import os
+import re
+import time
+from monitor_python import MONITOR, MAX_REQUEST_BYTES, permitted, ALLOWED_PORTS
 
 ROOT = Path(__file__).resolve().parent
 PORT = int(os.environ.get("IT_CONTROL_PORT", "8788"))
@@ -48,6 +53,61 @@ class LocalHandler(SimpleHTTPRequestHandler):
             return self._json(200, MONITOR.snapshot())
         return super().do_GET()
 
+
+    def _diagnose(self, payload):
+        if not isinstance(payload, dict):
+            raise ValueError("Parámetros incorrectos")
+        kind = payload.get("kind")
+        host = str(payload.get("host") or "").strip()
+        if kind == "interfaces":
+            names = set()
+            for entry in socket.getaddrinfo(socket.gethostname(), None, family=socket.AF_INET):
+                names.add(entry[4][0])
+            return {"kind": kind, "ok": True, "detail": "Direcciones IPv4 detectadas por el sistema",
+                    "interfaces": [{"adapter": "Equipo local", "ip": ip,
+                                    "mask": "No disponible", "mac": "No disponible"}
+                                   for ip in sorted(names)]}
+        if kind == "dns":
+            if len(host) > 253 or not re.fullmatch(
+                r"[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?", host
+            ):
+                raise ValueError("Introduce un nombre DNS válido")
+            try:
+                addresses = sorted({item[4][0] for item in socket.getaddrinfo(
+                    host, None, family=socket.AF_INET)})
+                return {"kind": kind, "ok": bool(addresses),
+                        "detail": "DNS resuelto" if addresses else "Sin resultado DNS",
+                        "addresses": addresses}
+            except socket.gaierror as error:
+                return {"kind": kind, "ok": False, "detail": str(error)}
+        if not permitted(host):
+            raise ValueError("Introduce una IPv4 privada autorizada")
+        start = time.monotonic()
+        if kind == "ping":
+            cmd = ["ping.exe", "-n", "2", "-w", "1200", host] if os.name == "nt" else (
+                ["ping", "-c", "2", "-W", "2", host])
+            try:
+                done = subprocess.run(cmd, shell=False, capture_output=True, text=True,
+                                      errors="replace", timeout=6)
+                return {"kind": kind, "host": host, "ok": done.returncode == 0,
+                        "detail": (done.stdout or done.stderr or "Sin respuesta")[:2500],
+                        "ms": round((time.monotonic() - start) * 1000)}
+            except (OSError, subprocess.TimeoutExpired) as error:
+                return {"kind": kind, "host": host, "ok": False, "detail": str(error)}
+        if kind == "tcp":
+            port = payload.get("port")
+            if type(port) is not int or port not in ALLOWED_PORTS:
+                raise ValueError("Puerto TCP no permitido")
+            try:
+                with socket.create_connection((host, port), timeout=2.5):
+                    return {"kind": kind, "host": host, "port": port, "ok": True,
+                            "detail": "Conexión TCP establecida",
+                            "ms": round((time.monotonic() - start) * 1000)}
+            except OSError as error:
+                return {"kind": kind, "host": host, "port": port, "ok": False,
+                        "detail": str(error)}
+        raise ValueError("Diagnóstico no reconocido")
+
     def do_POST(self):
         if not self._allowed_host():
             return self._json(403, {"error": "Acceso solo desde el propio equipo"})
@@ -57,14 +117,15 @@ class LocalHandler(SimpleHTTPRequestHandler):
         if self.headers.get("Sec-Fetch-Site") == "cross-site":
             return self._json(403, {"error": "Operación entre sitios denegada"})
         if self.path not in ("/api/monitor/configure", "/api/monitor/start",
-                             "/api/monitor/stop", "/api/monitor/run"):
+                             "/api/monitor/stop", "/api/monitor/run", "/api/diagnostics"):
             return self._json(404, {"error": "Ruta desconocida"})
         try:
             length = int(self.headers.get("Content-Length", "-1"))
             if not 0 <= length <= MAX_REQUEST_BYTES:
                 return self._json(413, {"error": "Solicitud demasiado grande"})
             data = json.loads(self.rfile.read(length)) if length else {}
-            result = MONITOR.configure(data) if self.path.endswith("/configure") else (
+            result = self._diagnose(data) if self.path == "/api/diagnostics" else (
+                MONITOR.configure(data) if self.path.endswith("/configure") else
                 MONITOR.command(self.path.rsplit("/", 1)[-1]))
             return self._json(200, result)
         except (ValueError, TypeError, json.JSONDecodeError) as error:

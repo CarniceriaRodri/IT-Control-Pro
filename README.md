@@ -1,5 +1,17 @@
 # IT Control Pro · Windows y Android
 
+## Inicio con Python en Windows (sin npm)
+
+Para ejecutar **la versión ya compilada** sin instalar Node.js ni descargar Vite,
+abre `INICIAR-PYTHON.bat` en Windows (Python 3.14 funciona mediante `py`).
+Se abrirá `http://127.0.0.1:8788/`. Mantén juntos `index.html`, `assets/`,
+los iconos, el manifiesto y el servidor. Para detenerlo utiliza Ctrl+C.
+
+**Este inicio es únicamente local.** Los registros siguen guardándose en el
+navegador (IndexedDB); no permite trabajo simultáneo con datos compartidos.
+Una versión multiusuario requiere implementar y autorizar un servicio central
+autenticado. Consulta [instrucciones y limitaciones](docs/arranque-python-y-multiusuario.md).
+
 Aplicación web local de gestión informática, en español. [Abrir la aplicación](https://carniceriarodri.github.io/IT-Control-Pro/).
 
 ## Perfiles y personalización (11/11/2026)

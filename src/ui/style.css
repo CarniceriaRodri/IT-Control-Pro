@@ -689,3 +689,8 @@ details > summary {
   .profileSettingsGrid { grid-template-columns:1fr; }
   .profileSettingsPanel { padding:14px; }
 }
+
+.profileFavoriteGrid{display:flex;gap:8px;flex-wrap:wrap;}
+.profileFavorite{display:flex!important;flex-direction:row!important;align-items:center;gap:8px;cursor:pointer;
+ padding:8px 11px;border:1px solid var(--line);border-radius:9px;background:var(--pale);font-size:13px;}
+.profileFavorite input{flex-shrink:0}

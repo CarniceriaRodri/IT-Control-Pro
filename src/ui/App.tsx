@@ -416,6 +416,7 @@ export function App({
               </button>
             )}
           </div>
+          <AlarmCenter data={data} open={openRelated} />
           {page === "Panel" && (
             <>
               <div className="stats">
@@ -458,7 +459,6 @@ export function App({
                   </button>
                 ))}
               </div>
-              <AlarmCenter data={data} open={openRelated} />
               <DueOverview data={data} open={openRelated} />
             </>
           )}

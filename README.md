@@ -1,5 +1,22 @@
 # IT Control Pro · Windows y Android
 
+## Visualización de documentos y aplicaciones externas
+
+En «Archivos y fotos» se incluye vista previa de PDF en el navegador y lectura de texto
+para TXT, RTF, ODT, DOCX, archivos de texto y algunos formatos técnicos. El visor
+RTF/ODT/DOCX extrae texto y **no conserva la maquetación**; no se ejecutan macros,
+scripts ni contenido incrustado.
+
+El botón **Descargar y abrir** guarda el archivo original en el equipo. Después puede
+abrirse desde Descargas con la aplicación asociada de Windows, como LibreOffice,
+Microsoft Word o un lector PDF, si está instalada y autorizada. Por seguridad el
+navegador no puede iniciar arbitrariamente programas de Windows. La descarga puede
+estar condicionada por las políticas de Edge/Chrome y la carpeta de descargas.
+
+Los archivos existentes siguen almacenados como adjuntos; no se modifican
+ni convierten para la visualización. Esta función necesita recompilar la aplicación
+y utilizar un paquete actualizado, no basta con reiniciar Python.
+
 ## OCR en Windows sin conexión a Internet
 
 El botón **OCR** de Documentos y fotografías utiliza Tesseract.js 5.1.1.

@@ -442,7 +442,7 @@ export function App({
                 <Boxes size={20} /> Módulos de trabajo
               </h2>
               <div className="cards">
-                {mods.map((m) => (
+                {orderedMods.map((m) => (
                   <button key={m.id} onClick={() => go(m.id)}>
                     <div className="tileIcon">
                       <Icon id={m.id} size={22} />

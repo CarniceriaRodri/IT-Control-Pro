@@ -12,6 +12,7 @@ on:
       - 'app.html'
       - 'INICIAR-PYTHON.bat'
       - 'servidor_python.py'
+      - '.github/workflows/portable-windows.yml'
 permissions:
   contents: read
 jobs:

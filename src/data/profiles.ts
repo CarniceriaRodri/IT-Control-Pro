@@ -13,6 +13,7 @@ export interface ProfileSettings {
   density: Density;
   scale: Scale;
   home: string;
+  favorites: string[];
 }
 export interface OperatorProfile {
   id: string;
@@ -28,7 +29,7 @@ export interface ProfilesState {
 const KEY = "it-control-pro-local-profiles-v1";
 export const defaultSettings: ProfileSettings = {
   theme: "system", accent: "green", density: "comfortable",
-  scale: "normal", home: "Panel",
+  scale: "normal", home: "Panel", favorites: [],
 };
 export function initialProfiles(): ProfilesState {
   let theme: Theme = "system";
@@ -54,6 +55,7 @@ function normalizeSettings(s: unknown): ProfileSettings {
     density: oneOf(p.density, ["comfortable","compact"] as const, "comfortable"),
     scale: oneOf(p.scale, ["normal","large"] as const, "normal"),
     home: typeof p.home === "string" && p.home.length <= 90 ? p.home : "Panel",
+    favorites: Array.isArray(p.favorites) ? [...new Set(p.favorites.filter((v):v is string => typeof v === "string" && v.length <= 90))].slice(0,12) : [],
   };
 }
 export function readProfiles(): ProfilesState {

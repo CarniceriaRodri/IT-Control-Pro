@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Camera, Images, FolderOpen, FilePlus2, Download, X, ScanText, ScanLine, BookImage, Check, Search } from "lucide-react";
 import { prepareFile, downloadBlob, maxFile, type Attachment, type Binaries } from "../data/media";
 import { recognizeOcr, readCodes } from "../data/recognition";
+import { canPreviewDocument, previewDocument } from "../data/documentPreview";
 
 export interface FileDraft {
   refs: Attachment[];
@@ -17,10 +18,7 @@ type Preview = {
   content?: string;
 };
 // Un documento se visualiza siempre como texto sin ejecutar HTML ni scripts.
-const textFile = /\.(txt|text|md|markdown|csv|tsv|log|json|xml|yaml|yml|ini|cfg|conf|sql|bat|cmd|ps1|sh|html|htm|css|js|ts|py)$/i;
 const pdfFile = /\.pdf$/i;
-const maxTextPreview = 2 * 1024 * 1024;
-const isText = (f: Attachment) => textFile.test(f.name);
 const isPdf = (f: Attachment) => pdfFile.test(f.name);
 
 async function normalizeImage(file: File): Promise<File> {
@@ -109,19 +107,21 @@ export function Attachments({
           throw Error("Este archivo no tiene una cabecera PDF válida.");
         show({ url: URL.createObjectURL(new Blob([blob], {type:"application/pdf"})),
           name:ref.name, kind:"pdf" });
-      } else if (isText(ref)) {
-        if (blob.size > maxTextPreview)
-          throw Error("El documento supera 2 MB para la vista de texto. Descárgalo para abrirlo completo.");
-        const bytes = await blob.arrayBuffer();
-        let content = "";
-        try { content = new TextDecoder("utf-8", {fatal:true}).decode(bytes); }
-        catch { content = new TextDecoder("windows-1252").decode(bytes); }
-        show({ name:ref.name, kind:"text", content });
+      } else if (canPreviewDocument(ref.name)) {
+        show({ name:ref.name, kind:"text", content:await previewDocument(blob, ref.name) });
       } else {
-        throw Error("No existe visor integrado para este formato. Puedes descargar el archivo.");
+        throw Error("Este formato necesita una aplicación externa. Pulsa «Abrir en aplicación» para obtener el archivo original.");
       }
     } catch (e) { status(String(e)); }
     finally { setBusy(false); }
+  }
+  async function openExternal(ref: Attachment) {
+    try {
+      const blob = current.current.blobs.get(ref.hash) || await load(ref.hash);
+      if (!blob) throw Error("El documento no está disponible.");
+      downloadBlob(blob, ref.name);
+      status("Archivo original descargado: " + ref.name + ". Ábrelo desde Descargas con Word, LibreOffice, Adobe Reader u otra aplicación instalada. El navegador no puede ejecutar aplicaciones externas directamente.");
+    } catch (e) { status(String(e)); }
   }
   async function recognize(ref: Attachment, method: "ocr" | "codes") {
     if (busy) return;
@@ -203,11 +203,12 @@ export function Attachments({
               <button type="button" disabled={busy} onClick={() => void recognize(ref, "ocr")}><ScanText size={15}/> OCR</button>
               <button type="button" disabled={busy} onClick={() => void recognize(ref, "codes")}><ScanLine size={15}/> Código</button>
             </>}
-            {ref.kind !== "photo" && (isPdf(ref) || isText(ref)) && (
+            {ref.kind !== "photo" && (isPdf(ref) || canPreviewDocument(ref.name)) && (
               <button type="button" disabled={busy} onClick={() => void showFile(ref)}>
                 <FolderOpen size={15}/> Ver documento
               </button>
             )}
+            {ref.kind !== "photo" && <button type="button" disabled={busy} onClick={() => void openExternal(ref)}><FolderOpen size={15}/> Abrir en aplicación</button>}
             <button type="button" onClick={async () => {
               try { const blob = value.blobs.get(ref.hash) || await load(ref.hash); if (!blob) throw Error("Archivo no disponible."); downloadBlob(blob, ref.name); }
               catch (e) { status(String(e)); }
@@ -254,7 +255,7 @@ export function Attachments({
             </>
           )}
           {preview.kind === "text" && (
-            <pre className="documentTextPreview" tabIndex={0}>{preview.content || "(Documento vacío)"}</pre>
+            <><small>Vista rápida del texto, sin formato ni macros. Para ver el documento original con su diseño, usa «Abrir en aplicación».</small><pre className="documentTextPreview" tabIndex={0}>{preview.content || "(Documento vacío)"}</pre></>
           )}
         </div>
       )}

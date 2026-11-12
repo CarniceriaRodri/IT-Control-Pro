@@ -8,7 +8,7 @@ type AlarmItem = { row: Entity; when: number; due: number; label: string; key: s
 const KEY = "it-control-pro-alarms-v1";
 const SETTINGS = "it-control-pro-alarm-settings-v1";
 const options: Delay[] = [0, 5, 10, 15, 30, 60];
-const defaultSetting: Setting = { enabled: true, minutes: 15, sound: false };
+const defaultSetting: Setting = { enabled: true, minutes: 0, sound: false };
 type WindowsSound = "aviso" | "alarma" | "campana" | "silencio";
 const sounds: WindowsSound[] = ["alarma","aviso","campana","silencio"];
 const WINDOWS_SETTING = "it-control-pro-windows-alarm-v1";
@@ -208,7 +208,7 @@ export function AlarmCenter({ data, open, showControls = true }: { data: Dataset
   return <>
   {showControls && <section className="alarmCenter" aria-label="Alarmas y recordatorios">
     <div className="sectionTitle"><h2>Alarmas y recordatorios</h2></div>
-    <p>Los avisos se comprueban mientras IT Control Pro esté abierto. Con la aplicación cerrada no hay alarmas garantizadas. La configuración es local de este navegador.</p>
+    <p>Los avisos de la página funcionan mientras esté abierta. En Windows, con el servidor Python activo, la ventana de recordatorio permanecerá pendiente hasta confirmarla o posponerla.</p>
     {invalid.length > 0 && <p role="status">Hay {invalid.length} registro(s) sin alarma por fecha u hora no válida. Edita la cita y selecciona una fecha en el calendario y una hora (por ejemplo, 09:30).</p>}
     <div className="alarmControls">
       <label><input type="checkbox" checked={setting.enabled} onChange={e=>updateSetting({...setting,enabled:e.target.checked})}/> Activar alarmas</label>
@@ -226,7 +226,7 @@ export function AlarmCenter({ data, open, showControls = true }: { data: Dataset
     </div>
     {isLocalPython && <div className="alarmWindowsControls">
       <strong>Alarmas de escritorio de Windows (sin Chrome)</strong>
-      <p>Un cuadro de Windows con sonido puede avisarte aun con Chrome cerrado; el servidor Python debe seguir ejecutándose.</p>
+      <p>Una ventana grande en primer plano, con sonido configurable y opciones para confirmar o posponer, puede avisarte aunque Chrome esté cerrado; el servidor Python debe seguir ejecutándose.</p>
       <div className="inline">
         <label><input type="checkbox" checked={desktop.enabled} onChange={e=>changeDesktop({...desktop,enabled:e.target.checked})}/> Activar avisos de Windows</label>
         <label>Sonido

@@ -118,7 +118,7 @@ export function AlarmCenter({ data, open, showControls = true }: { data: Dataset
     const sync = async ()=>{
       try {
         const now=Date.now();
-        const selected=items.filter(item=>item.when>=now-24*60*60*1000 && item.when<=now+180*24*60*60*1000)
+        const selected=items.filter(item=>item.when>=now-180*24*60*60*1000 && item.when<=now+180*24*60*60*1000)
           .slice(0,250).map(item=>({key:item.key,label:item.label.slice(0,200),module:item.row.module,at:item.when}));
         const response=await fetch("/api/alarms/configure",{
           method:"POST",headers:{"Content-Type":"application/json"},

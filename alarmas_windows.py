@@ -146,7 +146,7 @@ class DesktopAlarms:
                     or not isinstance(label, str) or not 1 <= len(label) <= 200
                     or not isinstance(module, str) or module not in ("Agenda", "Tareas", "Movimientos")
                     or type(at) is not int
-                    or at < now - 24 * 3600 * 1000 or at > now + MAX_FUTURE_MS):
+                    or at < now - MAX_FUTURE_MS or at > now + MAX_FUTURE_MS):
                 if strict:
                     raise ValueError("Fecha, identificador o texto de alarma incorrectos")
                 continue

@@ -7,6 +7,8 @@ export default defineConfig({
   workers: 2,
   use: {
     baseURL: url,
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure",
     launchOptions: { executablePath: process.env.CHROMIUM_PATH || undefined },
   },
   webServer: {

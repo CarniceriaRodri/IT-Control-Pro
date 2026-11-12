@@ -6,7 +6,7 @@ import { DueOverview } from "./DueOverview";
 import { MonitorAlerts } from "./MonitorAlerts";
 import { AlarmCenter } from "./AlarmCenter";
 import { Help } from "./Help";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { readProfiles, currentProfile, persistProfiles, applyProfile, type ProfilesState } from "../data/profiles";
 import { ProfileSettingsPanel } from "./ProfileSettingsPanel";
 import { makeRoute, routeFromUrl, initializeHistory, pushAppRoute, replaceAppRoute, isRoute, isGuard } from "./history";
@@ -122,7 +122,7 @@ export function App({
     return()=>clearInterval(timer);
   },[repo,editor,childEditors.length]);
   const [historyReady, setHistoryReady] = useState(false);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const incoming = routeFromUrl();
     const preferred = operator.settings.home;
     const startingPage = !location.hash && preferred !== "Panel" && data.modules.some(m=>m.id===preferred && m.active)
@@ -144,7 +144,7 @@ export function App({
     }
     setHistoryReady(true);
   }, []);
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!historyReady) return;
     const receive = (event: PopStateEvent) => {
       setChildEditors([]);

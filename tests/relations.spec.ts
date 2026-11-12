@@ -24,7 +24,7 @@ test("crear relación configurada con buscador y nuevo registro relacionado", as
   await page.getByText("Guardar registro", {exact: true}).click();
   await page.getByRole("navigation").getByRole("button", {name: "Incidencias", exact: true}).click();
   await page.getByText("Nuevo registro", {exact: true}).click();
-  await page.getByRole("dialog").getByLabel("Número", {exact: true}).fill("INC-123");
+  await page.getByRole("dialog").getByLabel("Número *", {exact: true}).fill("INC-123");
   await page.getByLabel("Buscar Equipo relacionado").fill("CAN2014E");
   await expect(page.getByRole("option", {name: /CAN2014E/})).toBeVisible();
   await page.getByRole("option", {name: /CAN2014E/}).click();

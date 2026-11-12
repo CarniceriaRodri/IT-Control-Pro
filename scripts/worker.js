@@ -22,11 +22,12 @@ self.addEventListener("fetch", (event) => {
     url = new URL(req.url),
     base = self.registration.scope;
   if (req.method !== "GET" || !url.href.startsWith(base)) return;
+  url.hash = "";
   const path = url.href.slice(base.length).split("?")[0];
   if (!files.includes(path) && path !== "") return;
   event.respondWith(
     caches
       .open(current)
-      .then(async (c) => (await c.match(path || "index.html")) || fetch(req)),
+      .then(async (c) => (await c.match(new URL(path || "index.html", base).href)) || fetch(req)),
   );
 });

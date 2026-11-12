@@ -100,8 +100,9 @@ test("crea módulos y campos desde Android, oculta sin perder datos", async ({
     .getByRole("navigation")
     .getByText("Teléfonos corporativos")
     .click();
-  await page.getByText("Nuevo registro", { exact: true }).click();
-  await page.getByLabel("Nombre *", { exact: true }).fill("Teléfono de prueba");
+  await page.getByRole("button",{name:"Nuevo registro",exact:true}).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.getByRole("dialog").getByLabel("Nombre *", { exact: true }).fill("Teléfono de prueba");
   await page.getByRole("dialog").getByLabel("Extensión",{exact:true}).fill("1234");
   await page.getByText("Guardar registro").click();
   await expect(page.getByRole("cell", { name: "1234" })).toBeVisible();

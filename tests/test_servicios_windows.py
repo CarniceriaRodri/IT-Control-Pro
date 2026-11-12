@@ -51,7 +51,7 @@ class SharedTests(unittest.TestCase):
 
     def test_commit_permissions_conflicts_and_author(self):
         draft=json.loads(json.dumps(self.shared.state["data"]))
-        draft["records"].append({"id":"r1","module":"Equipos","values":{"ip":"10.1.1.1"}})
+        draft["records"].append({"id":"11111111-1111-4111-8111-111111111111","module":"Equipos","rev":1,"archived":False,"values":{"ip":"10.1.1.1"}})
         with patch.object(self.shared,"backup_snapshot"):
             self.shared.commit({"version":1,"data":draft,"action":"Alta"},self.basic)
         self.assertEqual(self.shared.state["data"]["history"][-1]["operator"],"tecnico")

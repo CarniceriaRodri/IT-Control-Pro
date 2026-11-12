@@ -1,6 +1,6 @@
 const prefix = "it-control-pro:" + self.registration.scope + ":";
-const current = prefix + "b33b5a0c5688";
-const files = ["index.html","manifest.webmanifest","assets/app-CZjSeQiB.js","assets/app-DfIalRA2.css","../icon.svg","../icon-192.png","../icon-512.png"];
+const current = prefix + "dbd62e9a38e2";
+const files = ["index.html","manifest.webmanifest","assets/app-BF-y_a_s.js","assets/app-DfIalRA2.css","../icon.svg","../icon-192.png","../icon-512.png"];
 self.addEventListener("install", (event) =>
   event.waitUntil(caches.open(current).then((c) => c.addAll(files))),
 );
@@ -30,4 +30,3 @@ self.addEventListener("fetch", (event) => {
       .then(async (c) => (await c.match(path || "index.html")) || fetch(req)),
   );
 });
-

@@ -12,6 +12,8 @@ from pathlib import Path
 import threading
 import time
 import webbrowser
+import uuid
+from urllib.parse import urlencode
 from servicios_windows import SERVICES
 
 MAX_ALARMS = 5000
@@ -58,10 +60,6 @@ def show_windows_alarm(label: str, module: str, sound: str, url: str, on_action=
         root.attributes("-topmost", True)
         root.lift()
         root.focus_force()
-        try:
-            root.bell()
-        except Exception:
-            pass
         result = {"done": False}
         def complete(action, minutes=0):
             if result["done"]:
@@ -98,7 +96,16 @@ def show_windows_alarm(label: str, module: str, sound: str, url: str, on_action=
         root.mainloop()
     except Exception as error:
         print(f"No se pudo mostrar la ventana grande: {error}", flush=True)
-        # No se confirma automáticamente; el motor reintentará el aviso.
+        # Alternativa nativa cuando Tk no está disponible en la distribución Python.
+        stopped = threading.Event()
+        def repeat_fallback():
+            while not stopped.wait(30): sound_windows(sound)
+        threading.Thread(target=repeat_fallback, daemon=True).start()
+        try:
+            result = ctypes.windll.user32.MessageBoxW(None, label + "\n\nAceptar: atendida. Cancelar: posponer cinco minutos.", "IT Control Pro · " + module, 0x00000001 | 0x00000030 | 0x00040000 | 0x00010000)
+            if on_action: on_action("ack" if result == 1 else "snooze", 0 if result == 1 else 5)
+        finally:
+            stopped.set()
 
 
 class DesktopAlarms:
@@ -238,7 +245,13 @@ class DesktopAlarms:
                 if not item.get("extraDelivered"):
                     item["extraDelivered"] = True
                     threading.Thread(target=SERVICES.deliver, args=(item["label"], item["module"]), daemon=True).start()
-                self.deliver(item["label"], item["module"], sound, self.url, on_action)
+                query={"modulo":item["module"]}
+                try:
+                    record_id=item["key"].split(":",1)[0]
+                    uuid.UUID(record_id)
+                    query["registro"]=record_id
+                except (ValueError,KeyError):pass
+                self.deliver(item["label"], item["module"], sound, self.url + "#" + urlencode(query), on_action)
             except TypeError:
                 # Compatibilidad con inyecciones de prueba antiguas de 4 argumentos.
                 self.deliver(item["label"], item["module"], sound, self.url)
@@ -270,6 +283,7 @@ class DesktopAlarms:
     def test_scheduled(self, sound: str) -> dict:
         key = "scheduled-test-" + str(self.clock())
         with self.lock:
+            if len(self.items) >= MAX_ALARMS:raise ValueError("Se ha alcanzado el máximo de alarmas")
             self.items.append({"key": key, "label": "Prueba completa de programación", "module": "Agenda", "at": self.clock() + 60_000})
             self.enabled = True
             self.sound = sound if sound in VALID_SOUNDS else "alarma"

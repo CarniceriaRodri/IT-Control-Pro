@@ -23,6 +23,9 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test tests/network-tables.spec.ts tests/navigation.spec.ts tests/profiles.spec.ts tests/relations.spec.ts tests/platform.spec.ts --reporter=line
+      - name: Mostrar contexto de errores de interfaz
+        if: failure()
+        run: find test-results -name error-context.md -exec cat {} \;
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -117,7 +117,10 @@ class SharedData:
             self._save("datos.json",self.state)
             self.config["shared"]=True
             self._save("acceso.json",self.config)
-        self.backup_snapshot()
+        try:self.backup_snapshot()
+        except Exception as error:
+            from servicios_windows import SERVICES
+            SERVICES.last_error="Migración completada; copia externa pendiente: "+str(error)
         return self.status(token)
 
     def owners(self, data):
@@ -145,6 +148,9 @@ class SharedData:
         ids=set()
         for r in data["records"]:
             if not isinstance(r,dict) or r.get("module") not in modules or not isinstance(r.get("values"),dict) or not isinstance(r.get("id"),str) or r["id"] in ids:raise ValueError("Registro incorrecto")
+            try:uuid.UUID(r["id"])
+            except ValueError:raise ValueError("Identificador de registro incorrecto")
+            if type(r.get("rev")) is not int or r["rev"]<1 or type(r.get("archived")) is not bool:raise ValueError("Versión o estado de registro incorrectos")
             ids.add(r["id"])
 
     def files(self, values):

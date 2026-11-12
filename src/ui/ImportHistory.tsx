@@ -10,7 +10,7 @@ export function ImportHistory({data,module,write}:{data:Dataset;module:string;wr
   try{await write("Deshacer importación",module,d=>{
    const entry=d.imports?.find(x=>x.id===batch.id);if(!entry||entry.undone||!entry.after)throw Error("No hay un punto reversible para esta importación.");
    const current={module:d.modules.find(m=>m.id===module),records:d.records.filter(r=>r.module===module)};
-   if(JSON.stringify(current)!==JSON.stringify(entry.after))throw Error("El módulo ha cambiado después de importar. Deshaz primero la importación más reciente o restaura una copia revisada.");
+   if(JSON.stringify({...current,records:[...current.records].sort((a,b)=>a.id.localeCompare(b.id))})!==JSON.stringify({...entry.after,records:[...entry.after.records].sort((a,b)=>a.id.localeCompare(b.id))}))throw Error("El módulo ha cambiado después de importar. Deshaz primero la importación más reciente o restaura una copia revisada.");
    const removed=new Set(current.records.filter(r=>!entry.before.records.some(old=>old.id===r.id)).map(r=>r.id));
    if(d.records.some(r=>r.module!==module&&Object.values(r.values).some(v=>removed.has(String(v))||(Array.isArray(v)&&v.some(x=>removed.has(String(x)))))))throw Error("Hay registros de otros módulos relacionados con los importados. Revisa esas relaciones antes de deshacer.");
    d.records=[...d.records.filter(r=>r.module!==module),...structuredClone(entry.before.records)];

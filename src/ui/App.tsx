@@ -427,7 +427,7 @@ export function App({
           </div>
           {/* Alarmas siempre activas; opciones visibles únicamente dentro de Agenda. */}
           <AlarmCenter data={data} open={openRelated} showControls={page === "Agenda"} />
-          {(page === "Panel" || page === "Administración") && <SystemStatus repo={repo} snapshot={snap} controls={page === "Administración"}/>}
+          <SystemStatus repo={repo} snapshot={snap} controls={page === "Administración"} visible={page === "Panel" || page === "Administración"}/>
           {page === "Panel" && (
             <>
               <div className="stats">

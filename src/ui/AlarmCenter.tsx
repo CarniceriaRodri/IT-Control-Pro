@@ -35,12 +35,18 @@ function save(key: string, value: unknown) {
   catch { /* Avisos visibles siguen funcionando mientras la pestaña esté abierta. */ }
 }
 function localDate(date: string, time: string): number | null {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) return null;
-  const [y,m,d] = date.split("-").map(Number);
-  const [h,min] = time.split(":").map(Number);
-  const value = new Date(y,m-1,d,h,min,0,0);
-  return value.getFullYear()===y && value.getMonth()===m-1 &&
-    value.getDate()===d && value.getHours()===h && value.getMinutes()===min
+  // Acepta el formato ISO del calendario y fechas españolas de registros anteriores.
+  const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(date.trim());
+  const spanish = /^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/.exec(date.trim());
+  const hour = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec(time.trim());
+  if ((!iso && !spanish) || !hour) return null;
+  const year = Number(iso?.[1] ?? spanish?.[3]);
+  const month = Number(iso?.[2] ?? spanish?.[2]);
+  const day = Number(iso?.[3] ?? spanish?.[1]);
+  const hours = Number(hour[1]), minutes = Number(hour[2]);
+  const value = new Date(year, month - 1, day, hours, minutes, 0, 0);
+  return value.getFullYear() === year && value.getMonth() === month - 1 &&
+    value.getDate() === day && value.getHours() === hours && value.getMinutes() === minutes
     ? value.getTime() : null;
 }
 function planned(row: Entity): {date: string; time: string; label: string} | null {
@@ -56,6 +62,7 @@ function planned(row: Entity): {date: string; time: string; label: string} | nul
 }
 function compute(data: Dataset, overrides: Record<string, Override>, setting: Setting): AlarmItem[] {
   if (!setting.enabled) return [];
+  const now = Date.now();
   return data.records.flatMap(row => {
     const p = planned(row);
     if (!p) return [];
@@ -64,7 +71,8 @@ function compute(data: Dataset, overrides: Record<string, Override>, setting: Se
     const override = overrides[row.id];
     if (override?.enabled === false) return [];
     const minutes = validDelay(override?.minutes) ? override.minutes : setting.minutes;
-    const when = due - minutes * 60000;
+    // Una cita creada dentro del margen debe avisar inmediatamente.
+    const when = due >= now ? Math.max(due - minutes * 60000, now) : due - minutes * 60000;
     const key = row.id + ":" + due + ":" + minutes;
     if (override?.dismissedEvent === key) return [];
     return [{row, due, when: Math.max(when, override?.snoozedUntil || 0),label:p.label,key,minutes}];
@@ -100,6 +108,7 @@ export function AlarmCenter({ data, open, showControls = true }: { data: Dataset
   const updateSetting = (next: Setting) => {setSetting(next); save(SETTINGS,next);};
   const updateOverrides = (next: Record<string,Override>) => {setOverrides(next); save(KEY,next);};
   const items = useMemo(()=>compute(data,overrides,setting),[data,overrides,setting]);
+  const invalid = useMemo(()=>data.records.filter(row=>{const p=planned(row);return p!==null && localDate(p.date,p.time)===null;}),[data]);
   const due = items.filter(item=>item.when<=clock && clock-item.due<24*60*60*1000);
   const next = items.filter(item=>item.when>clock).slice(0,12);
   const activeItem = active ? items.find(item=>item.key===active) : undefined;
@@ -116,7 +125,17 @@ export function AlarmCenter({ data, open, showControls = true }: { data: Dataset
           body:JSON.stringify({enabled:desktop.enabled && setting.enabled,sound:desktop.sound,items:selected}),
         });
         if(!response.ok) throw Error("Respuesta del servidor: "+response.status);
-        setDesktopMessage(desktop.enabled ? "Alarmas Windows sincronizadas." : "Avisos de Windows desactivados.");
+        const status = await response.json() as {scheduled?:number;next?:number|null};
+        if (!desktop.enabled) setDesktopMessage("Avisos programados de Windows desactivados. Activa la casilla para recibirlos.");
+        else if (!setting.enabled) setDesktopMessage("Las alarmas generales están desactivadas.");
+        else {
+          const count = status.scheduled ?? 0;
+          const nextDate = typeof status.next === "number"
+            ? " Próximo aviso: " + new Date(status.next).toLocaleString("es-ES") + "."
+            : "";
+          setDesktopMessage(count + " alarma(s) programada(s) en Windows." + nextDate +
+            (count === 0 ? " Comprueba que existe una cita futura con fecha y hora válidas." : ""));
+        }
       }catch(e){setDesktopMessage("No se pudieron sincronizar las alarmas: "+String(e));}
     };
     void sync();
@@ -129,7 +148,7 @@ export function AlarmCenter({ data, open, showControls = true }: { data: Dataset
     try{
       const response=await fetch("/api/alarms/test",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sound:desktop.sound})});
       if(!response.ok) throw Error("Respuesta "+response.status);
-      setDesktopMessage("Prueba enviada: comprueba la ventana de Windows.");
+      setDesktopMessage("Prueba enviada: comprueba la ventana de Windows. Activa los avisos de Windows para las citas programadas.");
     }catch(e){setDesktopMessage("No se pudo ejecutar la prueba: "+String(e));}
   };
   useEffect(()=>{
@@ -190,6 +209,7 @@ export function AlarmCenter({ data, open, showControls = true }: { data: Dataset
   {showControls && <section className="alarmCenter" aria-label="Alarmas y recordatorios">
     <div className="sectionTitle"><h2>Alarmas y recordatorios</h2></div>
     <p>Los avisos se comprueban mientras IT Control Pro esté abierto. Con la aplicación cerrada no hay alarmas garantizadas. La configuración es local de este navegador.</p>
+    {invalid.length > 0 && <p role="status">Hay {invalid.length} registro(s) sin alarma por fecha u hora no válida. Edita la cita y selecciona una fecha en el calendario y una hora (por ejemplo, 09:30).</p>}
     <div className="alarmControls">
       <label><input type="checkbox" checked={setting.enabled} onChange={e=>updateSetting({...setting,enabled:e.target.checked})}/> Activar alarmas</label>
       <label>Antelación predeterminada

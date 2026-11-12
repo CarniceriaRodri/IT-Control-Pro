@@ -298,7 +298,7 @@ export function AlarmCenter({ data, open, showControls = true }: { data: Dataset
       </div>)}
     </div>}
   </section>}
-  {(testVisible || activeItem) && <aside className="alarmToast" role="alert" aria-live="assertive">
+  {(testVisible || activeItem) && <div className="alarmToast" role="alert" aria-live="assertive">
     {testVisible ? <>
       <strong>Prueba de alarma correcta</strong>
       <p>IT Control Pro puede mostrar avisos mientras esta pestaña esté abierta. Las notificaciones de Windows requieren permiso del navegador.</p>
@@ -312,7 +312,7 @@ export function AlarmCenter({ data, open, showControls = true }: { data: Dataset
         <button type="button" onClick={()=>dismiss(activeItem)}>Descartar</button>
       </div>
     </> : null}
-  </aside>}
+  </div>}
   </>;
 }
 

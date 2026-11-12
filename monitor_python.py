@@ -16,12 +16,12 @@ import time
 
 DATA = Path.home() / ".it_control_pro" / "monitor"
 FILE = DATA / "monitor.json"
-MAX_HOSTS = 250
+MAX_HOSTS = 5000
 MAX_WORKERS = 6
 ALLOWED_INTERVALS = (30, 60, 120, 300, 600)
 ALLOWED_PORTS = (22, 80, 443, 445, 515, 631, 8080, 8443, 9100)
 MAX_EVENTS = 500
-MAX_REQUEST_BYTES = 100_000
+MAX_REQUEST_BYTES = 4_000_000
 
 
 def permitted(ip):
@@ -71,10 +71,26 @@ class Monitor:
         self.targets = {}
         self.states = {}
         self.events = []
+        self.completed = 0
+        self.total = 0
+        self.last_probe = {}
         self.last_cycle = None
         self.next_cycle = None
         self._restore()
         Thread(target=self._loop, name="it-control-monitor", daemon=True).start()
+
+    def _metadata(self, entry):
+        interval = entry.get("intervalSeconds", 120)
+        threshold = entry.get("failureThreshold", 3)
+        schedule = entry.get("schedule", {"start": 0, "end": 24})
+        if interval not in ALLOWED_INTERVALS or threshold not in (1, 2, 3, 5):
+            raise ValueError("Política de grupo incorrecta")
+        if not isinstance(schedule, dict) or type(schedule.get("start")) is not int or type(schedule.get("end")) is not int or not 0 <= schedule["start"] <= 23 or not 1 <= schedule["end"] <= 24 or schedule["start"] == schedule["end"]:
+            raise ValueError("Horario incorrecto")
+        return {"location": str(entry.get("location") or "")[:500],
+                "groups": [str(x)[:100] for x in entry.get("groups", []) if isinstance(x, str)][:50],
+                "recordIds": [str(x)[:100] for x in entry.get("recordIds", []) if isinstance(x, str)][:50],
+                "schedule": schedule, "intervalSeconds": interval, "failureThreshold": threshold}
 
     def _restore(self):
         try:
@@ -85,6 +101,7 @@ class Monitor:
                 if isinstance(entry, dict) and permitted(entry.get("ip")):
                     ip = entry["ip"]
                     self.targets[ip] = {
+                        **self._metadata(entry),
                         "ip": ip,
                         "device": str(entry.get("device") or ip)[:100],
                         "center": str(entry.get("center") or "")[:100],
@@ -112,6 +129,7 @@ class Monitor:
                 hosts.append({**target, **entry, "status": entry.get("status", "pending")})
             return {"running": self.running, "intervalSeconds": self.interval,
                     "failureThreshold": self.failures, "hosts": hosts,
+                    "completed": self.completed, "total": self.total,
                     "events": list(reversed(self.events[-100:])),
                     "lastCycle": self.last_cycle, "nextCycle": self.next_cycle,
                     "message": "El sondeo se ejecuta solo en este Windows, con el servidor Python abierto."}
@@ -143,6 +161,7 @@ class Monitor:
             ):
                 raise ValueError("Puerto no permitido")
             incoming[ip] = {
+                **self._metadata(entry),
                 "ip": ip,
                 "device": str(entry.get("device") or ip)[:100],
                 "center": str(entry.get("center") or "")[:100],
@@ -152,6 +171,7 @@ class Monitor:
             self.interval = interval
             self.failures = failures
             self.targets = incoming
+            self.last_probe = {}
             self.states = {ip: st for ip, st in self.states.items() if ip in incoming}
             self._save()
             self.wake.set()
@@ -184,18 +204,28 @@ class Monitor:
                     if not self.running:
                         break
                     targets = list(self.targets.values())
-                    interval = self.interval
+                    interval = min((t.get("intervalSeconds", self.interval) for t in targets), default=self.interval)
+                    hour = datetime.now().hour
+                    targets = [t for t in targets if ((t["schedule"]["start"] <= hour < t["schedule"]["end"]) if t["schedule"]["start"] < t["schedule"]["end"] else (hour >= t["schedule"]["start"] or hour < t["schedule"]["end"])) and time.monotonic() - self.last_probe.get(t["ip"], -1e10) >= t.get("intervalSeconds", interval)]
+                    self.completed = 0
+                    self.total = len(targets)
                 if targets:
                     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
                         futures = {executor.submit(probe, t["ip"], t["ports"]): t
                                    for t in targets}
                         for future in as_completed(futures):
+                            if not self.running:
+                                for pending in futures: pending.cancel()
+                                break
                             target = futures[future]
                             try:
                                 value = future.result()
                             except Exception as err:
                                 value = {"status": "error", "detail": str(err)[:120], "ms": None}
                             self._record(target["ip"], value)
+                            with self.lock:
+                                self.completed += 1
+                                self.last_probe[target["ip"]] = time.monotonic()
                 with self.lock:
                     self.last_cycle = timestamp()
                     self.next_cycle = datetime.fromtimestamp(
@@ -215,7 +245,7 @@ class Monitor:
             raw = value["status"]
             consecutive = old.get("failCount", 0) + 1 if raw in ("unreachable", "error") else 0
             # "unreachable" no es avería confirmada hasta N comprobaciones.
-            status = ("alert" if consecutive >= self.failures else "suspect") if raw in (
+            status = ("alert" if consecutive >= self.targets[ip].get("failureThreshold", self.failures) else "suspect") if raw in (
                 "unreachable", "error") else raw
             # Alertas cambian solo con transiciones significativas, no cada sondeo.
             previous = old.get("status", "pending")
@@ -229,3 +259,4 @@ class Monitor:
                                "failCount": consecutive, "at": timestamp()}
 
 MONITOR = Monitor()
+

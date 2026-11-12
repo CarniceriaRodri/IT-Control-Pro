@@ -4,6 +4,7 @@ import {
   field, uid, validate,
   type Field, type Module, type Dataset, type Entity,
 } from "../domain/model";
+import { DataTable } from "./DataTable";
 import { Dialog } from "./Fields";
 import type { Write } from "./Admin";
 import { Attachments, emptyFiles } from "./Attachments";
@@ -60,6 +61,10 @@ export function ImportTable({
   const [recordIds, setRecordIds] = useState<string[]>([]);
   const [moduleId] = useState(uid);
   const [skipDuplicates, setSkipDuplicates] = useState(false);
+  const [source, setSource] = useState("");
+  const [matchColumn, setMatchColumn] = useState("");
+  const [replaceMatching, setReplaceMatching] = useState(false);
+  const [archiveMissing, setArchiveMissing] = useState(false);
   const [fillMatching, setFillMatching] = useState(false);
   const [hideUnmatched, setHideUnmatched] = useState(false);
   const [label, setLabel] = useState(name || "");
@@ -170,7 +175,8 @@ export function ImportTable({
       signatures.add(JSON.stringify(assigned.map(f => f ? String(row.values[f.id] ?? "") : null)));
     }
     const staged: Entity[] = data.records.map(r => ({...r, values:{...r.values}}));
-    const primary = assigned.find(f => f?.keyRole === "primary");
+    const primary = matchColumn ? assigned[Number(matchColumn)-1] : assigned.find(f => f?.keyRole === "primary");
+    const fileKeys=new Set<string>();
     const existingById = new Map(data.records.map(r => [r.id, r]));
 
     for (const [i, line] of lines.entries()) {
@@ -180,6 +186,9 @@ export function ImportTable({
       const id = recordIds[i];
 
       if (primary && norm(values[primary.id])) {
+        const inputKey=norm(values[primary.id]);
+        if(fileKeys.has(inputKey)){problems.push("Fila "+(i+2)+": identificador repetido en el archivo.");continue;}
+        fileKeys.add(inputKey);
         const candidates = staged.filter(r =>
           r.module === target.id && !r.archived &&
           norm(r.values[primary.id]) === norm(values[primary.id])
@@ -198,7 +207,7 @@ export function ImportTable({
             problems.push("Fila " + (i + 2) + ": identificador repetido dentro del archivo.");
             continue;
           }
-          if (!fillMatching) {
+          if (!fillMatching && !replaceMatching) {
             skippedByKey++;
             continue;
           }
@@ -207,7 +216,7 @@ export function ImportTable({
           for (const f of assigned) {
             if (!f) continue;
             const input = values[f.id], current = mergedValues[f.id];
-            if (isMissing(current) && !isMissing(input)) {
+            if ((replaceMatching && !isMissing(input) && current !== input) || (isMissing(current) && !isMissing(input))) {
               mergedValues[f.id] = input;
               changed = true;
             } else if (isMissing(committed.values[f.id]) && !isMissing(current) &&
@@ -246,18 +255,18 @@ export function ImportTable({
     return {ready:true, target, rows, updates:[...updates.values()], made, assigned,
       problems, duplicates, matchedByKey, skippedByKey, relaxed, extendedLists, hidden};
   }, [sheet, mapping, columnIds, recordIds, width, lines, moduleId, mod,
-      data, label, skipDuplicates, fillMatching, hideUnmatched]);
+      data, label, skipDuplicates, fillMatching, hideUnmatched, matchColumn, replaceMatching]);
 
   return <Dialog name={mod ? "Importación libre · " + mod.name : "Crear módulo desde un archivo"} close={close}>
     <div className="importBody">
       {!mod && <label>Nombre del módulo
         <input value={label} onChange={e => setLabel(e.target.value)}/>
       </label>}
-      <label>Archivo CSV o LibreOffice Calc (ODS)
-        <input type="file" accept=".csv,.ods" disabled={busy} onChange={async e => {
+      <label>Archivo Excel (XLSX), CSV o LibreOffice Calc (ODS)
+        <input type="file" accept=".csv,.ods,.xlsx" disabled={busy} onChange={async e => {
           const file = e.target.files?.[0];
           if (!file) return;
-          work(true); err(""); setSheets([]);
+          work(true); err(""); setSheets([]); setSource(file.name); setMatchColumn(""); setReplaceMatching(false); setArchiveMissing(false);
           try {
             const read = await readSheets(file);
             if (!read[0]?.rows.length) throw Error("La tabla está vacía.");
@@ -310,11 +319,12 @@ export function ImportTable({
           Ocultar los campos antiguos que no aparezcan en el archivo (conservar sus datos).
         </label>}
         <h3>Vista previa del archivo</h3>
-        <div className="tableScroll"><table><thead><tr>
-          {head.map((h,i)=><th key={i}>{h || "Columna " + (i+1)}</th>)}
-        </tr></thead><tbody>{lines.slice(0,5).map((row,i)=><tr key={i}>
-          {head.map((_,j)=><td key={j}>{row[j] ?? ""}</td>)}
-        </tr>)}</tbody></table></div>
+        <DataTable id="import-preview" columns={head.map((h,j)=>({id:String(j),label:h||"Columna "+(j+1),value:(row:string[])=>row[j]||""}))} rows={lines.slice(0,100)} rowKey={row=>String(lines.indexOf(row))}/>
+        {mod&&<><label>Columna para identificar registros existentes (serie, nombre o IP)
+          <select value={matchColumn} onChange={e=>setMatchColumn(e.target.value)}><option value="">Identificador principal del módulo</option>{head.map((h,i)=><option key={i} value={String(i+1)}>{h}</option>)}</select></label>
+          <label className="check"><input type="checkbox" checked={replaceMatching} onChange={e=>setReplaceMatching(e.target.checked)}/>Actualizar valores distintos de los registros coincidentes (las celdas vacías no borran datos)</label>
+          <label className="check"><input type="checkbox" checked={archiveMissing} disabled={!matchColumn&&!mod.fields.some(f=>f.keyRole==="primary")} onChange={e=>setArchiveMissing(e.target.checked)}/>Archivar registros del módulo ausentes del archivo</label>
+        </>}
         <label className="check"><input type="checkbox" checked={skipDuplicates}
           onChange={e => setSkipDuplicates(e.target.checked)}/>
           Omitir filas exactamente repetidas (por defecto se conservan).
@@ -326,6 +336,7 @@ export function ImportTable({
         <p><strong>{plan.rows.length} nuevos registros</strong> · {plan.updates.length} registros para completar ·
           {plan.skippedByKey} coincidencias con identificador existente sin modificar ·
           {plan.duplicates} duplicados detectados · {plan.problems.length} errores.</p>
+        {plan.updates.length>0&&<details><summary>Revisar cambios en {plan.updates.length} registros existentes</summary><DataTable id="import-changes" rows={plan.updates} rowKey={r=>r.id} columns={plan.assigned.filter((f):f is Field=>!!f).map(f=>({id:f.id,label:f.label,value:(r:Entity)=>{const old=data.records.find(x=>x.id===r.id)?.values[f.id];const next=r.values[f.id];return String(old??"")===String(next??"")?String(next??""):String(old??"Vacío")+" → "+String(next??"");}}))}/></details>}
         {plan.skippedByKey > 0 && <p>Los identificadores principales ya existentes no se duplicarán ni sobrescribirán. Puedes activar «Completar solo campos vacíos» para aprovechar datos adicionales.</p>}
         {plan.problems.slice(0,15).map((problem,i)=><small role="alert" key={i}>{problem}</small>)}
       </div>}
@@ -334,13 +345,17 @@ export function ImportTable({
       {error && <p role="alert">{error}</p>}
       <button className="primary" disabled={busy || !plan.ready || plan.problems.length > 0 ||
         (!plan.rows.length && !plan.updates.length && !plan.made.length)} onClick={async()=>{
+        if (archiveMissing && !confirm("Se archivarán los registros de este módulo cuyo identificador no figure en el archivo. ¿Continuar?"))return;
         if (plan.skippedByKey && !confirm("Hay " + plan.skippedByKey +
             " filas con identificador existente. Se conservarán los registros actuales sin modificarlos. ¿Continuar?"))
           return;
         work(true);
         err("");
         try {
-          await write("Importación libre de tabla",plan.target.id,draft=>{
+          await write("Importación libre de tabla · "+source,plan.target.id,draft=>{
+            const before=structuredClone({module:draft.modules.find(m=>m.id===plan.target.id),records:draft.records.filter(r=>r.module===plan.target.id)});
+            const batch=uid();
+            draft.imports=[...(draft.imports||[]).slice(-19),{id:batch,at:new Date().toISOString(),source,sheet:sheet?.name||"",module:plan.target.id,before,recordIds:[...plan.rows,...plan.updates].map(r=>r.id)}];
             if(!mod) draft.modules.push({...plan.target,files:files.refs});
             else {
               const previous = draft.modules.find(m=>m.id===mod.id);
@@ -348,14 +363,23 @@ export function ImportTable({
               // La estructura se adapta en la misma transacción que los datos.
               previous.fields = plan.target.fields;
             }
-            for (const record of plan.rows) draft.records.push(record);
+            if(archiveMissing){
+              const primary=matchColumn?plan.assigned[Number(matchColumn)-1]:plan.assigned.find(f=>f?.keyRole==="primary");
+              if(!primary)throw Error("Selecciona un identificador antes de archivar ausentes.");
+              const col=plan.assigned.findIndex(f=>f?.id===primary.id);
+              const keys=new Set(lines.map(row=>norm(row[col])));
+              for(const r of draft.records.filter(r=>r.module===plan.target.id&&!r.archived))if(!keys.has(norm(r.values[primary.id]))){r.archived=true;r.rev++;}
+            }
+            for (const record of plan.rows) draft.records.push({...record,source:{file:source,sheet:sheet?.name||"",importedAt:new Date().toISOString(),batch}});
             for (const record of plan.updates) {
               const i = draft.records.findIndex(r=>r.id===record.id);
               if(i<0 || draft.records[i].rev !== record.rev-1)
                 throw Error("Un registro ha cambiado: vuelve a importar.");
               const found = draft.records[i];
-              draft.records[i]={...record,files:found.files};
+              draft.records[i]={...record,files:found.files,source:{file:source,sheet:sheet?.name||"",importedAt:new Date().toISOString(),batch}};
             }
+            const entry=draft.imports.find(x=>x.id===batch)!;
+            entry.after=structuredClone({module:draft.modules.find(m=>m.id===plan.target.id),records:draft.records.filter(r=>r.module===plan.target.id)});
           },true,files.blobs);
           close();
         }catch(e){err(String(e));}
@@ -364,3 +388,4 @@ export function ImportTable({
     </div>
   </Dialog>;
 }
+

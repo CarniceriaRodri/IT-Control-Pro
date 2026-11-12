@@ -2,7 +2,7 @@ name: Paquete portable Windows - IT Control Pro
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, 'codex/redes-alarmas-0-5']
     paths:
       - 'src/**'
       - 'scripts/**'
@@ -14,6 +14,10 @@ on:
       - 'servidor_python.py'
       - 'monitor_python.py'
       - 'alarmas_windows.py'
+      - 'servicios_windows.py'
+      - 'datos_compartidos.py'
+      - 'ACTIVAR-INICIO-AUTOMATICO.bat'
+      - 'DESACTIVAR-INICIO-AUTOMATICO.bat'
       - 'tests/test_alarmas_windows.py'
       - 'tests/test_monitor_python.py'
       - '.github/workflows/portable-windows.yml'
@@ -30,9 +34,9 @@ jobs:
           cache: 'npm'
       - name: Verificar motor Python y restricciones de destino
         run: |
-          python3 -m py_compile servidor_python.py monitor_python.py alarmas_windows.py
+          python3 -m py_compile *.py
           python3 -m unittest discover -s tests -p 'test_monitor_python.py'
-          python3 -m unittest discover -s tests -p 'test_alarmas_windows.py'
+          python3 -m unittest discover -s tests -p 'test_*.py'
       - name: Instalar dependencias en GitHub
         run: npm ci
       - name: Incluir motor OCR e idiomas para uso sin Internet
@@ -55,7 +59,7 @@ jobs:
       - name: Preparar ZIP portable
         run: |
           mkdir -p portable
-          cp index.html manifest.webmanifest icon.svg icon-192.png icon-512.png sw.js INICIAR-PYTHON.bat servidor_python.py monitor_python.py alarmas_windows.py portable/
+          cp index.html manifest.webmanifest icon.svg icon-192.png icon-512.png sw.js INICIAR-PYTHON.bat servidor_python.py monitor_python.py alarmas_windows.py servicios_windows.py datos_compartidos.py ACTIVAR-INICIO-AUTOMATICO.bat DESACTIVAR-INICIO-AUTOMATICO.bat portable/
           test -s monitor_python.py
           test -s alarmas_windows.py
           cp -R assets portable/
@@ -67,3 +71,4 @@ jobs:
           path: IT-Control-Pro-Portable-Windows.zip
           if-no-files-found: error
           retention-days: 14
+

@@ -1,3 +1,4 @@
+import { ImportHistory } from "./ImportHistory";
 import { writeCsv } from "../data/calc";
 import { CENTROS_DOCUMENTO } from "../data/centrosCatalog";
 import { field, uid } from "../domain/model";
@@ -29,7 +30,8 @@ export function ModuleTools({
     [centersPreview, setCentersPreview] = useState(false);
   return (
     <>
-      {mod.id === "Redes" && <NetworkMonitor data={data} />}
+      <ImportHistory data={data} module={mod.id} write={write}/>
+      {mod.id === "Redes" && <NetworkMonitor data={data} write={write} />}
       {mod.id === "Redes" && <NetworkDiagnostics saved={data.records.filter(r=>r.module===mod.id && !r.archived).map(r=>({ip:String(r.values.ip||""),device:String(r.values.dispositivo||"Equipo")}))}/>}
       <div className="inline moduleTools">
         <button onClick={() => set("table")}>Importar tabla</button>
@@ -155,3 +157,4 @@ export function ModuleTools({
     </>
   );
 }
+

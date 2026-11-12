@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { initialModules, field, validate } from "../src/domain/model";
+import { initialModules, field, validate, legacy } from "../src/domain/model";
 import { parseBackup, fromLegacy } from "../src/data/backup";
 test("rechaza copias incompletas, relaciones falsas y opciones no válidas", () => {
   expect(() =>
@@ -39,7 +39,7 @@ test("migra una sola vez, conserva claves extra y permite CRUD sin conexión", a
     page.getByRole("cell", { name: "Impresora de prueba" }),
   ).toHaveCount(1);
   await page.getByRole("button", { name: "Editar", exact: true }).click();
-  await page.getByLabel("Serie", { exact: true }).fill("ABC-2");
+  await page.getByRole("dialog").getByLabel("Serie", { exact: true }).fill("ABC-2");
   await page.getByText("Guardar registro", { exact: true }).click();
   await page.evaluate(async () => {
     await navigator.serviceWorker.ready;
@@ -77,8 +77,9 @@ test("migra una sola vez, conserva claves extra y permite CRUD sin conexión", a
   const file = await (await download).path();
   const { readFileSync } = await import("node:fs");
   const saved = JSON.parse(readFileSync(file!, "utf8"));
-  expect(saved.data.records[0].values.anterior).toBe("conservar");
-  expect(saved.data.records[0].rev).toBe(2);
+  const inventory=saved.data.records.find((r:{module:string})=>r.module==="Inventario");
+  expect(inventory.values.anterior).toBe("conservar");
+  expect(inventory.rev).toBe(2);
   expect(saved.data.history).toHaveLength(1);
 });
 test("crea módulos y campos desde Android, oculta sin perder datos", async ({
@@ -99,9 +100,10 @@ test("crea módulos y campos desde Android, oculta sin perder datos", async ({
     .getByRole("navigation")
     .getByText("Teléfonos corporativos")
     .click();
-  await page.getByText("Nuevo registro", { exact: true }).click();
-  await page.getByLabel("Nombre *", { exact: true }).fill("Teléfono de prueba");
-  await page.getByLabel("Extensión").fill("1234");
+  await page.getByRole("button",{name:"Nuevo registro",exact:true}).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.getByRole("dialog").getByLabel("Nombre *", { exact: true }).fill("Teléfono de prueba");
+  await page.getByRole("dialog").getByLabel("Extensión",{exact:true}).fill("1234");
   await page.getByText("Guardar registro").click();
   await expect(page.getByRole("cell", { name: "1234" })).toBeVisible();
   await page.getByRole("button", { name: "Ajustes", exact: true }).click();
@@ -128,11 +130,9 @@ test("restaura la copia v1 con vista previa y recupera la base anterior", async 
     .getByRole("navigation")
     .getByRole("button", { name: "Administración" })
     .click();
+  const originalCount=await page.evaluate(()=>new Promise<number>((resolve,reject)=>{const request=indexedDB.open("it-control-pro-platform",2);request.onerror=()=>reject(request.error);request.onsuccess=()=>{const db=request.result;const count=db.transaction("records").objectStore("records").count();count.onsuccess=()=>{resolve(count.result);db.close();};};}));
   const d = Object.fromEntries(
-    initialModules().map((m) => [
-      m.id,
-      m.id === "Centros" ? [{ nombre: "Centro ficticio" }] : [],
-    ]),
+    Object.keys(legacy).map(id=>[id,id === "Centros" ? [{ nombre: "Centro ficticio" }] : []]),
   );
   await page.getByLabel("Importar JSON").setInputFiles({
     name: "copia.json",
@@ -145,10 +145,11 @@ test("restaura la copia v1 con vista previa y recupera la base anterior", async 
   await page.getByText("Confirmar restauración").click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.getByText("Recuperar copia anterior").click();
-  await expect(page.getByRole("dialog")).toContainText("0 registros");
+  await expect(page.getByRole("dialog")).toContainText(originalCount+" registros");
   await page.getByText("Confirmar restauración").click();
   await page.getByRole("navigation").getByText("Centros").click();
-  await expect(page.getByText("Sin registros activos")).toBeVisible();
+  await expect(page.getByRole("cell",{name:"Centro ficticio",exact:true})).toHaveCount(0);
+  await expect(page.locator(".adjustableTable")).toContainText(originalCount+" registros");
 });
 test("rechaza una edición obsoleta entre pestañas", async ({
   page,

@@ -114,7 +114,8 @@ async function dataset(t: IDBTransaction): Promise<Dataset> {
     tables.map((k) => request(t.objectStore(k).getAll())),
   );
   history.sort((a: Change, b: Change) => a.at.localeCompare(b.at));
-  return { modules, records, history };
+  const imports = await request(t.objectStore("meta").get("imports"));
+  return { modules, records, history, imports: imports || [] };
 }
 export async function openRepository(): Promise<Repository> {
   const req = indexedDB.open("it-control-pro-platform", 2);
@@ -161,7 +162,7 @@ export async function openRepository(): Promise<Repository> {
           const oldRecords = await request<Entity[]>(t.objectStore("records").getAll());
           for (const row of oldRecords.filter(r => r.module === "Agenda")) {
             const raw = String(row.values.fecha ?? "").trim();
-            const parts = /^(\\d{1,2})[/.\\-](\\d{1,2})[/.\\-](\\d{4})$/.exec(raw);
+            const parts = /^(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{4})$/.exec(raw);
             if (!parts) continue; // No alterar fechas ambiguas o imposibles.
             const day = Number(parts[1]), month = Number(parts[2]), year = Number(parts[3]);
             const parsed = new Date(year, month - 1, day);
@@ -199,6 +200,10 @@ export async function openRepository(): Promise<Repository> {
       if (!(await request(modules.get("Movimientos")))) {
         modules.add(movementsModule());
         changed = true;
+      }
+      for (const name of ["Redes", "Inventario"]) {
+        const module = await request<Module | undefined>(modules.get(name));
+        if(module && !module.fields.some(f=>["ubicacion","ubicación","ubicacionfina"].includes(f.id))){module.fields.push(field("ubicacion","Ubicación concreta"));modules.put(module);changed=true;}
       }
       const incidents = await request<Module | undefined>(modules.get("Incidencias"));
       if (incidents) {
@@ -305,6 +310,7 @@ export async function openRepository(): Promise<Repository> {
         );
         if (checkpoint) meta.put(d, "recovery");
         change(d);
+        meta.put(d.imports || [], "imports");
         d.history.push({
           id: uid(),
           at: new Date().toISOString(),
@@ -339,3 +345,4 @@ export function putRecord(d: Dataset, mod: Module, row: Entity) {
   if (i < 0) d.records.push(row);
   else d.records[i] = row;
 }
+

@@ -12,8 +12,11 @@ from pathlib import Path
 import threading
 import time
 import webbrowser
+import uuid
+from urllib.parse import urlencode
+from servicios_windows import SERVICES
 
-MAX_ALARMS = 250
+MAX_ALARMS = 5000
 MAX_FUTURE_MS = 180 * 24 * 3600 * 1000
 VALID_SOUNDS = {"aviso", "alarma", "campana", "silencio"}
 STORE = Path(os.environ.get("LOCALAPPDATA") or Path.home() / ".it_control_pro") / "IT-Control-Pro" / "alarmas_windows.json"
@@ -57,10 +60,6 @@ def show_windows_alarm(label: str, module: str, sound: str, url: str, on_action=
         root.attributes("-topmost", True)
         root.lift()
         root.focus_force()
-        try:
-            root.bell()
-        except Exception:
-            pass
         result = {"done": False}
         def complete(action, minutes=0):
             if result["done"]:
@@ -88,11 +87,25 @@ def show_windows_alarm(label: str, module: str, sound: str, url: str, on_action=
             ttk.Button(buttons, text=f"Posponer {minutes} min",
                        command=lambda m=minutes: complete("snooze", m)).grid(
                            row=1, column=i % 4, padx=6, pady=9)
+        def repeat_sound():
+            if not result["done"]:
+                threading.Thread(target=sound_windows, args=(sound,), daemon=True).start()
+                root.after(30000, repeat_sound)
+        root.after(30000, repeat_sound)
         root.after(150, root.lift)
         root.mainloop()
     except Exception as error:
         print(f"No se pudo mostrar la ventana grande: {error}", flush=True)
-        # No se confirma automáticamente; el motor reintentará el aviso.
+        # Alternativa nativa cuando Tk no está disponible en la distribución Python.
+        stopped = threading.Event()
+        def repeat_fallback():
+            while not stopped.wait(30): sound_windows(sound)
+        threading.Thread(target=repeat_fallback, daemon=True).start()
+        try:
+            result = ctypes.windll.user32.MessageBoxW(None, label + "\n\nAceptar: atendida. Cancelar: posponer cinco minutos.", "IT Control Pro · " + module, 0x00000001 | 0x00000030 | 0x00040000 | 0x00010000)
+            if on_action: on_action("ack" if result == 1 else "snooze", 0 if result == 1 else 5)
+        finally:
+            stopped.set()
 
 
 class DesktopAlarms:
@@ -105,7 +118,9 @@ class DesktopAlarms:
         self.enabled = False
         self.sound = "alarma"
         self.items: list[dict] = []
-        self.fired: set[str] = set()\n        self.snoozed: dict[str, int] = {}\n        self.inflight: set[str] = set()
+        self.fired: set[str] = set()
+        self.snoozed: dict[str, int] = {}
+        self.inflight: set[str] = set()
         self.url = "http://127.0.0.1:8788/"
         self.thread: threading.Thread | None = None
         self._read()
@@ -116,7 +131,9 @@ class DesktopAlarms:
             self.enabled = data.get("enabled") is True
             self.sound = data.get("sound") if data.get("sound") in VALID_SOUNDS else "alarma"
             self.items = self._validate_items(data.get("items", []), strict=False)
-            self.fired = {v for v in data.get("fired", []) if isinstance(v, str)}\n            self.snoozed = {k: v for k, v in data.get("snoozed", {}).items()\n                            if isinstance(k, str) and type(v) is int}
+            self.fired = {v for v in data.get("fired", []) if isinstance(v, str)}
+            self.snoozed = {k: v for k, v in data.get("snoozed", {}).items()
+                            if isinstance(k, str) and type(v) is int}
         except (OSError, ValueError, TypeError, AttributeError):
             pass
 
@@ -126,7 +143,8 @@ class DesktopAlarms:
             "enabled": self.enabled,
             "sound": self.sound,
             "items": self.items,
-            "fired": sorted(self.fired),\n            "snoozed": self.snoozed,
+            "fired": sorted(self.fired),
+            "snoozed": self.snoozed,
         }
         temp = self.store.with_suffix(".tmp")
         temp.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
@@ -134,7 +152,7 @@ class DesktopAlarms:
 
     def _validate_items(self, values, strict=True) -> list[dict]:
         if not isinstance(values, list) or len(values) > MAX_ALARMS:
-            raise ValueError("Máximo 250 alarmas programadas")
+            raise ValueError("Máximo 5000 alarmas programadas")
         result = []
         keys = set()
         now = self.clock()
@@ -170,19 +188,23 @@ class DesktopAlarms:
             self.sound = sound
             self.items = new_items if self.enabled else []
             active = {i["key"] for i in self.items}
-            self.fired.intersection_update(active)\n            self.snoozed = {key: value for key, value in self.snoozed.items() if key in active}
+            self.fired.intersection_update(active)
+            self.snoozed = {key: value for key, value in self.snoozed.items() if key in active}
             self._save()
             return self.snapshot()
 
     def snapshot(self) -> dict:
         with self.lock:
             now = self.clock()
-            pending = [i for i in self.items if i["key"] not in self.fired and i["at"] >= now or self.snoozed.get(i["key"], 0) > now]
+            pending = [i for i in self.items if i["key"] not in self.fired]
             return {
                 "enabled": self.enabled,
                 "sound": self.sound,
                 "scheduled": len(pending),
-                "next": min((i["at"] for i in pending), default=None),
+                "next": min((max(i["at"], self.snoozed.get(i["key"], 0)) for i in pending), default=None),
+                "items": [{**i, "confirmed": i["key"] in self.fired, "snoozedUntil": self.snoozed.get(i["key"], 0)} for i in self.items],
+                "heartbeat": now,
+                "workerAlive": bool(self.thread and self.thread.is_alive()),
                 "supported": os.name == "nt",
             }
 
@@ -191,20 +213,23 @@ class DesktopAlarms:
         with self.lock:
             if not self.enabled:
                 return []
+            if self.inflight:
+                return []
             # Nunca descartamos una cita por llegar tarde después de suspensión/reinicio.
             ready = [i for i in self.items if i["key"] not in self.fired
                      and i["key"] not in self.inflight
-                     and max(i["at"], self.snoozed.get(i["key"], 0)) <= now]
+                     and max(i["at"], self.snoozed.get(i["key"], 0)) <= now][:1]
             for item in ready:
                 self.inflight.add(item["key"])
             return ready
 
     def action(self, key: str, kind: str, minutes: int = 0) -> None:
         with self.lock:
-            if kind in ("ack", "open"):
+            if kind == "ack":
                 self.fired.add(key)
                 self.snoozed.pop(key, None)
-            elif kind == "snooze" and minutes in (5, 10, 15, 30):
+            elif kind in ("snooze", "open") and (kind == "open" or minutes in (5, 10, 15, 30)):
+                minutes = minutes if kind == "snooze" else 5
                 self.snoozed[key] = self.clock() + minutes * 60_000
             else:
                 # Si falla la ventana, reintentar dentro de un minuto.
@@ -217,7 +242,16 @@ class DesktopAlarms:
             try:
                 def on_action(kind, minutes=0):
                     self.action(item["key"], kind, minutes)
-                self.deliver(item["label"], item["module"], sound, self.url, on_action)
+                if not item.get("extraDelivered"):
+                    item["extraDelivered"] = True
+                    threading.Thread(target=SERVICES.deliver, args=(item["label"], item["module"]), daemon=True).start()
+                query={"modulo":item["module"]}
+                try:
+                    record_id=item["key"].split(":",1)[0]
+                    uuid.UUID(record_id)
+                    query["registro"]=record_id
+                except (ValueError,KeyError):pass
+                self.deliver(item["label"], item["module"], sound, self.url + "#" + urlencode(query), on_action)
             except TypeError:
                 # Compatibilidad con inyecciones de prueba antiguas de 4 argumentos.
                 self.deliver(item["label"], item["module"], sound, self.url)
@@ -246,6 +280,16 @@ class DesktopAlarms:
                 self.thread = threading.Thread(target=self.run, name="ITControlAlarmasWindows", daemon=True)
                 self.thread.start()
 
+    def test_scheduled(self, sound: str) -> dict:
+        key = "scheduled-test-" + str(self.clock())
+        with self.lock:
+            if len(self.items) >= MAX_ALARMS:raise ValueError("Se ha alcanzado el máximo de alarmas")
+            self.items.append({"key": key, "label": "Prueba completa de programación", "module": "Agenda", "at": self.clock() + 60_000})
+            self.enabled = True
+            self.sound = sound if sound in VALID_SOUNDS else "alarma"
+            self._save()
+        return self.snapshot()
+
     def test(self, sound: str) -> dict:
         if sound not in VALID_SOUNDS:
             raise ValueError("Sonido no permitido")
@@ -253,10 +297,11 @@ class DesktopAlarms:
             raise ValueError("Las alarmas nativas solo están disponibles en Windows")
         threading.Thread(
             target=self._deliver,
-            args=({"label": "Prueba de alarma: el sistema de avisos funciona.", "module": "Agenda"}, sound),
+            args=({"key": "test-" + str(self.clock()), "label": "Prueba de alarma: el sistema de avisos funciona.", "module": "Agenda"}, sound),
             daemon=True,
         ).start()
         return {"ok": True, "message": "Aviso solicitado a Windows"}
 
 
 DESKTOP_ALARMS = DesktopAlarms()
+

@@ -48,6 +48,7 @@ export interface Module {
   fields: Field[];
 }
 export interface Entity {
+  source?: {file:string;sheet:string;importedAt:string;batch:string};
   files?: Attachment[];
   id: string;
   module: string;
@@ -64,6 +65,7 @@ export interface Change {
   after?: Entity;
 }
 export interface Dataset {
+  imports?: {id:string;at:string;source:string;sheet:string;module:string;before:{module?:Module;records:Entity[]};recordIds:string[];after?:{module?:Module;records:Entity[]};undone?:boolean}[];
   modules: Module[];
   records: Entity[];
   history: Change[];
@@ -79,10 +81,10 @@ export const field = (id: string, label = id, type: Kind = "texto"): Field => ({
 });
 export const legacy: Record<string, string[]> = {
   Centros: ["nombre", "zona", "dirección", "teléfono"],
-  Inventario: ["equipo", "tipo", "serie", "centro", "estado"],
+  Inventario: ["equipo", "tipo", "serie", "centro", "ubicacion", "estado"],
   Incidencias: ["número", "asunto", "centro", "prioridad", "estado"],
   Almacén: ["artículo", "cantidad", "ubicación", "observaciones"],
-  Redes: ["dispositivo", "ip", "centro", "observaciones"],
+  Redes: ["dispositivo", "ip", "centro", "ubicacion", "observaciones"],
   Agenda: ["fecha", "centro", "estado"],
   Documentación: ["título", "tipo", "referencia", "observaciones"],
 };
@@ -274,3 +276,4 @@ export function validate(
       fail("Valor duplicado");
   }
 }
+

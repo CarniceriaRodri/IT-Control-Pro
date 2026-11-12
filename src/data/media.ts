@@ -34,6 +34,7 @@ export function references(data: Dataset) {
     ...data.modules,
     ...data.records,
     ...data.history.flatMap((h) => [h.before, h.after]),
+    ...(data.imports||[]).flatMap(x=>[x.before.module,...x.before.records,x.after?.module,...(x.after?.records||[])]),
   ]) {
     if (!owner || owner.files === undefined) continue;
     if (!Array.isArray(owner.files)) throw Error("Lista de adjuntos dañada.");
@@ -62,3 +63,4 @@ export function downloadBlob(blob: Blob, name: string) {
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 }
+

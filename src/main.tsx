@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import { openRepository } from "./data/repository";
 import { openNetworkRepository } from "./data/network";
+import { Login, accessApi } from "./ui/AccessSettings";
 import { App } from "./ui/App";
 import { initializeHistory, makeRoute, routeFromUrl } from "./ui/history";
 import { readProfiles, currentProfile } from "./data/profiles";
@@ -11,7 +12,13 @@ async function start() {
     document.documentElement.dataset.theme =
       localStorage.getItem("it-theme") ||
       (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-    const repo = location.port === "8787" ? await openNetworkRepository() : await openRepository();
+    let shared = location.port === "8787";
+    if(location.port === "8788"){
+      const access=await accessApi("status");
+      shared=access.shared;
+      if(shared && access.authentication && !access.user){root.render(<Login done={()=>void start()}/>);return;}
+    }
+    const repo = shared ? await openNetworkRepository() : await openRepository();
     const initial = await repo.read();
     // Inicializar historial antes de mostrar la primera pantalla.
     // Evita que Atrás inmediato abandone una URL profunda en Chrome Android.
@@ -35,3 +42,4 @@ async function start() {
   }
 }
 void start();
+

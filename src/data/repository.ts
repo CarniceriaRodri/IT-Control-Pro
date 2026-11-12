@@ -152,6 +152,24 @@ export async function openRepository(): Promise<Repository> {
           agenda.fields = agenda.fields.map(f => f.id === "tarea" ? { ...f, visible: false, required: false } : f);
           changed = true;
         }
+        // Las versiones iniciales creaban la fecha de Agenda como texto libre.
+        // El calendario nativo y el programador necesitan una fecha ISO válida.
+        const dateField = agenda.fields.find(f => f.id === "fecha");
+        if (dateField?.type === "texto") {
+          dateField.type = "fecha";
+          changed = true;
+          const oldRecords = await request<Entity[]>(t.objectStore("records").getAll());
+          for (const row of oldRecords.filter(r => r.module === "Agenda")) {
+            const raw = String(row.values.fecha ?? "").trim();
+            const parts = /^(\\d{1,2})[/.\\-](\\d{1,2})[/.\\-](\\d{4})$/.exec(raw);
+            if (!parts) continue; // No alterar fechas ambiguas o imposibles.
+            const day = Number(parts[1]), month = Number(parts[2]), year = Number(parts[3]);
+            const parsed = new Date(year, month - 1, day);
+            if (parsed.getFullYear() !== year || parsed.getMonth() !== month - 1 || parsed.getDate() !== day) continue;
+            const iso = [String(year).padStart(4, "0"), String(month).padStart(2, "0"), String(day).padStart(2, "0")].join("-");
+            t.objectStore("records").put({ ...row, values: { ...row.values, fecha: iso }, rev: row.rev + 1 });
+          }
+        }
         const existingState = agenda.fields.find(f => f.id === "estado");
         if (existingState && existingState.type !== "estado") {
           const standard = ["Pendiente", "En proceso", "En espera", "Aplazado", "Finalizado", "Cancelado"];

@@ -38,23 +38,61 @@ def sound_windows(name: str) -> None:
             pass
 
 
-def show_windows_alarm(label: str, module: str, sound: str, url: str) -> None:
-    """Diálogo del propio Windows; no necesita Chrome ni notificaciones web."""
+def show_windows_alarm(label: str, module: str, sound: str, url: str, on_action=None) -> None:
+    """Ventana grande, visible y con acciones explícitas. Sin dependencias externas."""
     if os.name != "nt":
         print(f"[IT Control Pro] Alarma: {module} - {label}", flush=True)
+        if on_action:
+            on_action("snooze", 5)
         return
     sound_windows(sound)
-    title = "IT Control Pro - Recordatorio"
-    body = f"{label}\n\nOrigen: {module}\n\n¿Abrir IT Control Pro?"
     try:
-        # Sí = abrir; No = cerrar. Diálogo topmost, sin modalidad del sistema.
-        answer = ctypes.windll.user32.MessageBoxW(
-            None, body, title, 0x00000004 | 0x00040000 | 0x00010000
-        )
-        if answer == 6:
-            webbrowser.open(url)
+        import tkinter as tk
+        from tkinter import ttk
+        root = tk.Tk()
+        root.title("IT Control Pro · Recordatorio pendiente")
+        root.geometry("660x340")
+        root.minsize(550, 290)
+        root.configure(bg="#f5f7fb")
+        root.attributes("-topmost", True)
+        root.lift()
+        root.focus_force()
+        try:
+            root.bell()
+        except Exception:
+            pass
+        result = {"done": False}
+        def complete(action, minutes=0):
+            if result["done"]:
+                return
+            result["done"] = True
+            try:
+                if on_action:
+                    on_action(action, minutes)
+                if action == "open":
+                    webbrowser.open(url)
+            finally:
+                root.destroy()
+        root.protocol("WM_DELETE_WINDOW", lambda: complete("snooze", 5))
+        tk.Label(root, text="🔔  IT CONTROL PRO · RECORDATORIO", font=("Segoe UI", 16, "bold"),
+                 fg="#12345d", bg="#f5f7fb").pack(pady=(25, 12))
+        tk.Label(root, text=label, font=("Segoe UI", 15), wraplength=580,
+                 justify="center", bg="#f5f7fb", fg="#202d41").pack(padx=30, pady=8)
+        tk.Label(root, text=f"Módulo: {module}  |  Pendiente de confirmación",
+                 font=("Segoe UI", 11), bg="#f5f7fb", fg="#526477").pack(pady=10)
+        buttons = tk.Frame(root, bg="#f5f7fb")
+        buttons.pack(pady=20)
+        ttk.Button(buttons, text="Atendida", command=lambda: complete("ack")).grid(row=0, column=0, padx=6, pady=5)
+        ttk.Button(buttons, text="Abrir aplicación", command=lambda: complete("open")).grid(row=0, column=1, padx=6, pady=5)
+        for i, minutes in enumerate((5, 10, 15, 30)):
+            ttk.Button(buttons, text=f"Posponer {minutes} min",
+                       command=lambda m=minutes: complete("snooze", m)).grid(
+                           row=1, column=i % 4, padx=6, pady=9)
+        root.after(150, root.lift)
+        root.mainloop()
     except Exception as error:
-        print(f"No se pudo mostrar el aviso de Windows: {error}", flush=True)
+        print(f"No se pudo mostrar la ventana grande: {error}", flush=True)
+        # No se confirma automáticamente; el motor reintentará el aviso.
 
 
 class DesktopAlarms:
@@ -67,7 +105,7 @@ class DesktopAlarms:
         self.enabled = False
         self.sound = "alarma"
         self.items: list[dict] = []
-        self.fired: set[str] = set()
+        self.fired: set[str] = set()\n        self.snoozed: dict[str, int] = {}\n        self.inflight: set[str] = set()
         self.url = "http://127.0.0.1:8788/"
         self.thread: threading.Thread | None = None
         self._read()
@@ -78,7 +116,7 @@ class DesktopAlarms:
             self.enabled = data.get("enabled") is True
             self.sound = data.get("sound") if data.get("sound") in VALID_SOUNDS else "alarma"
             self.items = self._validate_items(data.get("items", []), strict=False)
-            self.fired = {v for v in data.get("fired", []) if isinstance(v, str)}
+            self.fired = {v for v in data.get("fired", []) if isinstance(v, str)}\n            self.snoozed = {k: v for k, v in data.get("snoozed", {}).items()\n                            if isinstance(k, str) and type(v) is int}
         except (OSError, ValueError, TypeError, AttributeError):
             pass
 
@@ -88,7 +126,7 @@ class DesktopAlarms:
             "enabled": self.enabled,
             "sound": self.sound,
             "items": self.items,
-            "fired": sorted(self.fired),
+            "fired": sorted(self.fired),\n            "snoozed": self.snoozed,
         }
         temp = self.store.with_suffix(".tmp")
         temp.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
@@ -132,14 +170,14 @@ class DesktopAlarms:
             self.sound = sound
             self.items = new_items if self.enabled else []
             active = {i["key"] for i in self.items}
-            self.fired.intersection_update(active)
+            self.fired.intersection_update(active)\n            self.snoozed = {key: value for key, value in self.snoozed.items() if key in active}
             self._save()
             return self.snapshot()
 
     def snapshot(self) -> dict:
         with self.lock:
             now = self.clock()
-            pending = [i for i in self.items if i["key"] not in self.fired and i["at"] >= now]
+            pending = [i for i in self.items if i["key"] not in self.fired and i["at"] >= now or self.snoozed.get(i["key"], 0) > now]
             return {
                 "enabled": self.enabled,
                 "sound": self.sound,
@@ -153,17 +191,44 @@ class DesktopAlarms:
         with self.lock:
             if not self.enabled:
                 return []
-            # No inundar el escritorio con alarmas muy antiguas si Windows despierta.
-            ready = [i for i in self.items if i["key"] not in self.fired and i["at"] <= now]
+            # Nunca descartamos una cita por llegar tarde después de suspensión/reinicio.
+            ready = [i for i in self.items if i["key"] not in self.fired
+                     and i["key"] not in self.inflight
+                     and max(i["at"], self.snoozed.get(i["key"], 0)) <= now]
             for item in ready:
-                self.fired.add(item["key"])
-            if ready:
-                self._save()
-            return [i for i in ready if now - i["at"] <= 2 * 60 * 1000]
+                self.inflight.add(item["key"])
+            return ready
+
+    def action(self, key: str, kind: str, minutes: int = 0) -> None:
+        with self.lock:
+            if kind in ("ack", "open"):
+                self.fired.add(key)
+                self.snoozed.pop(key, None)
+            elif kind == "snooze" and minutes in (5, 10, 15, 30):
+                self.snoozed[key] = self.clock() + minutes * 60_000
+            else:
+                # Si falla la ventana, reintentar dentro de un minuto.
+                self.snoozed[key] = self.clock() + 60_000
+            self.inflight.discard(key)
+            self._save()
 
     def _deliver(self, item: dict, sound: str) -> None:
         with self.popup_lock:
-            self.deliver(item["label"], item["module"], sound, self.url)
+            try:
+                def on_action(kind, minutes=0):
+                    self.action(item["key"], kind, minutes)
+                self.deliver(item["label"], item["module"], sound, self.url, on_action)
+            except TypeError:
+                # Compatibilidad con inyecciones de prueba antiguas de 4 argumentos.
+                self.deliver(item["label"], item["module"], sound, self.url)
+                self.action(item["key"], "retry")
+            except Exception as error:
+                print(f"Error al mostrar alarma: {error}", flush=True)
+                self.action(item["key"], "retry")
+            finally:
+                with self.lock:
+                    if item["key"] in self.inflight:
+                        self.action(item["key"], "retry")
 
     def run(self):
         while True:

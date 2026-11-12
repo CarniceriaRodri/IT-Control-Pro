@@ -167,7 +167,7 @@ export function initialModules(): Module[] {
     active: true,
     fields: [
       ...keys.filter((key) => id !== "Agenda" || key !== "estado").map((key, i) => ({
-        ...field(key, key[0].toUpperCase() + key.slice(1)),
+        ...field(key, key[0].toUpperCase() + key.slice(1), id === "Agenda" && key === "fecha" ? "fecha" : "texto"),
         required: i === 0,
       })),
       ...(id === "Agenda" ? agendaExtras() : []),

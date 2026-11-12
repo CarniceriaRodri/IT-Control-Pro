@@ -119,7 +119,7 @@ export function AlarmCenter({ data, open, showControls = true }: { data: Dataset
       try {
         const now=Date.now();
         const selected=items.filter(item=>item.when>=now-180*24*60*60*1000 && item.when<=now+180*24*60*60*1000)
-          .slice(0,250).map(item=>({key:item.key,label:item.label.slice(0,200),module:item.row.module,at:item.when}));
+          .slice(0,5000).map(item=>({key:item.key,label:item.label.slice(0,200),module:item.row.module,at:item.when}));
         const response=await fetch("/api/alarms/configure",{
           method:"POST",headers:{"Content-Type":"application/json"},
           body:JSON.stringify({enabled:desktop.enabled && setting.enabled,sound:desktop.sound,items:selected}),
@@ -185,11 +185,43 @@ export function AlarmCenter({ data, open, showControls = true }: { data: Dataset
       }
     }
   },[due,clock,setting.sound,open]);
+  const desktopAction = async (item:AlarmItem, kind:string, minutes=0)=>{
+    if(!isLocalPython || !desktop.enabled)return;
+    try { await fetch("/api/alarms/action",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:item.key,kind,minutes})}); }
+    catch(e){setDesktopMessage("Acción pendiente de sincronizar: "+String(e));}
+  };
+  useEffect(()=>{
+    if(!isLocalPython || !desktop.enabled)return;
+    const poll=async()=>{
+      try{
+        const r=await fetch("/api/alarms/status",{cache:"no-store"});
+        if(!r.ok)return;
+        const state=await r.json();
+        setOverrides(current=>{
+          const next={...current};let changed=false;
+          for(const item of items){
+            const found=state.items?.find((x:{key:string})=>x.key===item.key);
+            if(!found)continue;
+            const old=next[item.row.id]||{enabled:true,minutes:item.minutes};
+            if(found.confirmed && old.dismissedEvent!==item.key){next[item.row.id]={...old,dismissedEvent:item.key};changed=true;}
+            else if(found.snoozedUntil>Date.now() && old.snoozedUntil!==found.snoozedUntil){next[item.row.id]={...old,snoozedUntil:found.snoozedUntil};lastSeen.current.delete(item.key);changed=true;}
+          }
+          if(changed)save(KEY,next);
+          return changed?next:current;
+        });
+      }catch{/* La sincronización principal muestra el error. */}
+    };
+    void poll();const id=window.setInterval(()=>void poll(),5000);return()=>clearInterval(id);
+  },[items,desktop.enabled]);
+  useEffect(()=>{
+    if(!activeItem||!setting.sound)return;
+    const id=window.setInterval(sound,30000);return()=>clearInterval(id);
+  },[activeItem?.key,setting.sound]);
   const amend = (item:AlarmItem, patch: Partial<Override>)=>{
     updateOverrides({...overrides,[item.row.id]:{...{enabled:true,minutes:item.minutes},...overrides[item.row.id],...patch}});
   };
-  const dismiss=(item:AlarmItem)=>{amend(item,{dismissedEvent:item.key,snoozedUntil:undefined});setActive(null);};
-  const snooze=(item:AlarmItem,minutes:number)=>{amend(item,{snoozedUntil:Date.now()+minutes*60000});setActive(null);};
+  const dismiss=(item:AlarmItem)=>{void desktopAction(item,"ack");amend(item,{dismissedEvent:item.key,snoozedUntil:undefined});setActive(null);};
+  const snooze=(item:AlarmItem,minutes:number)=>{lastSeen.current.delete(item.key);void desktopAction(item,"snooze",minutes);amend(item,{snoozedUntil:Date.now()+minutes*60000});setActive(null);};
   const canNotify = "Notification" in window && window.isSecureContext;
   const askPermission = async ()=>{
     if(canNotify) {
@@ -235,6 +267,7 @@ export function AlarmCenter({ data, open, showControls = true }: { data: Dataset
           </select>
         </label>
         <button type="button" onClick={()=>void testDesktop()}>Probar ventana de Windows</button>
+        <button type="button" onClick={async()=>{try{const r=await fetch("/api/alarms/test-scheduled",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sound:desktop.sound})});if(!r.ok)throw Error("No se pudo programar");setDesktopMessage("Prueba real programada para dentro de un minuto. Mantén el servidor activo.");}catch(e){setDesktopMessage(String(e));}}}>Probar programación en 1 minuto</button>
       </div>
       {desktopMessage && <p role="status">{desktopMessage}</p>}
     </div>}
@@ -282,3 +315,4 @@ export function AlarmCenter({ data, open, showControls = true }: { data: Dataset
   </aside>}
   </>;
 }
+

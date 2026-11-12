@@ -92,3 +92,23 @@ class AlarmTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RegressionAlarmTests(AlarmTests):
+    def test_real_scheduled_test_uses_due_queue(self):
+        self.worker.test_scheduled("silencio")
+        self.assertEqual(self.worker.tick(),[])
+        self.now[0]+=60_001
+        item=self.worker.tick()[0]
+        self.assertTrue(item["key"].startswith("scheduled-test-"))
+        self.assertEqual(self.worker.tick(),[])
+        self.worker.action(item["key"],"open")
+        self.assertNotIn(item["key"],self.worker.fired)
+        self.now[0]+=5*60_000+1
+        self.assertEqual(len(self.worker.tick()),1)
+
+    def test_overdue_report_and_snoozed_next(self):
+        self.worker.configure(self.payload(self.now[0]-1000))
+        self.assertEqual(self.worker.snapshot()["scheduled"],1)
+        self.worker.action("e1","snooze",10)
+        self.assertEqual(self.worker.snapshot()["next"],self.now[0]+600_000)

@@ -1,3 +1,6 @@
+import { DataTable } from "./DataTable";
+import { AccessSettings } from "./AccessSettings";
+import { SystemStatus } from "./SystemStatus";
 import { ModuleTools } from "./ModuleTools";
 import { DueOverview } from "./DueOverview";
 import { MonitorAlerts } from "./MonitorAlerts";
@@ -113,6 +116,11 @@ export function App({
     media.addEventListener("change", update);
     return () => media.removeEventListener("change", update);
   }, [operator]);
+  useEffect(()=>{
+    if(!["8787","8788"].includes(location.port))return;
+    const timer=setInterval(()=>{if(editor||childEditors.length)return;void repo.read().then(next=>state(current=>next.version>current.version?next:current)).catch(()=>{});},10000);
+    return()=>clearInterval(timer);
+  },[repo,editor,childEditors.length]);
   const [historyReady, setHistoryReady] = useState(false);
   useEffect(() => {
     const incoming = routeFromUrl();
@@ -419,6 +427,7 @@ export function App({
           </div>
           {/* Alarmas siempre activas; opciones visibles únicamente dentro de Agenda. */}
           <AlarmCenter data={data} open={openRelated} showControls={page === "Agenda"} />
+          {(page === "Panel" || page === "Administración") && <SystemStatus repo={repo} snapshot={snap} controls={page === "Administración"}/>}
           {page === "Panel" && (
             <>
               <div className="stats">
@@ -478,7 +487,7 @@ export function App({
           )}
           {page === "Ayuda" && <Help />}
           {page === "Administración" && (
-            <><ProfileSettingsPanel profiles={profiles} onChange={changeProfiles} modules={data.modules}/><Admin
+            <><AccessSettings repo={repo} snapshot={snap}/><ProfileSettingsPanel profiles={profiles} onChange={changeProfiles} modules={data.modules}/><Admin
               data={data}
               write={write}
               repo={repo}
@@ -520,58 +529,10 @@ export function App({
                   {arch ? "Ver activos" : "Ver archivados"}
                 </button>
               </div>
-              <div className="tableScroll">
-                <table>
-                  <thead>
-                    <tr>
-                      {mod.fields
-                        .filter((f) => f.visible && f.relationMode !== "off")
-                        .map((f) => (
-                          <th key={f.id}>{f.label}</th>
-                        ))}
-                      <th>Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((r) => (
-                      <tr key={r.id}>
-                        {mod.fields
-                          .filter((f) => f.visible && f.relationMode !== "off")
-                          .map((f) => (
-                            <td key={f.id}>{display(mod, r, f.id) || "—"}</td>
-                          ))}
-                        <td>
-                          <div className="inline">
-                            <button onClick={() => openEditor(r)}>Editar</button>
-                            <button
-                              onClick={async () => {
-                                if (
-                                  !confirm(
-                                    (arch ? "¿Reactivar" : "¿Archivar") +
-                                      " este registro?",
-                                  )
-                                )
-                                  return;
-                                try {
-                                  await write(
-                                    arch ? "Reactivar" : "Archivar",
-                                    r.id,
-                                    (d) => putRecordArchive(d, r, arch),
-                                  );
-                                } catch (e) {
-                                  notify(String(e));
-                                }
-                              }}
-                            >
-                              {arch ? "Reactivar" : "Archivar"}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <DataTable key={mod.id} id={mod.id} rows={rows} rowKey={r=>r.id} onOpen={r=>openEditor(r)} columns={[
+                ...mod.fields.filter(f=>f.visible&&f.relationMode!=="off").map(f=>({id:f.id,label:f.label,value:(r:Entity)=>display(mod,r,f.id)||"—"})),
+                {id:"actions",label:"Acciones",value:(r:Entity)=><div className="inline"><button onClick={()=>openEditor(r)}>Editar</button><button onClick={async()=>{if(!confirm((arch?"¿Reactivar":"¿Archivar")+" este registro?"))return;try{await write(arch?"Reactivar":"Archivar",r.id,d=>putRecordArchive(d,r,arch));}catch(e){notify(String(e));}}}>{arch?"Reactivar":"Archivar"}</button></div>}
+              ]}/>
               {!rows.length && (
                 <div className="empty">
                   <HardDrive />
@@ -696,3 +657,4 @@ function putRecordArchive(d: Dataset, row: Entity, restore: boolean) {
     rev: row.rev + 1,
   };
 }
+

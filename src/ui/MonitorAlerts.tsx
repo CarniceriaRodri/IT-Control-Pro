@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, Activity } from "lucide-react";
 
-type Host={ip:string;device:string;center:string;status:string;at?:string};
+type Host={ip:string;device:string;center:string;location?:string;status:string;at?:string};
 type Reply={running:boolean;hosts:Host[]};
 const python=location.port==="8788"&&["localhost","127.0.0.1"].includes(location.hostname);
 export function MonitorAlerts({open}:{open:()=>void}){
@@ -27,7 +27,7 @@ export function MonitorAlerts({open}:{open:()=>void}){
   <div className="inline"><Activity size={18}/><h2>Estado de redes</h2></div>
   <p>{data.running?"Monitor Python activo":"Monitor detenido"} · {data.hosts.length} dispositivos configurados · {down.length} sin respuesta · {warnings.length} en comprobación.</p>
   {down.length>0&&<div className="networkMonitorAlertsList">
-   {down.slice(0,8).map(h=><div key={h.ip}><AlertTriangle size={18}/><span><strong>{h.device||h.ip}</strong> · {h.ip} · {h.center}</span></div>)}
+   {down.slice(0,8).map(h=><div key={h.ip}><AlertTriangle size={18}/><span><strong>{h.device||h.ip}</strong> · {h.ip} · {h.center} · {h.location||"Ubicación sin especificar"}</span></div>)}
    {down.length>8&&<small>Hay {down.length-8} avisos más.</small>}
   </div>}
   <button type="button" onClick={open}>Abrir centro de monitorización</button>

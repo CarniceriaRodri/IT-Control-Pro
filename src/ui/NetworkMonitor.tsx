@@ -1,183 +1,54 @@
 import { useEffect, useMemo, useState } from "react";
-import type { Dataset, Entity } from "../domain/model";
+import { uid, type Dataset, type Entity } from "../domain/model";
+import { networkTargets, type Target } from "../data/network-targets";
+import { DataTable } from "./DataTable";
+import { Dialog } from "./Fields";
+import type { Write } from "./Admin";
 import { downloadBlob } from "../data/media";
-import { Activity, Download, RefreshCw } from "lucide-react";
-
-type Target={ip:string;device:string;center:string;ports:number[]};
-type Host=Target&{status:"pending"|"online"|"tcp"|"alert"|"suspect"|"error";detail?:string;ms?:number|null;at?:string;failCount?:number};
-type MonitorEvent={ip:string;at:string;kind:string;from:string;to:string};
-type Status={running:boolean;intervalSeconds:number;failureThreshold:number;hosts:Host[];events:MonitorEvent[];lastCycle:string|null;nextCycle:string|null;message:string};
-const isWindowsPython=location.port==="8788" && ["localhost","127.0.0.1"].includes(location.hostname);
-const ipValid=(v:string)=>{const a=v.trim().split(".");return a.length===4&&a.every(s=>/^(0|[1-9]\d{0,2})$/.test(s)&&Number(s)<256)&&!["127","0","224","239","240","255"].includes(a[0]);};
-const norm=(v:unknown)=>String(v??"").trim();
-const normalizeHeader=(s:string)=>s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]/g,"");
-const ipCandidates=["ip","ipprincipal","direccionip","direccionipv4","ipv4"];
-function readIP(row:Entity,data:Dataset): string {
- const fields=data.modules.find(m=>m.id===row.module)?.fields||[];
- const candidate=fields.filter(f=>ipCandidates.includes(normalizeHeader(f.id))||ipCandidates.includes(normalizeHeader(f.label))||f.type==="IP");
- for(const f of candidate){const value=norm(row.values[f.id]);if(ipValid(value))return value;}
- for(const [key,v] of Object.entries(row.values)){if(ipCandidates.includes(normalizeHeader(key)) && ipValid(norm(v)))return norm(v);}
- return "";
-}
-function readDetail(row:Entity,data:Dataset):Target|null{
- const ip=readIP(row,data);
- if(!ip)return null;
- const values=row.values;
- const first=(keys:string[])=>{
-  for(const key of keys){
-   const f=data.modules.find(m=>m.id===row.module)?.fields.find(f=>normalizeHeader(f.id)===key||normalizeHeader(f.label)===key);
-   const found=norm(values[f?.id||key]);
-   if(found)return found;
-  }
-  return "";
- };
- return {ip,device:first(["dispositivo","equipo","nombre","modelo","impresora","descripcion","serie"])||ip,
-  center:first(["centro","ubicacion","sede","localizacion"])||row.module,
-  ports:row.module==="Inventario"?[80,443,9100]:[80,443,9100]};
-}
-function displayDate(v?:string|null){return v?new Date(v).toLocaleString("es-ES"):"—";}
-async function api<T>(action:string,payload?:unknown):Promise<T>{
- const res=await fetch("/api/monitor/"+action,{method:payload===undefined?"GET":"POST",
-  headers:payload===undefined?{}:{"Content-Type":"application/json"},
-  body:payload===undefined?undefined:JSON.stringify(payload),cache:"no-store"});
- const json=await res.json().catch(()=>({error:"La respuesta no es JSON"}));
- if(!res.ok)throw Error(String(json.error||"Error de monitorización"));
- return json as T;
-}
-const statusLabel:Record<Host["status"],string>={pending:"Pendiente",online:"ONLINE",tcp:"PING bloqueado / TCP accesible",alert:"SIN RESPUESTA",suspect:"Fallo transitorio",error:"Error"};
-const statusColor:Record<Host["status"],string>={pending:"#7b8492",online:"#159967",tcp:"#bb8500",alert:"#c83f42",suspect:"#d48b1f",error:"#c83f42"};
-export function NetworkMonitor({data}:{data:Dataset}) {
- const candidates=useMemo(()=>{
-  const found=new Map<string,Target>();
-  for(const row of data.records){
-   if(row.archived)continue;
-   const target=readDetail(row,data);
-   if(target&&!found.has(target.ip))found.set(target.ip,target);
-  }
-  return [...found.values()];
- },[data]);
- const [status,setStatus]=useState<Status|null>(null);
- const [error,setError]=useState("");
- const [busy,setBusy]=useState(false);
- const [interval,setIntervalSeconds]=useState(120);
- const [failures,setFailures]=useState(3);
- const [selection,setSelection]=useState<string[]>([]);
- const [filter,setFilter]=useState("");
- const [showAll,setShowAll]=useState(false);
- const [ready,setReady]=useState(false);
- const refresh=async()=>{
-  const result=await api<Status>("status");
-  setStatus(result);
-  if(!ready){setIntervalSeconds(result.intervalSeconds);setFailures(result.failureThreshold);setSelection(result.hosts.map(h=>h.ip));setReady(true);}
- };
- useEffect(()=>{
-  if(!isWindowsPython)return;
-  let live=true;
-  const poll=async()=>{try{const next=await api<Status>("status");if(live)setStatus(next);}catch(e){if(live)setError(String(e));}};
-  void poll();
-  const id=window.setInterval(()=>void poll(),10000);
-  return()=>{live=false;clearInterval(id);};
- },[]);
- useEffect(()=>{
-  if(status&&!ready){setIntervalSeconds(status.intervalSeconds);setFailures(status.failureThreshold);setSelection(status.hosts.map(h=>h.ip));setReady(true);}
- },[status,ready]);
- const act=async(action:"configure"|"start"|"stop"|"run")=>{
-  if(busy)return;
-  setBusy(true);setError("");
-  try{
-   if(action==="configure"){
-    const existing=new Map(status?.hosts.map(h=>[h.ip,h])||[]);
-    const available=new Map(candidates.map(h=>[h.ip,h]));
-    const targets=selection.map(ip=>available.get(ip)||existing.get(ip)).filter((x):x is Target=>!!x);
-    const updated=await api<Status>("configure",{targets,intervalSeconds:interval,failureThreshold:failures});
-    setStatus(updated);
-   }else setStatus(await api<Status>(action,{}));
-  }catch(e){setError(String(e));}
-  finally{setBusy(false);}
- };
- const rows=(status?.hosts||[]).filter(h=>showAll||h.status==="alert"||h.status==="suspect");
- const filtered=rows.filter(h=>[h.ip,h.device,h.center].some(v=>v.toLocaleLowerCase().includes(filter.toLocaleLowerCase())));
- const count=(s:Host["status"])=>status?.hosts.filter(h=>h.status===s).length||0;
- const [notify,setNotify]=useState(false);
- useEffect(()=>{
-  if(!notify||!status||!("Notification" in window)||Notification.permission!=="granted")return;
-  // Notificaciones solo para eventos recientes, nunca repetir histórico al abrir.
-  const recent=status.events.filter(e=>Date.now()-Date.parse(e.at)<15000 && e.kind==="caida");
-  for(const e of recent){
-   const key="it-monitor-notification-"+e.ip+"-"+e.at;
-   if(sessionStorage.getItem(key))continue;
-   sessionStorage.setItem(key,"1");
-   try{new Notification("IT Control Pro · Equipo sin respuesta",{body:e.ip,tag:key});}catch{}
-  }
- },[status,notify]);
- const report=()=>[
-  "IT Control Pro - Monitorizacion",new Date().toISOString(),
-  ...(status?.hosts||[]).map(h=>[h.ip,h.device,h.center,statusLabel[h.status],h.at||""].join(";")),
-  "EVENTOS",...(status?.events||[]).map(e=>[e.at,e.ip,e.kind,e.from,e.to].join(";"))
- ].join("\n");
- return <section className="networkMonitor" aria-label="Centro de monitorización">
-  <div className="inline"><Activity size={20}/><h2>Centro de monitorización</h2></div>
-  {!isWindowsPython? <p role="status">La monitorización real necesita el servidor Python local en http://127.0.0.1:8788/. La web estática y Android pueden consultar datos de inventario, pero no ejecutar ping ICMP en el navegador.</p>:<>
-   <p>Se vigilan únicamente las IP que selecciones y guardes. El servicio hace ping y, si falla, comprueba puertos TCP autorizados. Los sondeos continúan aunque cierres la pestaña, mientras permanezca abierto el servidor Python.</p>
-   <div className="networkMonitorStats">
-    {([["Equipos",status?.hosts.length||0],["ONLINE",count("online")],["TCP accesible",count("tcp")],["SIN RESPUESTA",count("alert")],["Pendientes",count("pending")+count("suspect")]] as const).map(([label,value])=><div key={label}><small>{label}</small><strong>{value}</strong></div>)}
-   </div>
-   <div className="inline">
-    <strong>Servicio: {status?.running?"Activo":"Detenido"}</strong>
-    <button type="button" disabled={busy} onClick={()=>void act("start")}>Iniciar</button>
-    <button type="button" disabled={busy||!status?.running} onClick={()=>void act("stop")}>Detener</button>
-    <button type="button" disabled={busy} onClick={()=>void act("run")}><RefreshCw size={15}/> Comprobar ahora</button>
-   </div>
-   <small>Última ronda: {displayDate(status?.lastCycle)} · Próxima: {displayDate(status?.nextCycle)}</small>
-   <details className="networkMonitorConfig">
-    <summary>Seleccionar equipos e intervalo de monitorización ({candidates.length} IP detectadas)</summary>
-    <p>Detectadas automáticamente en los campos IP de Redes, Inventario y otros módulos, incluso si proceden de importaciones CSV/Calc. Evita activar dispositivos no autorizados.</p>
-    <div className="inline">
-      <label>Intervalo
-       <select value={interval} onChange={e=>setIntervalSeconds(Number(e.target.value))}>
-        {[30,60,120,300,600].map(v=><option key={v} value={v}>{v<60?v+" segundos":v/60+" minutos"}</option>)}
-       </select>
-      </label>
-      <label>Avisar tras fallos
-       <select value={failures} onChange={e=>setFailures(Number(e.target.value))}>
-        {[1,2,3,5].map(v=><option key={v} value={v}>{v}</option>)}
-       </select>
-      </label>
-    </div>
-    <div className="inline">
-     <button type="button" onClick={()=>setSelection(candidates.slice(0,250).map(x=>x.ip))}>Seleccionar IP disponibles</button>
-     <button type="button" onClick={()=>setSelection([])}>Quitar selección</button>
-    </div>
-    <div className="networkMonitorSelect">
-     {candidates.slice(0,250).map(t=><label key={t.ip}>
-       <input type="checkbox" checked={selection.includes(t.ip)} onChange={e=>setSelection(before=>e.target.checked?[...before,t.ip]:before.filter(x=>x!==t.ip))}/>
-       <span>{t.device} · {t.ip} · {t.center}</span>
-     </label>)}
-     {!candidates.length&&<p>No se han encontrado campos de IP válidos en los registros de la aplicación.</p>}
-     {candidates.length>250&&<small>Se muestran las primeras 250 IP. Ampliaremos el motor por lotes cuando sea necesario.</small>}
-    </div>
-    <button type="button" className="primary" disabled={busy} onClick={()=>void act("configure")}>Guardar equipos seleccionados y ajustes</button>
-   </details>
-   <div className="inline">
-    <label><input type="checkbox" checked={showAll} onChange={e=>setShowAll(e.target.checked)}/> Ver también equipos disponibles</label>
-    <input aria-label="Filtrar equipos monitorizados" placeholder="Buscar IP, nombre o centro" value={filter} onChange={e=>setFilter(e.target.value)}/>
-    <button type="button" onClick={()=>downloadBlob(new Blob([report()],{type:"text/plain;charset=utf-8"}),"monitor-it-control-pro.txt")}><Download size={15}/> Exportar</button>
-    <button type="button" onClick={async()=>{if(!("Notification" in window))return;const allowed=await Notification.requestPermission();setNotify(allowed==="granted");}}>Avisos de Windows</button>
-   </div>
-   <div className="tableScroll"><table><thead><tr><th>IP</th><th>Equipo / centro</th><th>Estado</th><th>Última prueba</th><th>Detalle</th></tr></thead><tbody>
-    {filtered.map(h=><tr key={h.ip}>
-     <td>{h.ip}</td><td>{h.device}<br/><small>{h.center}</small></td>
-     <td><strong style={{color:statusColor[h.status]}}>{statusLabel[h.status]}</strong></td>
-     <td>{displayDate(h.at)}</td><td>{h.detail||"Sin comprobación"}</td>
-    </tr>)}
-   </tbody></table>{!filtered.length&&<p>No hay equipos que coincidan con este filtro.</p>}</div>
-   <details><summary>Historial de cambios ({status?.events.length||0})</summary>
-    <div className="tableScroll"><table><thead><tr><th>Fecha</th><th>IP</th><th>Evento</th></tr></thead><tbody>
-     {(status?.events||[]).map((e,i)=><tr key={e.at+e.ip+i}><td>{displayDate(e.at)}</td><td>{e.ip}</td><td>{e.kind}</td></tr>)}
-    </tbody></table></div>
-   </details>
-   {error&&<p role="alert">{error}</p>}
-   <small>Una IP sin respuesta ICMP y TCP no demuestra que esté apagada: puede haber filtros de red. Monitor local experimental, no sustituye Zabbix ni un servicio corporativo aprobado.</small>
-  </>}
+import { writeCsv } from "../data/calc";
+type Host=Target&{status:string;detail?:string;at?:string;ms?:number;failCount?:number};
+type Event={ip:string;at:string;kind:string};
+type Status={running:boolean;hosts:Host[];events:Event[];lastCycle:string;nextCycle:string;completed:number;total:number;intervalSeconds:number;failureThreshold:number};
+type Policy={intervalSeconds:number;failureThreshold:number;ports:string;start:number;end:number};
+const defaults:Policy={intervalSeconds:120,failureThreshold:3,ports:"80,443,9100",start:0,end:24};
+const local=location.port==="8788"&&["localhost","127.0.0.1"].includes(location.hostname);
+const labels:Record<string,string>={online:"Conectados",tcp:"TCP accesible",alert:"Sin respuesta",suspect:"Fallo transitorio",pending:"Pendientes",error:"Error",excluded:"Excluidos"};
+async function api<T>(action:string,payload?:unknown):Promise<T>{const r=await fetch("/api/monitor/"+action,{method:payload===undefined?"GET":"POST",headers:payload===undefined?{}:{"Content-Type":"application/json"},body:payload===undefined?undefined:JSON.stringify(payload),cache:"no-store"});const d=await r.json();if(!r.ok)throw Error(d.error||"Error del monitor");return d;}
+export function NetworkMonitor({data,write}:{data:Dataset;write:Write}){
+ const candidates=useMemo(()=>networkTargets(data),[data]);
+ const [status,setStatus]=useState<Status|null>(null),[error,setError]=useState(""),[busy,setBusy]=useState(false),[group,setGroup]=useState("*"),[state,setState]=useState("all"),[filter,setFilter]=useState(""),[selection,select]=useState<string[]>([]),[initialized,init]=useState(false),[detail,show]=useState<Host|null>(null);
+ const [policies,setPolicies]=useState<Record<string,Policy>>(()=>{try{return JSON.parse(localStorage.getItem("it-network-policies")||"{}");}catch{return {};}});
+ const policy=policies[group]||defaults;
+ const change=(value:Policy)=>{const next={...policies,[group]:value};setPolicies(next);localStorage.setItem("it-network-policies",JSON.stringify(next));};
+ useEffect(()=>{if(!local)return;let live=true;const poll=async()=>{try{const value=await api<Status>("status");if(live){setStatus(value);setError("");}}catch(e){if(live)setError(String(e));}};void poll();const id=setInterval(()=>void poll(),3000);return()=>{live=false;clearInterval(id);};},[]);
+ useEffect(()=>{if(status&&!initialized){select(status.hosts.map(h=>h.ip));init(true);}},[status,initialized]);
+ const hosts:Host[]=candidates.map(t=>({...t,...status?.hosts.find(h=>h.ip===t.ip),groups:t.groups,recordIds:t.recordIds,location:t.location,center:t.center,status:status?.hosts.find(h=>h.ip===t.ip)?.status||"excluded"}));
+ for(const h of status?.hosts||[])if(!hosts.some(x=>x.ip===h.ip))hosts.push({...h,groups:h.groups||["Sin grupo"],recordIds:h.recordIds||[]});
+ const groups=[...new Set(hosts.flatMap(h=>h.groups))];
+ const scoped=hosts.filter(h=>group==="*"||h.groups.includes(group));
+ const filtered=scoped.filter(h=>(state==="all"||h.status===state)&&[h.ip,h.device,h.center,h.location].join(" ").toLowerCase().includes(filter.toLowerCase()));
+ const name=(id:string)=>data.modules.find(m=>m.id===id)?.name||id;
+ const action=async(kind:string)=>{setBusy(true);setError("");try{
+  if(kind==="configure"){
+   const targets=candidates.filter(t=>selection.includes(t.ip)).map(t=>{
+    const activePolicy=policies[t.groups.find(g=>policies[g])||""]||policies["*"]||defaults;
+    const ports=activePolicy.ports.split(",").filter(x=>x.trim()).map(Number);
+    return {...t,ports,intervalSeconds:activePolicy.intervalSeconds,failureThreshold:activePolicy.failureThreshold,schedule:{start:activePolicy.start,end:activePolicy.end}};
+   });setStatus(await api<Status>(kind,{targets,intervalSeconds:120,failureThreshold:3}));
+  }else setStatus(await api<Status>(kind,{}));
+ }catch(e){setError(String(e));}finally{setBusy(false);}};
+ const openGroup=(id:string,s="all")=>{setGroup(id);setState(s);};
+ const incident=async(h:Host)=>{try{const id=uid();await write("Incidencia desde monitor",id,d=>{d.records.push({id,module:"Incidencias",rev:1,archived:false,values:{"número":"RED-"+Date.now(),asunto:"Sin respuesta: "+h.device,centro:h.center,estado:"Pendiente",prioridad:"Media",descripcion:[h.ip,h.location,h.detail].filter(Boolean).join(" · ")}});});setError("Incidencia creada con la IP y ubicación.");}catch(e){setError(String(e));}};
+ return <section aria-label="Centro de monitorización"><h2>Redes por grupos</h2>
+ <div className="networkGroups">{["*",...groups].map(id=>{const list=id==="*"?hosts:hosts.filter(h=>h.groups.includes(id));const online=list.filter(h=>["online","tcp"].includes(h.status)).length;const alerts=list.filter(h=>h.status==="alert").length;const n=list.length||1;return <div className="networkGroup" key={id}><button className="networkRing" aria-label={"Ver "+(id==="*"?"todos":name(id))} style={{background:`conic-gradient(#159967 ${online/n*100}%,#c83f42 0 ${(online+alerts)/n*100}%,#a1aab8 0)`}} onClick={()=>openGroup(id)}><span>{list.length}</span></button><button onClick={()=>openGroup(id)}><strong>{id==="*"?"Todos los dispositivos":name(id)}</strong></button>{Object.entries(labels).map(([s,label])=><button key={s} onClick={()=>openGroup(id,s)}>{label}: {list.filter(h=>h.status===s).length}</button>)}</div>;})}</div>
+ <div className="inline"><label>Grupo <select value={group} onChange={e=>openGroup(e.target.value)}><option value="*">Todos</option>{groups.map(g=><option key={g} value={g}>{name(g)}</option>)}</select></label><label>Estado <select value={state} onChange={e=>setState(e.target.value)}><option value="all">Todos</option>{Object.entries(labels).map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label><input aria-label="Buscar equipos de red" placeholder="IP, equipo, centro o ubicación" value={filter} onChange={e=>setFilter(e.target.value)}/><button onClick={()=>downloadBlob(writeCsv(["IP","Dispositivo","Centro","Ubicación","Estado"],filtered.map(h=>[h.ip,h.device,h.center,h.location,labels[h.status]||h.status])),"redes.csv")}>Exportar vista</button></div>
+ {!local?<p>Las comprobaciones reales requieren el servidor Python de Windows. Puedes consultar aquí todos los grupos y ubicaciones.</p>:<><div className="inline"><strong>Monitor {status?.running?"activo":"detenido"}</strong>{["start","stop","run"].map((a,i)=><button key={a} disabled={busy} onClick={()=>void action(a)}>{["Iniciar","Detener / Cancelar ronda","Comprobar ahora"][i]}</button>)}<span>Ronda: {status?.completed||0}/{status?.total||0}</span></div><p>Última ronda: {status?.lastCycle?new Date(status.lastCycle).toLocaleString("es-ES"):"Sin comprobar"}</p>
+ <details><summary>Monitorización y selección del grupo ({scoped.length} dispositivos)</summary><p>Si una IP pertenece a varios grupos, se comprueba una sola vez; se aplica la primera política específica de sus grupos.</p><div className="inline"><label>Intervalo <select value={policy.intervalSeconds} onChange={e=>change({...policy,intervalSeconds:+e.target.value})}>{[30,60,120,300,600].map(n=><option key={n} value={n}>{n} segundos</option>)}</select></label><label>Fallos antes de avisar <select value={policy.failureThreshold} onChange={e=>change({...policy,failureThreshold:+e.target.value})}>{[1,2,3,5].map(n=><option key={n}>{n}</option>)}</select></label><label>Puertos TCP <input value={policy.ports} onChange={e=>change({...policy,ports:e.target.value})}/></label><label>Desde hora <input type="number" min="0" max="23" value={policy.start} onChange={e=>change({...policy,start:+e.target.value})}/></label><label>Hasta hora <input type="number" min="1" max="24" value={policy.end} onChange={e=>change({...policy,end:+e.target.value})}/></label></div><p>Puertos disponibles: 22, 80, 443, 445, 515, 631, 8080, 8443, 9100. Horario local del Windows.</p><button onClick={()=>select([...new Set([...selection,...scoped.map(h=>h.ip)])])}>Seleccionar grupo</button><button onClick={()=>select(selection.filter(ip=>!scoped.some(h=>h.ip===ip)))}>Excluir grupo</button><button disabled={busy} onClick={()=>void action("configure")}>Guardar selección y políticas</button></details></>}
+ <DataTable id={"network-"+group} rows={filtered} rowKey={h=>h.ip} onOpen={show} columns={[
+ {id:"selection",label:"Monitorizar",value:h=><input aria-label={"Monitorizar "+h.ip} type="checkbox" checked={selection.includes(h.ip)} onChange={e=>select(e.target.checked?[...selection,h.ip]:selection.filter(x=>x!==h.ip))}/>},
+ {id:"ip",label:"IP",value:h=>h.ip},{id:"device",label:"Dispositivo",value:h=>h.device},{id:"center",label:"Centro",value:h=>h.center||"Sin especificar"},{id:"location",label:"Ubicación concreta",value:h=>h.location||"Sin especificar"},{id:"status",label:"Estado",value:h=>labels[h.status]||h.status},{id:"at",label:"Última prueba",value:h=>h.at?new Date(h.at).toLocaleString("es-ES"):"Sin comprobar"},{id:"actions",label:"Acciones",value:h=><><button onClick={()=>show(h)}>Ver ficha</button><button onClick={()=>void incident(h)}>Crear incidencia</button></>}]}/>
+ {error&&<p role="status">{error}</p>}
+ <details><summary>Historial de red</summary>{status?.events.map((e,i)=><p key={i}>{new Date(e.at).toLocaleString("es-ES")} · {e.ip} · {e.kind}</p>)}</details>
+ {detail&&<Dialog name={detail.device+" · "+detail.ip} close={()=>show(null)}><p>{detail.center||"Centro sin especificar"} · {detail.location||"Ubicación sin especificar"}</p><p>{detail.detail}</p>{detail.recordIds.map(id=>{const row=data.records.find(r=>r.id===id);const mod=data.modules.find(m=>m.id===row?.module);return row&&mod?<div key={id}><h3>{mod.name}</h3><dl className="deviceFacts">{mod.fields.map(f=><div key={f.id}><dt>{f.label}</dt><dd>{String(row.values[f.id]??"—")}</dd></div>)}</dl><p>Adjuntos: {row.files?.length||0}</p><h4>Registros relacionados</h4>{data.records.filter(r=>!r.archived&&r.id!==id&&Object.values(r.values).some(v=>v===id||(Array.isArray(v)&&v.includes(id)))).map(r=><p key={r.id}>{r.module}: {String(r.values.asunto||r.values.referencia||r.values.nombre||r.id)}</p>)}</div>:null;})}</Dialog>}
  </section>;
 }

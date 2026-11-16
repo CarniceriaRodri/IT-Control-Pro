@@ -58,3 +58,7 @@ En Redes, «Comprobar IP» realiza una prueba inmediata de un dispositivo, sin t
 Para vigilancia continua, marca las casillas Monitorizar y pulsa «Iniciar monitorización»: ahora guarda automáticamente la selección y sus políticas antes de arrancar. El botón de comprobación puntual no activa vigilancia continua. Se reconocen además encabezados como IP equipo, IP impresora e IP address en archivos importados. El selector de diagnóstico incluye IP de todos los módulos importados.
 
 Requiere sustituir el paquete Windows completo y reiniciar INICIAR-PYTHON.bat; actualizar únicamente la web no actualiza el motor Python.
+
+### Ubicación exacta del dispositivo
+
+Redes e Inventario muestran «Ubicación exacta» como dato distinto del centro, con una indicación para edificio, planta, servicio y despacho o sala. Los datos existentes de ubicación se conservan. En Redes, abre «Ver ficha», rellena la ubicación exacta y pulsa «Guardar ubicación exacta». También funciona para módulos importados: si no había columna de ubicación se añade sin borrar las demás. Se reconocen los encabezados «Ubicación exacta» y «Localización exacta», además de ubicación fina y concreta. La ubicación se incluye en la tabla, búsquedas y exportación CSV.

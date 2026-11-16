@@ -169,8 +169,9 @@ export function initialModules(): Module[] {
     active: true,
     fields: [
       ...keys.filter((key) => id !== "Agenda" || key !== "estado").map((key, i) => ({
-        ...field(key, key[0].toUpperCase() + key.slice(1), id === "Agenda" && key === "fecha" ? "fecha" : "texto"),
+        ...field(key, key === "ubicacion" ? "Ubicación exacta" : key[0].toUpperCase() + key.slice(1), id === "Agenda" && key === "fecha" ? "fecha" : "texto"),
         required: i === 0,
+        ...(key === "ubicacion" ? {hint:"Edificio, planta, servicio y despacho o sala. Ej.: H3D · planta 2 · RR. HH. · despacho 214."} : {}),
       })),
       ...(id === "Agenda" ? agendaExtras() : []),
       ...(id === "Incidencias" ? incidenceExtras() : []),

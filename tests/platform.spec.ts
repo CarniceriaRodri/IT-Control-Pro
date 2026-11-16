@@ -168,3 +168,16 @@ test("rechaza una edición obsoleta entre pestañas", async ({
   await b.getByText("Guardar registro").click();
   await expect(b.getByRole("alert")).toContainText("Otra pestaña");
 });
+
+test("normaliza la ubicación existente sin cambiar el campo ni perder valores",async()=>{
+ const {ensureExactLocation}=await import("../src/data/exact-location");
+ const module=initialModules().find(m=>m.id==="Redes")!;
+ const existing=module.fields.find(f=>f.id==="ubicacion")!;
+ existing.label="Ubicación concreta";
+ const count=module.fields.length;
+ const result=ensureExactLocation(module);
+ expect(result.id).toBe("ubicacion");expect(result.label).toBe("Ubicación exacta");
+ expect(module.fields).toHaveLength(count);
+ const values={centro:"Hospital Jerez",ubicacion:"Despacho 214"};
+ expect(values[result.id as keyof typeof values]).toBe("Despacho 214");
+});

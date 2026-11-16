@@ -54,6 +54,7 @@ function Control({
   const [term, search] = useState("");
   const [expanded, expand] = useState(false);
   const props = {
+    ...(f.label === "Ubicación exacta" ? {"aria-label":"Ubicación exacta"} : {}),
     required: f.required,
     value: String(v ?? ""),
     onChange: (

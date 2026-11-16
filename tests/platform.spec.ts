@@ -41,6 +41,7 @@ test("migra una sola vez, conserva claves extra y permite CRUD sin conexión", a
   await page.getByRole("button", { name: "Editar", exact: true }).click();
   await page.getByRole("dialog").getByLabel("Serie", { exact: true }).fill("ABC-2");
   await page.getByText("Guardar registro", { exact: true }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.evaluate(async () => {
     await navigator.serviceWorker.ready;
     if (!navigator.serviceWorker.controller)

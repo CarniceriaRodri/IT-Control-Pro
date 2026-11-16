@@ -20,6 +20,7 @@ import {
   incidenceExtras,
   movementsModule,
 } from "../domain/model";
+import { ensureExactLocation } from "./exact-location";
 import { fromLegacy } from "./backup";
 import { CENTROS_DOCUMENTO } from "./centrosCatalog";
 export interface Snapshot {
@@ -203,7 +204,7 @@ export async function openRepository(): Promise<Repository> {
       }
       for (const name of ["Redes", "Inventario"]) {
         const module = await request<Module | undefined>(modules.get(name));
-        if(module && !module.fields.some(f=>["ubicacion","ubicación","ubicacionfina"].includes(f.id))){module.fields.push(field("ubicacion","Ubicación concreta"));modules.put(module);changed=true;}
+        if(module){const before=JSON.stringify(module.fields);ensureExactLocation(module);if(JSON.stringify(module.fields)!==before){modules.put(module);changed=true;}}
       }
       const incidents = await request<Module | undefined>(modules.get("Incidencias"));
       if (incidents) {

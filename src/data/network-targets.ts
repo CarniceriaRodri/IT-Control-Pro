@@ -11,9 +11,9 @@ export function networkTargets(data:Dataset):Target[]{
    const values=fields.map(f=>{const v=row.values[f.id];if(f.type==="relación"){const linked=data.records.find(r=>r.id===v);if(linked){const linkedMod=data.modules.find(m=>m.id===linked.module);const name=linkedMod?.fields.find(x=>normalizeHeader(x.label)==="nombre");return String(linked.values[name?.id||"nombre"]||Object.values(linked.values)[0]||"");}}return String(v??"").trim();}).filter(Boolean);
    return all?[...new Set(values)].join(" · "):values[0]||"";
   };
-  const ip=read(["ip","ipprincipal","direccionip","direccionipv4","ipv4"])||String(row.values[mod.fields.find(f=>f.type==="IP")?.id||""]||"");
+  const ip=read(["ip","ipprincipal","direccionip","direccionipv4","ipv4","ipaddress","ipequipo","ipimpresora","ipterminal","ipquiosco"])||String(row.values[mod.fields.find(f=>f.type==="IP")?.id||""]||"");
   if(!/^(\d{1,3}\.){3}\d{1,3}$/.test(ip)||ip.split(".").some(x=>+x>255))continue;
-  const target:Target={ip,device:read(["dispositivo","equipo","nombre","impresora","descripcion","serie"])||ip,center:read(["centro","centros","centroid","sede","centrodesalud","nombrecentro"]),location:read(["ubicacion","ubicacionfina","ubicacionconcreta","localizacion","edificio","planta","servicio","despacho","sala","consulta"],true),groups:[row.module],recordIds:[row.id],ports:[80,443,9100]};
+  const target:Target={ip,device:read(["dispositivo","equipo","nombre","impresora","descripcion","serie"])||ip,center:read(["centro","centros","centroid","sede","centrodesalud","nombrecentro"]),location:read(["ubicacion","ubicacionexacta","ubicacionfina","ubicacionconcreta","localizacionexacta","localizacion","edificio","planta","servicio","despacho","sala","consulta"],true),groups:[row.module],recordIds:[row.id],ports:[80,443,9100]};
   const previous=found.get(ip);
   if(previous){previous.groups=[...new Set([...previous.groups,row.module])];previous.recordIds.push(row.id);previous.center=[...new Set([previous.center,target.center].filter(Boolean))].join(" · ");previous.location=[...new Set([previous.location,target.location].filter(Boolean))].join(" · ");}
   else found.set(ip,target);

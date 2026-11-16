@@ -11,9 +11,9 @@ export default defineConfig({
     screenshot: "only-on-failure",
     launchOptions: { executablePath: process.env.CHROMIUM_PATH || undefined },
   },
-  webServer: {
+  webServer: [{
     command: "python3 -m http.server 4187 --bind 127.0.0.1 --directory ..",
     url,
     reuseExistingServer: false,
-  },
+  }, {command:"python3 tests/monitor_fixture.py",url:"http://127.0.0.1:8788/api/health",reuseExistingServer:false}],
 });

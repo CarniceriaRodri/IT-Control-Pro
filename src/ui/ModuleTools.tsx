@@ -1,3 +1,4 @@
+import { networkTargets } from "../data/network-targets";
 import { ImportHistory } from "./ImportHistory";
 import { writeCsv } from "../data/calc";
 import { CENTROS_DOCUMENTO } from "../data/centrosCatalog";
@@ -32,7 +33,7 @@ export function ModuleTools({
     <>
       <ImportHistory data={data} module={mod.id} write={write}/>
       {mod.id === "Redes" && <NetworkMonitor data={data} write={write} />}
-      {mod.id === "Redes" && <NetworkDiagnostics saved={data.records.filter(r=>r.module===mod.id && !r.archived).map(r=>({ip:String(r.values.ip||""),device:String(r.values.dispositivo||"Equipo")}))}/>}
+      {mod.id === "Redes" && <NetworkDiagnostics saved={networkTargets(data).map(r=>({ip:r.ip,device:r.device}))}/>}
       <div className="inline moduleTools">
         <button onClick={() => set("table")}>Importar tabla</button>
         {mod.id === "Centros" && <button type="button" onClick={()=>{msg("");setCentersPreview(true);}}>Añadir centros del documento</button>}

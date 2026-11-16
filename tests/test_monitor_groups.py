@@ -23,3 +23,13 @@ class GroupMonitorTests(unittest.TestCase):
     def test_invalid_group_policy_rejected(self):
         worker=monitor_python.Monitor()
         with self.assertRaises(ValueError):worker.configure({"targets":[{"ip":"10.1.1.1","schedule":{"start":-1,"end":25}}]})
+
+    def test_explicit_run_bypasses_interval_and_schedule(self):
+        with tempfile.TemporaryDirectory() as temp, patch.object(monitor_python,"DATA",Path(temp)),patch.object(monitor_python,"FILE",Path(temp)/"monitor.json"):
+            worker=monitor_python.Monitor()
+            host={"ip":"10.2.3.4","ports":[443],"intervalSeconds":600,"schedule":{"start":23,"end":24}}
+            worker.configure({"targets":[host]})
+            worker.last_probe[host["ip"]]=monitor_python.time.monotonic()
+            targets=list(worker.targets.values())
+            self.assertEqual(worker._eligible_targets(targets),[])
+            self.assertEqual(worker._eligible_targets(targets,force=True),targets)

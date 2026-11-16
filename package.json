@@ -1,6 +1,6 @@
 {
   "name": "it-control-pro",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Plataforma modular de gestión informática local",
   "scripts": {
     "test": "playwright test",

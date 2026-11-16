@@ -50,3 +50,11 @@ El servicio sigue escuchando solo en 127.0.0.1 por defecto. El acceso desde móv
 ## Verificación
 
 La comprobación local incluye compilación TypeScript, pruebas Python y Node. El flujo de GitHub «Verificar alarmas, grupos y tablas» comprueba además la interfaz en Chromium. La ventana nativa, la tarea al iniciar sesión, Thunderbird, SMTP y carpetas de red necesitan una comprobación final en el Windows donde se usará.
+
+## Corrección 0.5.1: comprobar las IP añadidas
+
+En Redes, «Comprobar IP» realiza una prueba inmediata de un dispositivo, sin tener que seleccionarlo para vigilancia ni guardar una configuración previa. «Comprobar grupo ahora» prueba todas las IP del grupo abierto, con un máximo de seis peticiones simultáneas, progreso y cancelación. Estas pruebas respetan los destinos privados y puertos permitidos, pero no el horario ni el intervalo de vigilancia continua. Cada pulsación realiza una comprobación nueva. Se conserva la ubicación y el resultado visible, incluyendo los errores.
+
+Para vigilancia continua, marca las casillas Monitorizar y pulsa «Iniciar monitorización»: ahora guarda automáticamente la selección y sus políticas antes de arrancar. El botón de comprobación puntual no activa vigilancia continua. Se reconocen además encabezados como IP equipo, IP impresora e IP address en archivos importados. El selector de diagnóstico incluye IP de todos los módulos importados.
+
+Requiere sustituir el paquete Windows completo y reiniciar INICIAR-PYTHON.bat; actualizar únicamente la web no actualiza el motor Python.

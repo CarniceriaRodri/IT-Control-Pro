@@ -16,7 +16,7 @@ import socket
 import subprocess
 import re
 import time
-from monitor_python import MONITOR, MAX_REQUEST_BYTES, permitted, ALLOWED_PORTS
+from monitor_python import MONITOR, MAX_REQUEST_BYTES, permitted, ALLOWED_PORTS, probe, timestamp
 from alarmas_windows import DESKTOP_ALARMS
 from servicios_windows import SERVICES
 from datos_compartidos import SHARED
@@ -134,6 +134,12 @@ class LocalHandler(SimpleHTTPRequestHandler):
                         "ms": round((time.monotonic() - start) * 1000)}
             except (OSError, subprocess.TimeoutExpired) as error:
                 return {"kind": kind, "host": host, "ok": False, "detail": str(error)}
+        if kind == "connectivity":
+            ports = payload.get("ports", [80, 443, 9100])
+            if not isinstance(ports, list) or len(ports) > 5 or any(type(port) is not int or port not in ALLOWED_PORTS for port in ports):
+                raise ValueError("Puerto TCP no permitido")
+            value = probe(host, ports)
+            return {"kind": kind, "host": host, "ok": value["status"] in ("online", "tcp"), **value, "at": timestamp()}
         if kind == "tcp":
             port = payload.get("port")
             if type(port) is not int or port not in ALLOWED_PORTS:

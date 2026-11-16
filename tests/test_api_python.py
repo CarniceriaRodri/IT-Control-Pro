@@ -44,3 +44,15 @@ class ApiTests(unittest.TestCase):
                 self.assertEqual(result["data"]["modules"][0]["id"],"Equipos")
                 request("/api/access/logout",{},cookie)
                 with self.assertRaises(urllib.error.HTTPError):request("/api/state",cookie=cookie)
+
+    def test_one_off_connectivity_does_not_require_monitor_configuration(self):
+        handler=servidor_python.LocalHandler.__new__(servidor_python.LocalHandler)
+        with patch.object(servidor_python,"probe",return_value={"status":"tcp","detail":"TCP 443 accesible","ms":3}) as probe:
+            for _ in range(2):
+                result=handler._diagnose({"kind":"connectivity","host":"10.2.3.4","ports":[443]})
+                self.assertTrue(result["ok"])
+                self.assertEqual(result["status"],"tcp")
+                self.assertIn("at",result)
+            self.assertEqual(probe.call_count,2)
+            with self.assertRaises(ValueError):handler._diagnose({"kind":"connectivity","host":"8.8.8.8"})
+            with self.assertRaises(ValueError):handler._diagnose({"kind":"connectivity","host":"10.2.3.4","ports":[12345]})

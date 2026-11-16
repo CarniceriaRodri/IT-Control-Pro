@@ -66,6 +66,7 @@ class Monitor:
         self.lock = RLock()
         self.wake = Event()
         self.running = False
+        self.force_next = False
         self.interval = 120
         self.failures = 3
         self.targets = {}
@@ -190,10 +191,17 @@ class Monitor:
                 if not self.targets:
                     raise ValueError("No hay equipos para comprobar")
                 self.running = True
+                self.force_next = True
             else:
                 raise ValueError("Acción no reconocida")
             self.wake.set()
         return self.snapshot()
+
+    def _eligible_targets(self, targets, force=False):
+        if force:
+            return list(targets)
+        hour=datetime.now().hour
+        return [t for t in targets if ((t["schedule"]["start"] <= hour < t["schedule"]["end"]) if t["schedule"]["start"] < t["schedule"]["end"] else (hour >= t["schedule"]["start"] or hour < t["schedule"]["end"])) and time.monotonic() - self.last_probe.get(t["ip"], -1e10) >= t.get("intervalSeconds", self.interval)]
 
     def _loop(self):
         while True:
@@ -205,8 +213,9 @@ class Monitor:
                         break
                     targets = list(self.targets.values())
                     interval = min((t.get("intervalSeconds", self.interval) for t in targets), default=self.interval)
-                    hour = datetime.now().hour
-                    targets = [t for t in targets if ((t["schedule"]["start"] <= hour < t["schedule"]["end"]) if t["schedule"]["start"] < t["schedule"]["end"] else (hour >= t["schedule"]["start"] or hour < t["schedule"]["end"])) and time.monotonic() - self.last_probe.get(t["ip"], -1e10) >= t.get("intervalSeconds", interval)]
+                    force=self.force_next
+                    self.force_next=False
+                    targets=self._eligible_targets(targets, force)
                     self.completed = 0
                     self.total = len(targets)
                 if targets:

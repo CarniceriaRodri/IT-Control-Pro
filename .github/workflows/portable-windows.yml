@@ -2,7 +2,7 @@ name: Paquete portable Windows - IT Control Pro
 on:
   workflow_dispatch:
   push:
-    branches: [main, 'codex/redes-alarmas-0-5']
+    branches: [main, 'codex/redes-alarmas-0-5', 'codex/fix-pruebas-ip']
     paths:
       - 'src/**'
       - 'scripts/**'

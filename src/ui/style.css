@@ -805,3 +805,7 @@ nav button[data-module-id] .moduleGrip{margin-left:auto;flex:none;opacity:.38}
 nav button[data-module-id]:hover .moduleGrip{opacity:.8}
 nav button.draggingModule{background:#087663;color:#fff;box-shadow:0 0 0 2px #a5e4ce;opacity:.9}
 nav button.draggingModule .moduleGrip{opacity:1}
+
+nav .chatgptNav{display:flex;align-items:center;gap:10px;margin:7px 0;padding:10px 12px;border:1px solid #35505f;border-radius:8px;background:#1d3949;color:inherit;text-decoration:none;font-weight:600}
+nav .chatgptNav:hover{background:#274859;color:#fff}
+nav .chatgptNav svg:last-child{margin-left:auto;opacity:.7}

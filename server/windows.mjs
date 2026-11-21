@@ -104,6 +104,8 @@ async function initialize() {
       if(!restored) { state=blank(); await persist(); }
     }
   }
+  // Copia diaria al iniciar. Los adjuntos se deduplican por su hash.
+  await backup();
   // Compatibilidad: ocultar la antigua tarea duplicada de Agenda sin borrar su contenido.
   const agenda = state.data?.modules?.find(m=>m.id==="Agenda");
   const oldTask = agenda?.fields?.find(f=>f.id==="tarea");
@@ -210,7 +212,34 @@ async function handler(req,res){
     }
     if(req.method==="GET"&&u==="/api/health")return reply(res,200,{app:"IT Control Pro",mode:"windows-server",version:1});
     if(req.method==="GET"&&u==="/api/state")return reply(res,200,{version:state.version,data:state.data});
-    if(req.method==="GET"&&u==="/api/points")return reply(res,200,state.points);
+    if(req.method==="GET"&&u==="/api/points") {
+      const files=(await readdir(backupDir)).filter(name=>/^sistema-\\d{4}-\\d{2}-\\d{2}\\.json$/.test(name)).sort().reverse();
+      const points=[];
+      for(const name of files) {
+        const stamp=(await stat(path.join(backupDir,name))).mtime.toISOString();
+        points.push({key:"day/"+name.slice(8,18),period:"day",stamp,version:state.version});
+      }
+      return reply(res,200,points);
+    }
+    if(req.method==="GET"&&u==="/api/point") {
+      const key=url.searchParams.get("key")||"";
+      const match=/^day\\/(\\d{4}-\\d{2}-\\d{2})$/.exec(key);
+      if(!match)return reply(res,400,{error:"Copia no válida"});
+      const file=path.join(backupDir,"sistema-"+match[1]+".json");
+      if(!existsSync(file))return reply(res,404,{error:"Copia no encontrada"});
+      const saved=JSON.parse(await readFile(file,"utf8"));
+      if(!validData(saved.data))return reply(res,400,{error:"La copia está dañada"});
+      const refs=new Set();
+      for(const owner of [...saved.data.modules,...saved.data.records])for(const ref of owner.files||[])refs.add(ref.hash);
+      const source=path.join(backupDir,"archivos"),dest=path.join(storage,"archivos");
+      await mkdir(dest,{recursive:true});
+      for(const hash of refs) {
+        if(!/^[a-f0-9]{64}$/.test(hash))return reply(res,400,{error:"Adjunto no válido en la copia"});
+        const from=path.join(source,hash),to=path.join(dest,hash);
+        if(!existsSync(to)&&existsSync(from))await copyFile(from,to);
+      }
+      return reply(res,200,saved.data);
+    }
     if(req.method==="GET"&&u==="/api/retention")return reply(res,200,state.retention);
     if(req.method==="GET"&&u==="/api/recovery")return reply(res,200,state.recovery);
     if(req.method==="GET"&&u.startsWith("/api/file/")){

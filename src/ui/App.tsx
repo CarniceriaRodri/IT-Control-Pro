@@ -314,9 +314,7 @@ export function App({
     if(cancelled||!changed)return;
     void write("Reordenar módulos", "menú lateral", d=>{
       const active=order.map(id=>d.modules.find(m=>m.id===id)).filter((m):m is Module=>!!m);
-      const hidden=d.modules.filter(m=>!m.active);
-      const inactiveIds=new Set(hidden.map(m=>m.id));
-      d.modules=[...active,...d.modules.filter(m=>inactiveIds.has(m.id))];
+      d.modules=[...active,...d.modules.filter(m=>!order.includes(m.id))];
     }).then(()=>notify("Orden de módulos guardado.")).catch(e=>notify("No se pudo guardar el orden: "+String(e)));
   };
   const moduleButton = (m: Module) => (

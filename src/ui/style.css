@@ -742,3 +742,33 @@ details > summary {
 @media(max-width:620px){.alarmToast{right:12px;bottom:70px;max-width:calc(100vw - 24px)}}
 
 .adjustableTable{position:relative;min-width:0;isolation:isolate}.adjustableViewport{max-height:65vh;overflow:auto;scrollbar-gutter:stable;border:1px solid var(--line)}.adjustableViewport th{position:sticky;top:0;z-index:3;background:var(--panel,#fff);color:var(--ink,#172c43)}.adjustableViewport td{background:var(--panel,#fff);overflow:hidden;text-overflow:ellipsis}.adjustableViewport th{padding-right:20px}.columnResizer{position:absolute;right:0;top:0;width:12px;height:100%;cursor:col-resize;touch-action:none;border-right:2px solid var(--line)}.columnResizer:focus{background:#8bb5e8}.tableTopScroll{overflow-x:auto;height:18px}.tableFullscreen{position:fixed;inset:8px;z-index:1000;background:var(--panel,#fff);padding:18px;overflow:auto;box-shadow:0 0 0 10px #0008}.tableFullscreen .adjustableViewport{max-height:75vh}.columnSettings{max-height:260px;overflow:auto;padding:12px}.networkGroups{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:15px 0}.networkGroup{border:1px solid var(--line);padding:15px;border-radius:12px}.networkRing{width:76px;height:76px;border-radius:50%;display:grid;place-items:center;float:right}.networkRing span{background:var(--panel,#fff);border-radius:50%;padding:12px}.deviceFacts{display:grid;grid-template-columns:minmax(120px,1fr) 2fr;gap:10px}.alarmToast{position:fixed;inset:auto 3vw 6vh;max-width:760px;margin:auto;padding:28px;z-index:1200;font-size:18px;box-shadow:0 8px 60px #0006}
+
+/* Centro local de seguimiento de vulnerabilidades */
+.vulnPanel{display:grid;gap:16px}
+.vulnHead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.vulnHead h2{display:flex;align-items:center;gap:9px;margin:0 0 5px}
+.vulnHead p,.vulnMeta,.vulnFooter{color:var(--dim);font-size:13px}
+.vulnNotice{display:flex;align-items:flex-start;gap:10px;padding:13px 15px;border:1px solid #e8c46b;border-radius:11px;background:color-mix(in srgb,#f2c454 12%,var(--panel))}
+.vulnNotice svg{flex:none;color:#9d6900;margin-top:2px}
+.vulnSources{display:flex;flex-wrap:wrap;gap:8px}
+.vulnSources a,.vulnFooter a{color:var(--accent);font-weight:650;text-decoration:none}
+.vulnSources a{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:8px 10px;font-size:13px}
+.vulnSources a:hover,.vulnFooter a:hover{text-decoration:underline}
+.vulnFilters{display:grid;grid-template-columns:180px 160px minmax(180px,1fr);gap:12px}
+.vulnFilters label{display:grid;gap:5px;font-size:13px;font-weight:650}
+.vulnFilters input,.vulnFilters select{min-width:0;width:100%;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);padding:9px 10px;font:inherit}
+.vulnMeta{margin:0}
+.vulnError{border:1px solid #d96666;background:#fff0f0;color:#902b2b;border-radius:8px;padding:10px 12px}
+.vulnEmpty{display:grid;justify-items:center;gap:10px;color:var(--dim);padding:36px 12px;border:1px dashed var(--line);border-radius:12px}
+.vulnList{display:grid;gap:10px}
+.vulnCard{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:13px 15px}
+.vulnCardTop{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.vulnCardTop>a{display:inline-flex;align-items:center;gap:6px;color:var(--accent);font-weight:750;text-decoration:none}
+.vulnCard p{margin:8px 0;font-size:14px;overflow-wrap:anywhere}
+.vulnCard small{color:var(--dim)}
+.severity{display:inline-block;border-radius:99px;padding:3px 9px;font-size:11px;font-weight:750;white-space:nowrap}
+.severity.critical{background:#9e1b32;color:white}.severity.high{background:#dc5a31;color:white}
+.severity.medium{background:#f4d777;color:#3d3000}.severity.low{background:#cfe9dc;color:#145637}
+.vulnFooter{margin:0}
+.spin{animation:vulnspin 1s linear infinite}@keyframes vulnspin{to{transform:rotate(360deg)}}
+@media(max-width:700px){.vulnHead{flex-direction:column}.vulnFilters{grid-template-columns:1fr 1fr}.vulnSearch{grid-column:1/-1}.vulnCardTop{align-items:flex-start;flex-direction:column}}

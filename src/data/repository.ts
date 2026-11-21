@@ -19,6 +19,7 @@ import {
   agendaExtras,
   incidenceExtras,
   movementsModule,
+  migrateCenterRelations,
 } from "../domain/model";
 import { fromLegacy } from "./backup";
 import { CENTROS_DOCUMENTO } from "./centrosCatalog";
@@ -232,6 +233,13 @@ export async function openRepository(): Promise<Repository> {
           meta.put(true, CENTROS_SEED_KEY);
         }
       }
+      const migrated = await dataset(t);
+      if (migrateCenterRelations(migrated)) {
+        for (const item of migrated.modules) modules.put(item);
+        const recordStore = t.objectStore("records");
+        for (const row of migrated.records) recordStore.put(row);
+        changed = true;
+      }
       if (changed) meta.put(existingVersion + 1, "version");
       return;
     }
@@ -243,6 +251,7 @@ export async function openRepository(): Promise<Repository> {
       d.records.push(...missingCenters(centros, d.records).added);
       meta.put(true, CENTROS_SEED_KEY);
     }
+    migrateCenterRelations(d);
     for (const k of tables) for (const item of d[k]) t.objectStore(k).add(item);
     meta.put(1, "version");
   });

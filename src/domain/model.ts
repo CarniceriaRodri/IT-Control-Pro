@@ -202,7 +202,7 @@ export function migrateCenterRelations(data: Dataset): boolean {
     changed = true;
   }
   const normalize = (value: unknown) => String(value ?? "")
-    .normalize("NFKC").trim().toLocaleLowerCase("es").replace(/\\s+/g, " ");
+    .normalize("NFKC").trim().toLocaleLowerCase("es").replace(/\s+/g, " ");
   const rows = data.records.filter((r) => r.module === "Centros");
   for (const mod of data.modules) {
     const centerField = mod.fields.find((f) => f.id === "centro");

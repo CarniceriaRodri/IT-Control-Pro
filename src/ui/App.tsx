@@ -37,12 +37,14 @@ import {
   UserRound,
   Ticket,
   Warehouse,
+  ShieldAlert,
 } from "lucide-react";
 import { type Entity, type Module, title } from "../domain/model";
 import { type Repository, type Snapshot, putRecord } from "../data/repository";
 import { Admin, type Write } from "./Admin";
 import { Dialog, Editor } from "./Fields";
 import { install, statusPwa, activateUpdate } from "../pwa";
+import { Vulnerabilities } from "./Vulnerabilities";
 const icons: Record<string, typeof Monitor> = {
   Panel: LayoutDashboard,
   Centros: Building2,
@@ -58,7 +60,7 @@ const icons: Record<string, typeof Monitor> = {
   Administración: Settings2,
   Ayuda: CircleHelp,
   Calculadora: Calculator,
-  Noticias: FileText,
+  Vulnerabilidades: ShieldAlert,
 };
 const descriptions: Record<string, string> = {
   Centros: "Directorio de centros y ubicaciones",
@@ -72,7 +74,7 @@ const descriptions: Record<string, string> = {
   Documentación: "Referencias y documentación técnica",
   Ayuda: "Glosario y guías de uso",
   Calculadora: "Calculadora científica interactiva, explicaciones y pruebas guiadas",
-  Noticias: "Noticias, alertas y vulnerabilidades de ciberseguridad en español",
+  Vulnerabilidades: "Avisos recientes de PHP, Java, Nginx y otros componentes",
 };
 const Icon = ({ id, size = 19 }: { id: string; size?: number }) => {
   const Glyph = icons[id] || Layers3;
@@ -134,7 +136,7 @@ export function App({
       ? preferred : incoming.page;
     const current = makeRoute(startingPage, incoming.editor);
     if (current.page !== "Panel" && current.page !== "Administración" &&
-      current.page !== "Informes" && current.page !== "Ayuda" && current.page !== "Calculadora" && current.page !== "Noticias" && !data.modules.some(m => m.id === current.page && m.active)) {
+      current.page !== "Informes" && current.page !== "Ayuda" && current.page !== "Calculadora" && current.page !== "Vulnerabilidades" && !data.modules.some(m => m.id === current.page && m.active)) {
       initializeHistory(makeRoute("Panel"));
       replaceAppRoute(makeRoute("Panel"));
       nav("Panel");
@@ -169,7 +171,7 @@ export function App({
       }
       const next = isRoute(event.state) ? event.state : routeFromUrl();
       const validPage = next.page === "Panel" || next.page === "Informes" ||
-        next.page === "Administración" || next.page === "Ayuda" || next.page === "Calculadora" || next.page === "Noticias" || data.modules.some(m => m.id === next.page && m.active);
+        next.page === "Administración" || next.page === "Ayuda" || next.page === "Calculadora" || next.page === "Vulnerabilidades" || data.modules.some(m => m.id === next.page && m.active);
       const target = validPage ? next.page : "Panel";
       nav(target);
       search("");
@@ -323,7 +325,7 @@ export function App({
           {button("Administración")}
           {button("Ayuda")}
           {button("Calculadora", "Calculadora científica")}
-          {button("Noticias", "Noticias de ciberseguridad")}
+          {button("Vulnerabilidades", "Vulnerabilidades")}
         </nav>
         <div className="asideFoot">
           <Database size={16} /> {location.port === "8787" ? "Datos en servidor Windows" : "Almacenamiento local"}
@@ -494,18 +496,7 @@ export function App({
             </section>
           )}
           {page === "Ayuda" && <Help />}
-          {page === "Noticias" && (
-            <section aria-label="Noticias de ciberseguridad en español">
-              <h2>Noticias y avisos de ciberseguridad</h2>
-              <p>Consulta las publicaciones más recientes de organismos oficiales españoles. Los enlaces abren las fuentes originales en español. No se muestran noticias inventadas ni fechas de actualización sin verificar.</p>
-              <div className="cards" style={{marginTop:18}}>
-                <a className="fieldRow" href="https://www.incibe.es/incibe-cert/alerta-temprana/avisos" target="_blank" rel="noopener noreferrer"><strong>INCIBE-CERT · Avisos</strong><span>Vulnerabilidades y recomendaciones de seguridad</span><ArrowUpRight size={18}/></a>
-                <a className="fieldRow" href="https://www.ccn-cert.cni.es/es/seguridad-al-dia/avisos-ccn-cert.html" target="_blank" rel="noopener noreferrer"><strong>CCN-CERT · Avisos</strong><span>Actualizaciones de seguridad y vulnerabilidades</span><ArrowUpRight size={18}/></a>
-                <a className="fieldRow" href="https://www.ccn-cert.cni.es/es/seguridad-al-dia/alertas-ccn-cert.html" target="_blank" rel="noopener noreferrer"><strong>CCN-CERT · Alertas</strong><span>Avisos de amenazas y explotación activa</span><ArrowUpRight size={18}/></a>
-              </div>
-              <p style={{marginTop:14,fontSize:13}}>La información se consulta directamente en las fuentes y no implica un escaneo ni una defensa automática del equipo.</p>
-            </section>
-          )}
+          {page === "Vulnerabilidades" && <Vulnerabilities />}
           {page === "Calculadora" && (
             <section aria-label="Módulo de calculadora científica" style={{padding:0,overflow:"hidden",borderRadius:12}}>
               <iframe title="Calculadora científica interactiva" src={`${import.meta.env.BASE_URL}modules/calculadora-ordenador.html`} style={{display:"block",width:"100%",height:"min(82vh,1050px)",minHeight:560,border:0,background:"#eef0f4"}} allow="clipboard-write" />

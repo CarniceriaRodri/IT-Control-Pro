@@ -113,8 +113,8 @@ export function App({
   const [pendingVersion, changePending] = useState(0),
     [draggingModule, setDraggingModule] = useState<string | null>(null),
     [dragOrder, setDragOrder] = useState<string[]>([]);
-  const reorderGesture = useRef<{timer:number|null;active:boolean;source:string;pointer:number;startX:number;startY:number;order:string[]}>({
-    timer:null,active:false,source:"",pointer:-1,startX:0,startY:0,order:[]
+  const reorderGesture = useRef<{timer:number|null;active:boolean;source:string;pointer:number;startX:number;startY:number;order:string[];stopTouch:((event:TouchEvent)=>void)|null}>({
+    timer:null,active:false,source:"",pointer:-1,startX:0,startY:0,order:[],stopTouch:null
   });
   const suppressModuleClick = useRef(false);
   const data = pendingVersion >= 0
@@ -276,13 +276,18 @@ export function App({
     gesture.active = false; gesture.source = id; gesture.pointer = event.pointerId;
     gesture.startX = event.clientX; gesture.startY = event.clientY;
     gesture.order = mods.map(m=>m.id);
-    const buttonElement = event.currentTarget, pointerId = event.pointerId;
+    const buttonElement = event.currentTarget, pointerId = event.pointerId, isTouch = event.pointerType === "touch";
     gesture.timer = window.setTimeout(() => {
       gesture.timer = null; gesture.active = true;
       setDraggingModule(id); setDragOrder([...gesture.order]);
       suppressModuleClick.current = true;
+      if(isTouch){
+        const stopTouch=(touchEvent:TouchEvent)=>touchEvent.preventDefault();
+        gesture.stopTouch=stopTouch;
+        window.addEventListener("touchmove",stopTouch,{passive:false});
+      }
       try { buttonElement.setPointerCapture(pointerId); } catch {}
-    }, 500);
+    }, 2000);
   };
   const moveModuleHold = (event: ReactPointerEvent<HTMLButtonElement>) => {
     const gesture = reorderGesture.current;
@@ -317,6 +322,7 @@ export function App({
     if (gesture.pointer !== event.pointerId) return;
     if (gesture.timer !== null) window.clearTimeout(gesture.timer);
     gesture.timer=null; gesture.pointer=-1;
+    if(gesture.stopTouch){window.removeEventListener("touchmove",gesture.stopTouch);gesture.stopTouch=null;}
     if (!gesture.active) return;
     const order=[...gesture.order], changed=order.some((id,i)=>id!==mods[i]?.id);
     gesture.active=false; setDraggingModule(null); setDragOrder([]);

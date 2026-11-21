@@ -39,6 +39,7 @@ import {
   Warehouse,
   ShieldAlert,
   GripVertical,
+  Bot,
 } from "lucide-react";
 import { type Entity, type Module, title } from "../domain/model";
 import { type Repository, type Snapshot, putRecord } from "../data/repository";
@@ -403,6 +404,9 @@ export function App({
         <nav>
           {button("Panel", "Panel principal")}
           {orderedMods.map(moduleButton)}
+          <a className="chatgptNav" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer" aria-label="Abrir ChatGPT en otra pestaña">
+            <Bot size={19} strokeWidth={1.7}/> ChatGPT <ArrowUpRight size={15}/>
+          </a>
         </nav>
         <div className="navLabel">GESTIÓN</div>
         <nav>

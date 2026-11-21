@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ExternalLink, RefreshCw, ShieldAlert, ShieldCheck } from "lucide-react";
 
+type DefenderState = {supported:boolean;available:boolean;active:boolean;mode:string|null;startedAt:string|null;finishedAt:string|null;exitCode:number|null;message:string;output:string;detections:{eventId:number;time:string;name:string;path:string;severity:string;action:string;status:string}[]};
 type Vuln = { id:string; date:string; desc:string; score:number|null; severity:string; source:string; tech:string };
 const KEY = "itcp-vulnerability-feed-v1";
 const TECHS = [
@@ -21,6 +22,37 @@ export function Vulnerabilities() {
   const [query,setQuery]=useState("");
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState("");
+  const [defender,setDefender]=useState<DefenderState|null>(null);
+  const [defenderBusy,setDefenderBusy]=useState(false);
+  const [defenderError,setDefenderError]=useState("");
+  const [scanMode,setScanMode]=useState("quick");
+  const [scanPath,setScanPath]=useState("");
+  const loadDefender=useCallback(async()=>{
+    try {
+      const response=await fetch("/api/antivirus/status",{cache:"no-store"});
+      if(!response.ok)throw new Error("Servidor local no disponible");
+      setDefender(await response.json());
+    } catch {
+      setDefender({supported:false,available:false,active:false,mode:null,startedAt:null,finishedAt:null,exitCode:null,message:"El análisis real requiere IT Control Pro ejecutándose en Windows con INICIAR-PYTHON.bat. Desde Android o una web alojada no se puede inspeccionar el dispositivo.",output:"",detections:[]});
+    }
+  },[]);
+  useEffect(()=>{void loadDefender();},[loadDefender]);
+  useEffect(()=>{
+    if(!defender?.active)return;
+    const timer=window.setInterval(()=>void loadDefender(),4000);
+    return()=>window.clearInterval(timer);
+  },[defender?.active,loadDefender]);
+  const startDefenderScan=async()=>{
+    setDefenderBusy(true);setDefenderError("");
+    try {
+      const response=await fetch("/api/antivirus/scan",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({mode:scanMode,path:scanMode==="custom"?scanPath:undefined})});
+      const data=await response.json();
+      if(!response.ok)throw new Error(data.error||"No se pudo iniciar el análisis.");
+      setDefender(data);window.setTimeout(()=>void loadDefender(),1200);
+    } catch(e) {setDefenderError(String(e));}
+    finally {setDefenderBusy(false);}
+  };
+
   const refresh=useCallback(async()=>{
     if(busy)return;
     setBusy(true);setError("");
@@ -66,6 +98,22 @@ export function Vulnerabilities() {
     <div className="vulnHead"><div><h2><ShieldAlert size={22}/> Seguimiento de vulnerabilidades</h2><p>Alertas recientes para PHP, Java / OpenJDK y Nginx, con consulta al NVD y enlaces a los avisos originales.</p></div>
       <button className="primary" onClick={()=>void refresh()} disabled={busy}><RefreshCw size={16} className={busy?"spin":""}/>{busy?"Actualizando…":"Actualizar ahora"}</button></div>
     <div className="vulnNotice"><ShieldCheck size={18}/><span><strong>Monitor informativo, no antivirus.</strong> Recopila avisos; no analiza ni limpia este dispositivo. Confirma siempre la versión afectada y la corrección en el fabricante.</span></div>
+    <section className="defenderCard" aria-label="Análisis local de Microsoft Defender">
+      <div className="defenderTitle"><div><h3><ShieldCheck size={19}/> Antivirus local de Windows</h3><p>Ejecuta Microsoft Defender en este equipo. Defender aplica la respuesta configurada en Windows; IT Control Pro no borra archivos directamente.</p></div>
+        <span className={defender?.active?"defenderState running":defender?.available?"defenderState ready":"defenderState unavailable"}>{defender?.active?"Analizando":defender?.available?"Defender disponible":"Solo Windows local"}</span></div>
+      <div className="defenderControls">
+        <label>Tipo de análisis<select value={scanMode} onChange={e=>setScanMode(e.target.value)} disabled={defender?.active}>
+          <option value="quick">Rápido</option><option value="full">Completo</option><option value="custom">Archivo o carpeta</option>
+        </select></label>
+        {scanMode==="custom"&&<label className="defenderPath">Ruta local de Windows<input value={scanPath} onChange={e=>setScanPath(e.target.value)} placeholder="C:\Users\tu_usuario\Downloads" disabled={defender?.active}/></label>}
+        <button className="primary" onClick={()=>void startDefenderScan()} disabled={!defender?.available||defender.active||defenderBusy||(scanMode==="custom"&&!scanPath.trim())}>{defenderBusy?"Iniciando…":defender?.active?"Análisis en curso…":"Iniciar análisis"}</button>
+      </div>
+      {defender?.message&&<p className="defenderMessage" role="status">{defender.message}</p>}
+      {defenderError&&<p className="vulnError" role="alert">{defenderError}</p>}
+      {!!defender?.detections?.length&&<div className="defenderDetections"><strong>Detecciones registradas por Defender</strong>{defender.detections.map((d,i)=><div className="defenderDetection" key={d.eventId+"-"+d.time+"-"+i}><b>{d.name}</b><span>{d.severity||"Gravedad no indicada"} · Evento {d.eventId===1116?"detección":"acción"} · {new Date(d.time).toLocaleString("es-ES")}</span>{d.path&&<code>{d.path}</code>}{d.action&&<span>Acción de Defender: {d.action}</span>}{d.status&&<span>{d.status}</span>}</div>)}</div>}
+      {defender?.finishedAt&&<details className="defenderLog"><summary>Ver salida técnica de Defender</summary><pre>{defender.output||"Defender no devolvió texto adicional."}</pre></details>}
+      <small>Si aparece una detección o acción pendiente, revisa en Windows: Seguridad de Windows → Protección contra virus y amenazas → Historial de protección.</small>
+    </section>
     <div className="vulnSources">{sourceLinks.map(([label,href])=><a key={href} href={href} target="_blank" rel="noopener noreferrer">{label}<ExternalLink size={14}/></a>)}</div>
     <div className="vulnFilters">
       <label>Tecnología<select value={tech} onChange={e=>setTech(e.target.value)}><option>Todas</option>{TECHS.map(t=><option key={t.name}>{t.name}</option>)}</select></label>

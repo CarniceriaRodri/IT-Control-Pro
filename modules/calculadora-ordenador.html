@@ -154,10 +154,10 @@ th{background:var(--panel2)}
 body.lesson-focus main{grid-template-columns:minmax(0,1fr);max-width:950px}
 body.lesson-focus .calcwrap{display:none}
 /* ===== Versión ordenador: calculadora a la izquierda, lección a la derecha ===== */
-main{display:grid;grid-template-columns:minmax(420px,470px) minmax(0,1fr);gap:24px;max-width:1280px;margin:0 auto;padding:20px 20px 40px;align-items:start}
+main{display:block;max-width:520px;margin:0 auto;padding:20px 16px 40px;align-items:start}
 :root{--kh:clamp(36px,calc((100vh - 400px)/10),52px)}
-.calcwrap{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow-y:auto;scrollbar-width:thin}
-.lesson{min-height:560px}
+.calcwrap{position:static;top:12px;max-height:none;overflow-y:visible;scrollbar-width:thin;width:min(100%,470px);margin:0 auto}
+.lesson{display:none;min-height:560px}
 .keys{gap:8px}
 .key{min-height:var(--kh);font-size:15px;padding-top:13px}
 .key.var{min-height:calc(var(--kh)*.8);padding-top:0}
@@ -167,7 +167,7 @@ main{display:grid;grid-template-columns:minmax(420px,470px) minmax(0,1fr);gap:24
 .legend{margin-top:8px}
 .res{font-size:32px}
 .expr{font-size:20px}
-@media (max-width:980px){main{grid-template-columns:1fr}.calcwrap{position:static;max-width:480px;margin:0 auto;width:100%}}
+.learning-on main{display:grid;grid-template-columns:minmax(360px,440px) minmax(0,1fr);gap:22px;max-width:1280px}.learning-on .calcwrap{position:sticky;max-height:calc(100vh - 24px);overflow-y:auto;width:100%}.learning-on .lesson{display:block}.learning-on main{align-items:start}@media (max-width:980px){.learning-on main{display:grid;grid-template-columns:1fr}.learning-on .calcwrap{position:static;max-width:480px;margin:0 auto;width:100%}.learning-on .lesson{min-height:auto}}
 
 </style>
 </head>
@@ -1667,10 +1667,10 @@ function build() {
   const pad = lay.pad.map(r => `<div class="row r5">${r.map(keyHTML).join('')}</div>`).join('');
   $('#app').innerHTML = `
   <header class="top">
-    <div class="brand"><span class="logo">∑</span><div><b>Calculadora científica</b><small>Aprende cada tecla</small></div></div>
+    <div class="brand"><span class="logo">∑</span><div><b>Calculadora científica</b><small id="modehint">Modo calculadora</small></div></div>
     <div class="topr">
       <label class="sel">Teclas estilo <select id="brand">${Object.keys(BRANDS).map(b => `<option value="${b}">${BRANDS[b].n}</option>`).join('')}</select></label>
-      <button class="tb" data-top="index">Índice</button>
+      <button class="tb" data-top="learn" aria-pressed="false">Aprender a usarla</button><button class="tb" data-top="index">Índice</button>
       <button class="tb" data-top="models">Modelos</button>
       <button class="tb" data-top="reset" title="Borrar progreso">↺</button>
     </div>
@@ -1929,7 +1929,7 @@ function bind() {
     const key = t.closest('.key'); if (key) { press(key.dataset.key); tap(key.dataset.key); return; }
     if (t.closest('#menu')) { menuClick(t); return; }
     const tb = t.closest('[data-top]');
-    if (tb) { const a = tb.dataset.top; if (a === 'index') showIndex(); else if (a === 'models') showModels(); else if (a === 'reset' && confirm('¿Borrar todo tu progreso?')) { S.prog = {}; saveProg(); S.session = null; S.ex = null; S.last = null; renderAll(); } return; }
+    if (tb) { const a = tb.dataset.top; if (a === 'learn') { const on = !document.body.classList.contains('learning-on'); document.body.classList.toggle('learning-on', on); tb.setAttribute('aria-pressed', String(on)); tb.textContent = on ? 'Cerrar aprendizaje' : 'Aprender a usarla'; $('#modehint').textContent = on ? 'Aprendizaje opcional' : 'Modo calculadora'; if (on) { renderLesson(); document.body.classList.remove('lesson-focus'); } } else if (a === 'index') showIndex(); else if (a === 'models') showModels(); else if (a === 'reset' && confirm('¿Borrar todo tu progreso?')) { S.prog = {}; saveProg(); S.session = null; S.ex = null; S.last = null; renderAll(); } return; }
     if (t.closest('[data-close]') || t.id === 'modal') { $('#modal').hidden = true; return; }
     const go = t.closest('[data-go]'); if (go) { $('#modal').hidden = true; document.body.classList.add('lesson-focus'); openLesson(go.dataset.go, null); if (MOB) setTab('lesson'); else $('#lesson').scrollIntoView({ block: 'start', behavior: 'smooth' }); return; }
     const tab = t.closest('button[data-tab]'); if (tab) { setTab(tab.dataset.tab); return; }

@@ -1,5 +1,5 @@
 const prefix = "it-control-pro:" + self.registration.scope + ":";
-const current = prefix + "2b98f6576816";
+const current = prefix + "d692971af61b";
 const files = ["index.html","manifest.webmanifest","icon.svg","icon-192.png","icon-512.png","assets/app-C0YaIqIM.css","assets/app-DAAvwXl-.js","modules/calculadora-ordenador.html"];
 self.addEventListener("install", (event) =>
   event.waitUntil(caches.open(current).then((c) => c.addAll(files))),

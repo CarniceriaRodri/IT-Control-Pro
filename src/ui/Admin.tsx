@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   field,
   types,
@@ -10,6 +10,7 @@ import {
 } from "../domain/model";
 import { exportFull, shareFull, importFull } from "../data/portable";
 import type { Binaries } from "../data/media";
+import type { FileDraft } from "./Attachments";
 import type { Repository } from "../data/repository";
 import { ImportTable } from "./ImportTable";
 import { Attachments, emptyFiles } from "./Attachments";
@@ -41,6 +42,10 @@ export function Admin({
     [preview, stage] = useState<Dataset | null>(null),
     [message, msg] = useState("");
   const mod = data.modules.find((m) => m.id === mid) || data.modules[0];
+  const [moduleFiles, setModuleFiles] = useState<FileDraft>(() => ({refs:[...(mod.files||[])],blobs:new Map()}));
+  const [moduleFilesBusy, setModuleFilesBusy] = useState(false);
+  useEffect(() => setModuleFiles({refs:[...(mod.files||[])],blobs:new Map()}), [mod.id]);
+  const moduleIndex = data.modules.findIndex(m => m.id === mod.id);
   async function run(fn: () => Promise<void>) {
     try {
       msg("");
@@ -179,25 +184,43 @@ export function Admin({
           <select value={mod.id} onChange={(e) => select(e.target.value)}>
             {data.modules.map((m) => (
               <option key={m.id} value={m.id}>
-                {m.name}
+                {m.active ? m.name : "Oculto · " + m.name}
               </option>
             ))}
           </select>
         </label>
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={mod.active}
-            onChange={() =>
-              void run(() =>
-                write("Activación del módulo", mod.id, (d) => {
-                  d.modules.find((m) => m.id === mod.id)!.active = !mod.active;
-                }),
-              )
-            }
-          />{" "}
-          Módulo activo
-        </label>
+        <div className="moduleOrganizer" aria-label="Orden y visibilidad de módulos">
+          <button type="button" aria-label="Subir módulo" disabled={moduleIndex<=0}
+            onClick={()=>void run(()=>write("Ordenar módulos",mod.id,d=>{
+              const i=d.modules.findIndex(m=>m.id===mod.id), j=i-1;
+              if(i>0)[d.modules[i],d.modules[j]]=[d.modules[j],d.modules[i]];
+            }))}>↑ Subir</button>
+          <button type="button" aria-label="Bajar módulo" disabled={moduleIndex<0||moduleIndex>=data.modules.length-1}
+            onClick={()=>void run(()=>write("Ordenar módulos",mod.id,d=>{
+              const i=d.modules.findIndex(m=>m.id===mod.id), j=i+1;
+              if(i>=0&&j<d.modules.length)[d.modules[i],d.modules[j]]=[d.modules[j],d.modules[i]];
+            }))}>↓ Bajar</button>
+          <button type="button" onClick={()=>void run(()=>write(mod.active?"Quitar módulo del menú":"Restaurar módulo",mod.id,d=>{
+            d.modules.find(m=>m.id===mod.id)!.active=!mod.active;
+          }))}>{mod.active?"Quitar del menú":"Restaurar módulo"}</button>
+          <span>{mod.active?"Visible en el menú":"Oculto; los registros se conservan"}</span>
+        </div>
+        <details className="moduleAttachments">
+          <summary>Fotos y documentos del módulo</summary>
+          <p>Adjunta imágenes generales del módulo, como una referencia visual, portada o instrucciones. Se guardan con el módulo, no en un registro individual.</p>
+          <Attachments value={moduleFiles} change={setModuleFiles} load={repo.file}
+            pending={setModuleFilesBusy}
+            library={[...data.modules,...data.records].flatMap(item=>item.files||[])}/>
+          <button type="button" className="primary" disabled={moduleFilesBusy}
+            onClick={()=>void run(async()=>{
+              await write("Actualizar fotos y documentos del módulo",mod.id,d=>{
+                const target=d.modules.find(m=>m.id===mod.id);
+                if(!target)throw Error("Módulo no encontrado.");
+                target.files=[...moduleFiles.refs];
+              },true,moduleFiles.blobs);
+              setModuleFiles(current=>({...current,blobs:new Map()}));
+            })}>Guardar fotos del módulo</button>
+        </details>
         <h3>Gestionar campos: antiguos, importados y nuevos</h3>
         <p>Todos se pueden editar. Mostrar u ocultar no modifica los valores de las filas.
           Puedes eliminar definitivamente una columna, previa confirmación y copia recuperable.</p>

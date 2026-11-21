@@ -19,6 +19,7 @@ import time
 from monitor_python import MONITOR, MAX_REQUEST_BYTES, permitted, ALLOWED_PORTS
 from alarmas_windows import DESKTOP_ALARMS
 from servicios_windows import SERVICES
+from antivirus_windows import ANTIVIRUS
 from datos_compartidos import SHARED
 from http.cookies import SimpleCookie
 import ssl
@@ -85,6 +86,9 @@ class LocalHandler(SimpleHTTPRequestHandler):
             except ValueError as error:return self._json(400,{"error":str(error)})
         if self.path.startswith(("/api/monitor/", "/api/alarms/", "/api/services/")) and not self._is_local():
             return self._json(403, {"error":"Servicio disponible solo desde el propio Windows"})
+        if self.path == "/api/antivirus/status":
+            if not self._is_local(): return self._json(403, {"error":"Servicio disponible solo desde el propio Windows"})
+            return self._json(200, ANTIVIRUS.status())
         if self.path == "/api/services/status":
             return self._json(200, SERVICES.status())
         if self.path == "/api/monitor/status":
@@ -158,7 +162,7 @@ class LocalHandler(SimpleHTTPRequestHandler):
             return self._json(403, {"error": "Operación entre sitios denegada"})
         if self.path not in ("/api/monitor/configure", "/api/monitor/start",
                              "/api/monitor/stop", "/api/monitor/run", "/api/diagnostics",
-                             "/api/alarms/configure", "/api/alarms/test", "/api/alarms/action", "/api/alarms/test-scheduled", "/api/services/configure", "/api/services/snapshot", "/api/services/backup", "/api/services/directory", "/api/access/login", "/api/access/logout", "/api/access/configure", "/api/access/migrate", "/api/commit", "/api/bootstrap", "/api/retention"):
+                             "/api/alarms/configure", "/api/alarms/test", "/api/alarms/action", "/api/alarms/test-scheduled", "/api/services/configure", "/api/services/snapshot", "/api/services/backup", "/api/services/directory", "/api/antivirus/scan", "/api/access/login", "/api/access/logout", "/api/access/configure", "/api/access/migrate", "/api/commit", "/api/bootstrap", "/api/retention"):
             return self._json(404, {"error": "Ruta desconocida"})
         try:
             length = int(self.headers.get("Content-Length", "-1"))
@@ -166,7 +170,7 @@ class LocalHandler(SimpleHTTPRequestHandler):
             if not 0 <= length <= limit:
                 return self._json(413, {"error": "Solicitud demasiado grande"})
             data = json.loads(self.rfile.read(length)) if length else {}
-            if not self._is_local() and self.path.startswith(("/api/services/", "/api/alarms/", "/api/monitor/")):
+            if not self._is_local() and self.path.startswith(("/api/services/", "/api/alarms/", "/api/monitor/", "/api/antivirus/")):
                 return self._json(403,{"error":"Acción disponible solo desde el propio Windows"})
             if self.path in ("/api/services/configure", "/api/services/directory") and SHARED.config["users"]:
                 SHARED.authorize(self._token(),admin=True)
@@ -208,6 +212,8 @@ class LocalHandler(SimpleHTTPRequestHandler):
                 result = SERVICES.status()
             elif self.path == "/api/services/directory":
                 result = SERVICES.choose_directory()
+            elif self.path == "/api/antivirus/scan":
+                result = ANTIVIRUS.start(data)
             elif self.path == "/api/diagnostics":
                 result = self._diagnose(data)
             elif self.path == "/api/alarms/configure":

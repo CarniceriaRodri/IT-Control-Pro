@@ -161,6 +161,9 @@ function Control({
         {f.options.map((x) => <option key={x}>{x}</option>)}
       </select>
     );
+  if (f.type === "identificador") {
+    return <input type="text" value="Asignado automáticamente" readOnly aria-label={f.label + " asignado automáticamente"} />;
+  }
   const html: Record<string, string> = {
     entero: "number", decimal: "number", fecha: "date", hora: "time",
     "fecha y hora": "datetime-local", correo: "email", teléfono: "tel",

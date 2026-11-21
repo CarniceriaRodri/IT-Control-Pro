@@ -252,9 +252,21 @@ export function shown(f: Field, values: Entity["values"]) {
   );
 }
 export function title(row: Entity, mod: Module) {
-  return String(
-    row.values[mod.fields.find((f) => f.visible)?.id ?? ""] || row.id,
-  );
+  const preferred = [
+    ...mod.fields.filter((f) => f.keyRole === "primary"),
+    ...mod.fields.filter((f) =>
+      ["nombre", "asunto", "título", "titulo", "equipo", "artículo", "articulo", "dispositivo", "número", "numero", "referencia", "serie"].includes(f.id.toLocaleLowerCase("es")),
+    ),
+    ...mod.fields.filter((f) => f.visible),
+  ];
+  for (const f of preferred) {
+    if (f.type === "relación" || f.type === "relación múltiple" || f.type === "identificador") continue;
+    const value = row.values[f.id];
+    if (Array.isArray(value) || typeof value === "object" || typeof value === "boolean") continue;
+    const label = String(value ?? "").trim();
+    if (label && label !== row.id) return label;
+  }
+  return mod.name + " · registro sin nombre";
 }
 export function validate(
   mod: Module,

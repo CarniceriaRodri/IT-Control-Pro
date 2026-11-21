@@ -294,12 +294,23 @@ export function App({
       return;
     }
     event.preventDefault();
-    const target = document.elementFromPoint(event.clientX,event.clientY)?.closest<HTMLElement>("[data-module-id]")?.dataset.moduleId;
-    if (!target || target===gesture.source) return;
-    const from=gesture.order.indexOf(gesture.source), to=gesture.order.indexOf(target);
-    if(from<0||to<0||from===to)return;
-    const next=[...gesture.order]; next.splice(from,1); next.splice(to,0,gesture.source);
-    gesture.order=next; setDragOrder(next);
+    let targetElement = document.elementFromPoint(event.clientX,event.clientY)?.closest<HTMLElement>("[data-module-id]") || null;
+    if (!targetElement || targetElement.dataset.moduleId===gesture.source) {
+      let closest:HTMLElement|null=null, distance=Infinity;
+      document.querySelectorAll<HTMLElement>("[data-module-id]").forEach(el=>{
+        if(el.dataset.moduleId===gesture.source)return;
+        const rect=el.getBoundingClientRect(), d=Math.abs(event.clientY-(rect.top+rect.bottom)/2);
+        if(d<distance){distance=d;closest=el;}
+      });
+      targetElement=closest;
+    }
+    const target=targetElement?.dataset.moduleId;
+    if(!target)return;
+    const rect=targetElement!.getBoundingClientRect(), after=event.clientY>(rect.top+rect.bottom)/2;
+    const next=gesture.order.filter(id=>id!==gesture.source), targetIndex=next.indexOf(target);
+    if(targetIndex<0)return;
+    next.splice(targetIndex+(after?1:0),0,gesture.source);
+    if(next.some((id,i)=>id!==gesture.order[i])){gesture.order=next;setDragOrder(next);}
   };
   const finishModuleHold = (event: ReactPointerEvent<HTMLButtonElement>, cancelled=false) => {
     const gesture = reorderGesture.current;

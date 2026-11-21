@@ -267,6 +267,7 @@ export function App({
   const display = (m: Module, r: Entity, k: string) => {
     const f = m.fields.find((f) => f.id === k),
       v = r.values[k];
+    if (f?.type === "identificador" && String(v ?? "") === r.id) return "";
     if (f?.type === "relación" || f?.type === "relación múltiple") {
       return (Array.isArray(v) ? v : v ? [v] : []).map((id) => {
         const linked = data.records.find((row) => row.id === id);

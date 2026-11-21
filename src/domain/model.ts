@@ -163,7 +163,7 @@ export function movementsModule(): Module {
 }
 
 export function initialModules(): Module[] {
-  return [...Object.entries(legacy).map(([id, keys]) => ({
+  const modules = [...Object.entries(legacy).map(([id, keys]) => ({
     id,
     name: id,
     active: true,
@@ -189,6 +189,12 @@ export function initialModules(): Module[] {
         : []),
     ],
   })), tasksModule(), contactsModule(), movementsModule()];
+  for (const mod of modules) {
+    if (!mod.fields.some((f) => f.id === "registrosRelacionados")) {
+      mod.fields.push({ ...field("registrosRelacionados", "Registros relacionados", "relación múltiple"), target: "*" });
+    }
+  }
+  return modules;
 }
 /** Convierte los antiguos centros de texto en relaciones con registros reales.
  * Si falta el centro en el directorio, lo crea con ese nombre para no perder el dato.
@@ -205,6 +211,10 @@ export function migrateCenterRelations(data: Dataset): boolean {
     .normalize("NFKC").trim().toLocaleLowerCase("es").replace(/\s+/g, " ");
   const rows = data.records.filter((r) => r.module === "Centros");
   for (const mod of data.modules) {
+    if (!mod.fields.some((f) => f.id === "registrosRelacionados")) {
+      mod.fields.push({ ...field("registrosRelacionados", "Registros relacionados", "relación múltiple"), target: "*" });
+      changed = true;
+    }
     const centerField = mod.fields.find((f) => f.id === "centro");
     if (!centerField || mod.id === "Centros") continue;
     if (centerField.type !== "relación" || centerField.target !== "Centros") {

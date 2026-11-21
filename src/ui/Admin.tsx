@@ -45,7 +45,6 @@ export function Admin({
   const [moduleFiles, setModuleFiles] = useState<FileDraft>(() => ({refs:[...(mod.files||[])],blobs:new Map()}));
   const [moduleFilesBusy, setModuleFilesBusy] = useState(false);
   useEffect(() => setModuleFiles({refs:[...(mod.files||[])],blobs:new Map()}), [mod.id]);
-  const moduleIndex = data.modules.findIndex(m => m.id === mod.id);
   async function run(fn: () => Promise<void>) {
     try {
       msg("");
@@ -182,24 +181,14 @@ export function Admin({
         <label>
           Módulo que quieres configurar
           <select value={mod.id} onChange={(e) => select(e.target.value)}>
-            {data.modules.map((m) => (
+            {[...data.modules].sort((a,b)=>a.name.localeCompare(b.name,"es",{numeric:true,sensitivity:"base"})).map((m) => (
               <option key={m.id} value={m.id}>
                 {m.active ? m.name : "Oculto · " + m.name}
               </option>
             ))}
           </select>
         </label>
-        <div className="moduleOrganizer" aria-label="Orden y visibilidad de módulos">
-          <button type="button" aria-label="Subir módulo" disabled={moduleIndex<=0}
-            onClick={()=>void run(()=>write("Ordenar módulos",mod.id,d=>{
-              const i=d.modules.findIndex(m=>m.id===mod.id), j=i-1;
-              if(i>0)[d.modules[i],d.modules[j]]=[d.modules[j],d.modules[i]];
-            }))}>↑ Subir</button>
-          <button type="button" aria-label="Bajar módulo" disabled={moduleIndex<0||moduleIndex>=data.modules.length-1}
-            onClick={()=>void run(()=>write("Ordenar módulos",mod.id,d=>{
-              const i=d.modules.findIndex(m=>m.id===mod.id), j=i+1;
-              if(i>=0&&j<d.modules.length)[d.modules[i],d.modules[j]]=[d.modules[j],d.modules[i]];
-            }))}>↓ Bajar</button>
+        <div className="moduleVisibility" aria-label="Visibilidad del módulo">
           <button type="button" onClick={()=>void run(()=>write(mod.active?"Quitar módulo del menú":"Restaurar módulo",mod.id,d=>{
             d.modules.find(m=>m.id===mod.id)!.active=!mod.active;
           }))}>{mod.active?"Quitar del menú":"Restaurar módulo"}</button>

@@ -1,0 +1,1964 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calculadora científica · Ordenador</title>
+<style>
+:root{--bg:#eef0f4;--panel:#fff;--panel2:#f6f7fa;--ink:#1b2130;--muted:#5d6779;--line:#dadfe8;--accent:#2f6fed;--accent-ink:#fff;
+--ok:#1f9d55;--okbg:#e2f5e9;--bad:#d64545;--badbg:#fde9e9;--amber:#b7791f;--chip:#eaeefa;--shadow:0 6px 24px rgba(20,30,60,.10)}
+@media (prefers-color-scheme:dark){:root{--bg:#10131a;--panel:#1a1f2b;--panel2:#212838;--ink:#e8ecf4;--muted:#9aa5ba;--line:#2c3547;--accent:#5b92ff;--accent-ink:#0b1020;
+--ok:#35c07a;--okbg:#14362a;--bad:#ef6a6a;--badbg:#3c1d22;--amber:#f0b955;--chip:#252d42;--shadow:0 6px 24px rgba(0,0,0,.4)}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,Ubuntu,sans-serif}
+button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
+h2,h3,h4,p{margin:0}
+.muted{color:var(--muted)}
+code{font:600 .92em ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--chip);padding:1px 6px;border-radius:6px}
+
+/* cabecera */
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;padding:12px 16px;background:var(--panel);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px}
+.brand b{display:block;line-height:1.15}.brand small{color:var(--muted);font-size:12px}
+.logo{display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,#2f6fed,#7b4df0);color:#fff;font-size:22px;font-weight:700}
+.topr{display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap}
+.sel{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.sel select{font:inherit;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--ink)}
+.tb{padding:7px 12px;border-radius:9px;border:1px solid var(--line);background:var(--panel2)}
+.tb:hover{border-color:var(--accent)}
+.total{flex:1 1 100%;display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--muted)}
+.tbar{flex:1;max-width:340px;height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+.tbar i{display:block;height:100%;width:0;background:var(--ok);transition:width .4s}
+
+/* calculadora */
+.case{position:relative;background:linear-gradient(160deg,#313846,#1b1f29);border-radius:22px;padding:16px;box-shadow:var(--shadow),inset 0 1px 0 rgba(255,255,255,.08)}
+.lcd{background:#c8d3b6;color:#1d2618;border-radius:10px;padding:8px 12px 10px;box-shadow:inset 0 2px 8px rgba(0,0,0,.35);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;min-height:112px;overflow:hidden;position:relative;transition:background .25s}
+.lcd.okf{animation:okf .9s}.lcd.badf{animation:badf .9s}
+@keyframes okf{0%,60%{background:#8fdca8}100%{background:#c8d3b6}}
+@keyframes badf{0%,60%{background:#e9a3a3}100%{background:#c8d3b6}}
+.ind{display:flex;gap:8px;flex-wrap:wrap;min-height:16px;font:700 10px/1 system-ui,sans-serif;letter-spacing:.04em}
+.ind span{background:rgba(29,38,24,.85);color:#c8d3b6;padding:2px 5px;border-radius:3px}
+.expr{margin-top:6px;font-size:19px;line-height:1.35;white-space:nowrap;overflow-x:auto;scrollbar-width:none;min-height:26px}
+.expr::-webkit-scrollbar{display:none}
+.cur{display:inline-block;width:2px;height:1.1em;background:#1d2618;vertical-align:text-bottom;animation:bl 1s steps(1) infinite;margin:0 1px}
+@keyframes bl{50%{opacity:0}}
+.res{text-align:right;font-size:30px;font-weight:700;line-height:1.2;min-height:36px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.res .err{font-size:22px;color:#7a1818}
+.extra{text-align:right;font-size:15px;min-height:18px;opacity:.85}
+
+.keys{margin-top:14px;display:grid;gap:9px}
+.row{display:grid;gap:7px}
+.r6{grid-template-columns:repeat(6,1fr)}.r5{grid-template-columns:repeat(5,1fr)}
+.row.vars{margin:2px 0;grid-template-columns:repeat(10,1fr);gap:4px}
+.key.var{padding:0;min-height:34px;font-size:13px;border-radius:7px}
+.key.var .l{font-size:inherit}
+.key{position:relative;border:0;border-radius:9px;padding:15px 2px 6px;min-height:46px;background:#3c4453;color:#eef1f7;font-weight:600;font-size:14px;
+box-shadow:0 3px 0 #1a1e27,0 5px 8px rgba(0,0,0,.35);transition:transform .08s,background .2s,filter .1s;user-select:none;-webkit-user-select:none;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.key .s{position:absolute;top:2px;left:0;right:0;text-align:center;font-size:9.5px;font-weight:700;color:#f5b942;letter-spacing:.01em;line-height:1.15;pointer-events:none}
+.key .l{pointer-events:none;line-height:1.1;white-space:nowrap}
+.key:active,.key.tap{transform:translateY(2px);box-shadow:0 1px 0 #1a1e27;filter:brightness(1.35)}
+/* Señal visual de pulsación, sin alterar el motor de cálculo */
+.key.tap{outline:4px solid #ff3030;outline-offset:-4px;box-shadow:0 0 0 3px #ff3030,0 0 16px 5px rgba(255,48,48,.65)!important;z-index:2;filter:brightness(1.18)}
+.key.mod{background:#2a303c;font-size:12.5px}
+.key.var{background:#2b3a52;color:#b9d3ff}
+.key.num{background:#eceff4;color:#1b2130;font-size:17px;box-shadow:0 3px 0 #a8afbd,0 5px 8px rgba(0,0,0,.3)}
+.key.op{background:#59627a}
+.key.acdel{background:#d9772b;color:#fff}
+.key.eq{background:#2f6fed;color:#fff;font-size:20px}
+.key .prog{position:absolute;left:8%;bottom:2px;height:3px;border-radius:3px;background:#8ff0b3;width:0;transition:width .3s}
+.key.ok{background:#1f9d55!important;color:#fff!important;box-shadow:0 3px 0 #0f6b38,0 5px 8px rgba(0,0,0,.3)}
+.key.bad{background:#d64545!important;color:#fff!important;box-shadow:0 3px 0 #8e2020,0 5px 8px rgba(0,0,0,.3)}
+.key.ok .s,.key.bad .s{color:#fff}
+.key.ok .prog,.key.bad .prog{background:#fff;opacity:.85}
+.shift-on .key .s{color:#fff;background:#d9a21f;border-radius:3px;margin:1px 3px 0}
+.shift-on .key .l{opacity:.4}
+.legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:var(--muted)}
+.lg:before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;background:#5a6275;vertical-align:-1px}
+.lg.ok:before{background:var(--ok)}.lg.bad:before{background:var(--bad)}
+
+/* menú MODE/OPTN */
+.menu{position:absolute;left:12px;right:12px;top:12px;z-index:5;background:#232936;color:#e8ecf4;border-radius:12px;padding:12px;box-shadow:0 12px 34px rgba(0,0,0,.55);max-height:calc(100% - 24px);overflow:auto}
+.menu[hidden]{display:none}
+.mh{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.mh button{background:none;border:0;color:#9fb0cc;font-size:18px}
+.menu h4{font-size:12px;color:#9fb0cc;margin:10px 0 6px;text-transform:uppercase;letter-spacing:.06em}
+.mg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.mg.g5{grid-template-columns:repeat(4,1fr)}
+.mb{padding:9px 4px;border-radius:8px;border:1px solid #394258;background:#2c3446;color:#e8ecf4;font-size:13px}
+.mb.on{background:#2f6fed;border-color:#2f6fed;color:#fff}
+.mb:hover{border-color:#6c93ff}
+
+/* barra de estado / ejercicio */
+.bar{margin-bottom:12px}
+.bk{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:11px 14px;display:flex;flex-direction:column;gap:6px}
+.bk.act{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent)}
+.bk.good{border-color:var(--ok);background:var(--okbg)}
+.bq{font-size:14px}
+.bb{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.btn{border:1px solid var(--line);background:var(--panel2);border-radius:9px;padding:8px 13px}
+.btn.sm{padding:6px 11px;font-size:13px}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.ghost{background:transparent}
+.btn:hover{filter:brightness(1.07)}
+
+/* lección */
+.lesson{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px 22px;box-shadow:var(--shadow)}
+.welcome h2{font-size:22px;margin-bottom:8px}.welcome p,.welcome ul{margin:10px 0}.welcome li{margin:5px 0}
+.lhead{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.lhead h2{font-size:22px;line-height:1.25}
+.lst{font-size:12.5px;padding:3px 10px;border-radius:99px;background:var(--chip);white-space:nowrap}
+.lst.ok{background:var(--okbg);color:var(--ok)}.lst.bad{background:var(--badbg);color:var(--bad)}
+.vtabs{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0 2px}
+.vt{padding:6px 12px;border-radius:99px;border:1px solid var(--line);background:var(--panel2);font-size:13px;font-weight:600}
+.vt.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.vt.ok:not(.on){border-color:var(--ok);color:var(--ok)}.vt.bad:not(.on){border-color:var(--bad);color:var(--bad)}
+.blk{margin-top:18px}
+.blk h3{font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:7px}
+.blk h3 small{text-transform:none;letter-spacing:0;font-weight:400;margin-left:6px}
+.blk p+p{margin-top:8px}
+.tip{background:var(--chip);padding:8px 11px;border-radius:9px;font-size:14px}
+.models{background:var(--panel2);border:1px dashed var(--line);border-radius:12px;padding:12px 14px}
+.exm{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:9px}
+.chips{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.chip{display:inline-block;min-width:24px;text-align:center;padding:3px 8px;border-radius:7px;background:#3c4453;color:#fff;font:600 12.5px ui-monospace,Menlo,Consolas,monospace}
+.chip.sh{background:#d9a21f;color:#1c1500}.chip.mn{background:#6a56d6}
+.arr{color:var(--muted);font-style:normal;font-size:12px}
+.exn{font-size:13.5px;color:var(--muted);margin:6px 0}
+.exr2{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.exr2 code{font-size:13.5px;word-break:break-all}.errt{color:var(--bad)}
+.exq{border:1px solid var(--line);border-left:5px solid var(--line);border-radius:12px;padding:11px 14px;margin-bottom:10px;background:var(--panel2)}
+.exq.st-ok{border-left-color:var(--ok)}.exq.st-bad{border-left-color:var(--bad)}.exq.active{border-color:var(--accent);border-left-color:var(--accent)}
+.exh{display:flex;align-items:center;gap:8px}.exh em{font-size:12px;color:var(--accent);font-style:normal;font-weight:700}
+.ico{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--line);font-size:13px;font-weight:700}
+.st-ok .ico{background:var(--ok);color:#fff}.st-bad .ico{background:var(--bad);color:#fff}
+.exq p{margin:6px 0 8px}.exb{display:flex;gap:7px;flex-wrap:wrap}
+.hint{margin:4px 0 8px;padding:7px 9px;background:var(--panel);border-radius:9px}
+.verd{padding:7px 11px;border-radius:9px;font-size:13.5px;margin:6px 0}
+.verd.ok{background:var(--okbg);color:var(--ok)}.verd.bad{background:var(--badbg);color:var(--bad)}
+
+/* modales */
+.modal{position:fixed;inset:0;background:rgba(5,8,16,.6);display:grid;place-items:center;padding:16px;z-index:50}
+.modal[hidden]{display:none}
+.mbox{position:relative;background:var(--panel);border-radius:18px;padding:22px;max-width:760px;width:100%;max-height:88vh;overflow:auto;box-shadow:var(--shadow)}
+.mbox h2{margin-bottom:10px}.mx{position:absolute;top:10px;right:12px;border:0;background:none;font-size:20px;color:var(--muted)}
+.idx h4{margin:14px 0 6px;font-size:12.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.ic{display:flex;flex-wrap:wrap;gap:6px}
+.ib{padding:6px 10px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);font-size:13px;display:flex;gap:6px;align-items:baseline}
+.ib small{color:var(--muted)}.ib.ok{background:var(--ok);border-color:var(--ok);color:#fff}.ib.ok small{color:#fff}
+.ib.bad{background:var(--bad);border-color:var(--bad);color:#fff}.ib.bad small{color:#fff}
+.tw{overflow-x:auto;margin:12px 0}
+table{border-collapse:collapse;width:100%;font-size:13.5px}th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel2)}
+
+/* Navegación desde el índice: primero la lección, sin la calculadora. */
+body.lesson-focus main{grid-template-columns:minmax(0,1fr);max-width:950px}
+body.lesson-focus .calcwrap{display:none}
+/* ===== Versión ordenador: calculadora a la izquierda, lección a la derecha ===== */
+main{display:grid;grid-template-columns:minmax(420px,470px) minmax(0,1fr);gap:24px;max-width:1280px;margin:0 auto;padding:20px 20px 40px;align-items:start}
+:root{--kh:clamp(36px,calc((100vh - 400px)/10),52px)}
+.calcwrap{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow-y:auto;scrollbar-width:thin}
+.lesson{min-height:560px}
+.keys{gap:8px}
+.key{min-height:var(--kh);font-size:15px;padding-top:13px}
+.key.var{min-height:calc(var(--kh)*.8);padding-top:0}
+.key.num{font-size:18px}
+.lcd{min-height:110px}
+.bar{margin-bottom:10px}
+.legend{margin-top:8px}
+.res{font-size:32px}
+.expr{font-size:20px}
+@media (max-width:980px){main{grid-template-columns:1fr}.calcwrap{position:static;max-width:480px;margin:0 auto;width:100%}}
+
+</style>
+</head>
+<body data-ver="desk" data-tab="calc">
+<div id="app"></div>
+<noscript>Esta aplicación necesita JavaScript activado.</noscript>
+<script>
+/* ===== Motor de la calculadora científica (compartido) ===== */
+(function (G) {
+'use strict';
+class CalcError extends Error {}
+const E = m => { throw new CalcError(m || 'Math ERROR'); };
+const R15 = v => { const r = Number(v.toPrecision(15)); return r === 0 ? 0 : r; };
+
+/* ---------- Léxico ---------- */
+const NAMES = ['asinh(','acosh(','atanh(','sinh(','cosh(','tanh(','asin(','acos(','atan(','sin(','cos(','tan(',
+  'log(','ln(','√(','∛(','Abs(','Intg(','Int(','Frac(','Rnd(','GCD(','LCM(','Pol(','Rec(','∫(','d/dx(','Σ(',
+  'RanInt(','Ran#','Ans','nPr','nCr','Mod'].sort((a, b) => b.length - a.length);
+const SYMS = ['⁻¹','ˣ√','+','-','*','/','^','(',')',',','!','²','³','%','°','′','″','⁄','⌟','='];
+function lex(s) {
+  const out = []; let i = 0;
+  while (i < s.length) {
+    const ch = s[i];
+    if (ch === ' ') { i++; continue; }
+    const m = /^(\d+\.?\d*|\.\d+)(ᴇ[+-]?\d+)?/.exec(s.slice(i));
+    if (m) { out.push({ k: 'num', v: parseFloat(m[0].replace('ᴇ', 'e')) }); i += m[0].length; continue; }
+    let hit = NAMES.find(n => s.startsWith(n, i));
+    if (hit) { out.push({ k: hit.endsWith('(') ? 'fn' : 'id', v: hit }); i += hit.length; continue; }
+    hit = SYMS.find(n => s.startsWith(n, i));
+    if (hit) { out.push({ k: 'op', v: hit }); i += hit.length; continue; }
+    if (ch === 'π' || ch === 'e' || /[A-FXYM]/.test(ch)) { out.push({ k: 'id', v: ch }); i++; continue; }
+    E('Syntax ERROR');
+  }
+  return out;
+}
+
+/* ---------- Parser ---------- */
+class Parser {
+  constructor(t) { this.t = t; this.p = 0; this.fracUsed = false; this.mixedUsed = false; }
+  pk(o = 0) { return this.t[this.p + o]; }
+  isOp(v, o = 0) { const x = this.pk(o); return !!x && x.k === 'op' && x.v === v; }
+  isId(v) { const x = this.pk(); return !!x && x.k === 'id' && x.v === v; }
+  parse() { const n = this.add(); if (this.p < this.t.length) E('Syntax ERROR'); return n; }
+  add() {
+    let l = this.mul();
+    while (this.isOp('+') || this.isOp('-')) { const o = this.t[this.p++].v; const r = this.mul(); l = { t: 'b', o, a: l, b: r }; }
+    return l;
+  }
+  startsPrimary() {
+    const x = this.pk(); if (!x) return false;
+    if (x.k === 'num' || x.k === 'fn') return true;
+    if (x.k === 'id') return !['nPr', 'nCr', 'Mod'].includes(x.v);
+    return x.k === 'op' && x.v === '(';
+  }
+  mul() {
+    let l = this.neg();
+    for (;;) {
+      if (this.isOp('*') || this.isOp('/')) { const o = this.t[this.p++].v; const r = this.neg(); l = { t: 'b', o, a: l, b: r }; }
+      else if (this.isId('Mod')) { this.p++; const r = this.neg(); l = { t: 'b', o: 'mod', a: l, b: r }; }
+      else if (this.startsPrimary()) { const r = this.perm(); l = { t: 'b', o: '*', a: l, b: r }; }
+      else break;
+    }
+    return l;
+  }
+  neg() {
+    if (this.isOp('-')) { this.p++; return { t: 'n', a: this.neg() }; }
+    if (this.isOp('+')) { this.p++; return this.neg(); }
+    return this.perm();
+  }
+  perm() {
+    let l = this.frac();
+    while (this.isId('nPr') || this.isId('nCr')) { const o = this.t[this.p++].v; const r = this.frac(); l = { t: 'b', o, a: l, b: r }; }
+    return l;
+  }
+  frac() {
+    let l = this.pow();
+    if (this.isOp('⌟')) {
+      this.p++; const n = this.pow();
+      if (!this.isOp('⁄')) E('Syntax ERROR');
+      this.p++; const d = this.pow(); this.mixedUsed = true;
+      return { t: 'mx', a: l, n, d };
+    }
+    while (this.isOp('⁄')) { this.p++; const r = this.pow(); this.fracUsed = true; l = { t: 'b', o: '/', a: l, b: r }; }
+    return l;
+  }
+  pow() {
+    const base = this.post();
+    if (this.isOp('^')) { this.p++; return { t: 'b', o: '^', a: base, b: this.powArg() }; }
+    if (this.isOp('ˣ√')) { this.p++; return { t: 'b', o: 'root', a: base, b: this.post() }; }
+    return base;
+  }
+  powArg() {
+    if (this.isOp('-')) { this.p++; return { t: 'n', a: this.powArg() }; }
+    if (this.isOp('+')) { this.p++; return this.powArg(); }
+    return this.pow();
+  }
+  post() {
+    let n = this.prim();
+    for (;;) {
+      const x = this.pk(); if (!(x && x.k === 'op')) break;
+      if (x.v === '!') { this.p++; n = { t: 'f', a: n }; }
+      else if (x.v === '²') { this.p++; n = { t: 'b', o: '^', a: n, b: { t: 'c', v: 2 } }; }
+      else if (x.v === '³') { this.p++; n = { t: 'b', o: '^', a: n, b: { t: 'c', v: 3 } }; }
+      else if (x.v === '⁻¹') { this.p++; n = { t: 'i', a: n }; }
+      else if (x.v === '%') { this.p++; n = { t: 'p', a: n }; }
+      else if (x.v === '°') { this.p++; n = { t: 'd', a: n }; }
+      else break;
+    }
+    return n;
+  }
+  prim() {
+    const x = this.pk(); if (!x) E('Syntax ERROR');
+    if (x.k === 'num') {
+      this.p++;
+      if (this.isOp('°')) {
+        this.p++; let mi = 0, se = 0;
+        if (this.pk() && this.pk().k === 'num' && this.isOp('′', 1)) { mi = this.pk().v; this.p += 2; }
+        if (this.pk() && this.pk().k === 'num' && this.isOp('″', 1)) { se = this.pk().v; this.p += 2; }
+        return { t: 'd', a: { t: 'c', v: x.v + mi / 60 + se / 3600 } };
+      }
+      return { t: 'c', v: x.v };
+    }
+    if (x.k === 'id') { this.p++; return { t: 'v', n: x.v }; }
+    if (x.k === 'fn') {
+      this.p++;
+      const args = [this.add()];
+      while (this.isOp(',')) { this.p++; args.push(this.add()); }
+      if (this.isOp(')')) this.p++; else if (this.p < this.t.length) E('Syntax ERROR');
+      return { t: 'fn', n: x.v, a: args };
+    }
+    if (this.isOp('(')) {
+      this.p++; const e = this.add();
+      if (this.isOp(')')) this.p++; else if (this.p < this.t.length) E('Syntax ERROR');
+      return e;
+    }
+    E('Syntax ERROR');
+  }
+}
+
+/* ---------- Evaluación ---------- */
+const toRad = (x, cx) => cx.angle === 'DEG' ? x * Math.PI / 180 : cx.angle === 'GRA' ? x * Math.PI / 200 : x;
+const fromRad = (r, cx) => cx.angle === 'DEG' ? r * 180 / Math.PI : cx.angle === 'GRA' ? r * 200 / Math.PI : r;
+const fromDeg = (d, cx) => cx.angle === 'DEG' ? d : cx.angle === 'GRA' ? d * 10 / 9 : d * Math.PI / 180;
+const snap = v => Math.abs(v) < 1e-13 ? 0 : R15(v);
+function fact(x) { if (!Number.isInteger(x) || x < 0 || x > 69) E(); let r = 1; for (let i = 2; i <= x; i++) r *= i; return r; }
+function pw(a, b) {
+  if (a === 0 && b === 0) E();
+  if (a < 0 && !Number.isInteger(b)) E();
+  const r = Math.pow(a, b); if (!isFinite(r)) E(); return r;
+}
+function rt(a, b) {
+  if (a === 0) E();
+  if (b < 0) { if (Number.isInteger(a) && Math.abs(a) % 2 === 1) return -Math.pow(-b, 1 / a); E(); }
+  return Math.pow(b, 1 / a);
+}
+function nPr(n, r) {
+  if (!Number.isInteger(n) || !Number.isInteger(r) || n < 0 || r < 0 || r > n || n > 1e7) E();
+  let p = 1; for (let i = 0; i < r; i++) p *= (n - i); return p;
+}
+function nCr(n, r) {
+  if (!Number.isInteger(n) || !Number.isInteger(r) || n < 0 || r < 0 || r > n || n > 1e7) E();
+  r = Math.min(r, n - r); let p = 1; for (let i = 1; i <= r; i++) p = p * (n - r + i) / i; return Math.round(p);
+}
+const gcd = (p, q) => { p = Math.abs(p); q = Math.abs(q); while (q) { const t = p % q; p = q; q = t; } return p; };
+function rndv(x, cx) {
+  const f = cx.fmt;
+  if (f.t === 'fix') return Number(x.toFixed(f.n));
+  if (f.t === 'sci') return Number(x.toExponential((f.n || 10) - 1));
+  return Number(x.toPrecision(10));
+}
+const ARITY = { 'GCD(': 2, 'LCM(': 2, 'Pol(': 2, 'Rec(': 2, 'RanInt(': 2, '∫(': 3, 'd/dx(': 2, 'Σ(': 3 };
+function fnEval(n, cx) {
+  const a = n.a, name = n.n;
+  if (a.length !== (ARITY[name] || 1)) E('Syntax ERROR');
+  const sc = (f, xv) => { const o = cx.vars.X; cx.vars.X = xv; try { return ev(f, cx); } finally { cx.vars.X = o; } };
+  if (name === '∫(') {
+    const lo = ev(a[1], cx), hi = ev(a[2], cx); if (lo === hi) return 0;
+    const N = 2000, h = (hi - lo) / N; let s = sc(a[0], lo) + sc(a[0], hi);
+    for (let i = 1; i < N; i++) s += sc(a[0], lo + i * h) * (i % 2 ? 4 : 2);
+    return s * h / 3;
+  }
+  if (name === 'd/dx(') {
+    const p = ev(a[1], cx), h = 1e-3 * Math.max(1, Math.abs(p)); const f = t => sc(a[0], t);
+    return (-f(p + 2 * h) + 8 * f(p + h) - 8 * f(p - h) + f(p - 2 * h)) / (12 * h);
+  }
+  if (name === 'Σ(') {
+    const lo = ev(a[1], cx), hi = ev(a[2], cx);
+    if (!Number.isInteger(lo) || !Number.isInteger(hi) || hi - lo > 1e6) E();
+    let s = 0; for (let i = lo; i <= hi; i++) s += sc(a[0], i); return s;
+  }
+  const x = a.map(t => ev(t, cx)); const v = x[0];
+  switch (name) {
+    case 'sin(': return snap(Math.sin(toRad(v, cx)));
+    case 'cos(': return snap(Math.cos(toRad(v, cx)));
+    case 'tan(': {
+      if (cx.angle === 'DEG' && (((v % 180) + 180) % 180) === 90) E();
+      if (cx.angle === 'GRA' && (((v % 200) + 200) % 200) === 100) E();
+      const r = toRad(v, cx); if (cx.angle === 'RAD' && Math.abs(Math.cos(r)) < 1e-13) E();
+      return snap(Math.tan(r));
+    }
+    case 'asin(': if (Math.abs(v) > 1) E(); return R15(fromRad(Math.asin(v), cx));
+    case 'acos(': if (Math.abs(v) > 1) E(); return R15(fromRad(Math.acos(v), cx));
+    case 'atan(': return R15(fromRad(Math.atan(v), cx));
+    case 'sinh(': return R15(Math.sinh(v));
+    case 'cosh(': return R15(Math.cosh(v));
+    case 'tanh(': return R15(Math.tanh(v));
+    case 'asinh(': return R15(Math.asinh(v));
+    case 'acosh(': if (v < 1) E(); return R15(Math.acosh(v));
+    case 'atanh(': if (Math.abs(v) >= 1) E(); return R15(Math.atanh(v));
+    case 'log(': if (v <= 0) E(); return R15(Math.log10(v));
+    case 'ln(': if (v <= 0) E(); return R15(Math.log(v));
+    case '√(': if (v < 0) E(); return Math.sqrt(v);
+    case '∛(': return Math.cbrt(v);
+    case 'Abs(': return Math.abs(v);
+    case 'Int(': return Math.trunc(v);
+    case 'Intg(': return Math.floor(v);
+    case 'Frac(': return v - Math.trunc(v);
+    case 'Rnd(': return rndv(v, cx);
+    case 'GCD(': if (!Number.isInteger(x[0]) || !Number.isInteger(x[1])) E(); return gcd(x[0], x[1]);
+    case 'LCM(': { if (!Number.isInteger(x[0]) || !Number.isInteger(x[1])) E(); const g = gcd(x[0], x[1]); if (!g) E(); return Math.abs(x[0] * x[1]) / g; }
+    case 'Pol(': {
+      const r = Math.hypot(x[0], x[1]), th = fromRad(Math.atan2(x[1], x[0]), cx);
+      cx.vars.X = R15(r); cx.vars.Y = R15(th); cx.extra = ['θ', R15(th)]; return R15(r);
+    }
+    case 'Rec(': {
+      const th = toRad(x[1], cx), px = snap(x[0] * Math.cos(th)), py = snap(x[0] * Math.sin(th));
+      cx.vars.X = px; cx.vars.Y = py; cx.extra = ['y', py]; return px;
+    }
+    case 'RanInt(': {
+      if (!Number.isInteger(x[0]) || !Number.isInteger(x[1]) || x[1] < x[0]) E();
+      return x[0] + Math.floor(Math.random() * (x[1] - x[0] + 1));
+    }
+  }
+  E('Syntax ERROR');
+}
+function ev(n, cx) {
+  switch (n.t) {
+    case 'c': return n.v;
+    case 'v':
+      if (n.n === 'π') return Math.PI;
+      if (n.n === 'e') return Math.E;
+      if (n.n === 'Ans') return cx.ans;
+      if (n.n === 'Ran#') return Math.floor(Math.random() * 999 + 1) / 1000;
+      return cx.vars[n.n] || 0;
+    case 'n': return -ev(n.a, cx);
+    case 'p': return ev(n.a, cx) / 100;
+    case 'i': { const x = ev(n.a, cx); if (x === 0) E(); return 1 / x; }
+    case 'f': return fact(ev(n.a, cx));
+    case 'd': return fromDeg(ev(n.a, cx), cx);
+    case 'mx': { const d = ev(n.d, cx); if (d === 0) E(); return ev(n.a, cx) + ev(n.n, cx) / d; }
+    case 'fn': return fnEval(n, cx);
+    case 'b': {
+      const a = ev(n.a, cx), b = ev(n.b, cx);
+      switch (n.o) {
+        case '+': return a + b;
+        case '-': return a - b;
+        case '*': return a * b;
+        case '/': if (b === 0) E(); return a / b;
+        case '^': return pw(a, b);
+        case 'root': return rt(a, b);
+        case 'mod': if (!Number.isInteger(a) || !Number.isInteger(b) || b === 0) E(); return ((a % b) + b) % b;
+        case 'nPr': return nPr(a, b);
+        case 'nCr': return nCr(a, b);
+      }
+    }
+  }
+  E('Syntax ERROR');
+}
+function compute(code, cx) {
+  const P = new Parser(lex(code)); const tree = P.parse(); cx.extra = null;
+  let v = ev(tree, cx); if (!isFinite(v)) E();
+  return { v: R15(v), fracUsed: P.fracUsed, mixedUsed: P.mixedUsed };
+}
+
+/* ---------- Formatos ---------- */
+function sciStr(v, sig, trim) {
+  if (v === 0) return trim || sig <= 1 ? '0' : '0.' + '0'.repeat(sig - 1) + 'ᴇ0';
+  const p = v.toExponential(sig - 1).split('e'); let m = p[0];
+  if (trim && m.includes('.')) m = m.replace(/0+$/, '').replace(/\.$/, '');
+  return m + 'ᴇ' + String(parseInt(p[1], 10));
+}
+function formatNum(v, f) {
+  if (!isFinite(v)) return 'Math ERROR';
+  if (f.t === 'fix') { let s = v.toFixed(f.n); if (Number(s) === 0) s = s.replace('-', ''); return s; }
+  if (f.t === 'sci') return sciStr(v, f.n || 10, false);
+  if (v === 0) return '0';
+  const a = Math.abs(v);
+  if (a >= 1e10 || a < 1e-9) return sciStr(v, 10, true);
+  const p = Number(v.toPrecision(10)); let s = p.toString();
+  if (/e/.test(s)) s = p.toFixed(Math.min(20, Math.ceil(-Math.log10(a)) + 10)).replace(/0+$/, '').replace(/\.$/, '');
+  return s;
+}
+function engStr(v, shift) {
+  if (v === 0) return '0';
+  const e0 = Math.floor(Math.log10(Math.abs(v)) / 3) * 3, e = e0 + 3 * shift;
+  const m = Number((v / Math.pow(10, e)).toPrecision(10));
+  return e === 0 ? String(m) : m + 'ᴇ' + e;
+}
+function toDMS(v) {
+  const neg = v < 0, a = Math.abs(v); let d = Math.floor(a + 1e-12); const r = (a - d) * 60;
+  let m = Math.floor(r + 1e-9), s = Math.round((r - m) * 60 * 100) / 100;
+  if (s >= 60) { s -= 60; m++; } if (m >= 60) { m -= 60; d++; }
+  return (neg ? '-' : '') + d + '°' + m + '′' + s + '″';
+}
+function toFrac(v) {
+  if (Number.isInteger(v)) return null;
+  const neg = v < 0, x = Math.abs(v);
+  let h1 = 1, h0 = 0, k1 = 0, k0 = 1, b = x;
+  for (let i = 0; i < 25; i++) {
+    const a = Math.floor(b), h2 = a * h1 + h0, k2 = a * k1 + k0;
+    h0 = h1; h1 = h2; k0 = k1; k1 = k2;
+    if (k1 > 9999) return null;
+    if (Math.abs(x - h1 / k1) <= 1e-12 * Math.max(1, x)) return { n: neg ? -h1 : h1, d: k1 };
+    const fr = b - a; if (fr < 1e-14) break; b = 1 / fr;
+  }
+  return null;
+}
+function fracText(f, mixed) {
+  if (mixed && Math.abs(f.n) > f.d) {
+    const w = Math.trunc(f.n / f.d), r = Math.abs(f.n) % f.d;
+    return w + '⌟' + r + '⁄' + f.d;
+  }
+  return f.n + '⁄' + f.d;
+}
+
+/* ---------- Teclado ---------- */
+const K = (id, l, f, s, cls) => ({ id, l, f, s: s || null, cls: cls || '' });
+const layout = {
+  func: [
+    [K('shift', 'SHIFT', 'shift', null, 'mod'), K('hyp', 'hyp', 'hyp', null, 'mod'), K('left', '◀', 'left', null, 'mod'), K('right', '▶', 'right', null, 'mod'), K('mode', 'MODE', 'mode', null, 'mod'), K('calc', 'CALC', 'calc', ['SOLVE', 'solve'])],
+    [K('integ', '∫', 'integ', ['d/dx', 'deriv']), K('inv', 'x⁻¹', 'inv', ['x!', 'fact']), K('frac', '▫⁄▫', 'frac', ['a b⁄c', 'mixed']), K('sqrt', '√', 'sqrt', ['∛', 'cbrt']), K('sq', 'x²', 'sq', ['x³', 'cube']), K('pow', 'xʸ', 'pow', ['ˣ√', 'root'])],
+    [K('log', 'log', 'log', ['10ˣ', 'pow10']), K('ln', 'ln', 'ln', ['eˣ', 'powe']), K('neg', '(−)', 'neg'), K('dms', '° ′ ″', 'dms', ['←DMS', 'todms']), K('optn', 'OPTN', 'optn', null, 'mod'), K('sin', 'sin', 'sin', ['sin⁻¹', 'asin'])],
+    [K('rcl', 'RCL', 'rcl', ['STO', 'sto']), K('eng', 'ENG', 'eng', ['←', 'eng_l']), K('sd', 'S⇔D', 'sd'), K('lp', '(', 'lp', ['%', 'pct']), K('rp', ')', 'rp', [',', 'comma']), K('cos', 'cos', 'cos', ['cos⁻¹', 'acos'])],
+    [K('mplus', 'M+', 'mplus', ['M−', 'mminus']), K('ranq', 'Ran#', 'ranq', ['RanInt', 'ranint']), K('pol', 'Pol(', 'pol', ['Rec(', 'rec']), K('ncr', 'nCr', 'ncr', ['nPr', 'npr']), K('pi', 'π', 'pi', ['e', 'econst']), K('tan', 'tan', 'tan', ['tan⁻¹', 'atan'])]
+  ],
+  vars: ['A', 'B', 'C', 'D', 'E', 'F', 'X', 'Y', 'M'].map(n => K(n, n, 'var:' + n, null, 'var')).concat([K('eqs', 'a=b', 'eqsign', null, 'var')]),
+  pad: [
+    [K('7', '7', '7', null, 'num'), K('8', '8', '8', null, 'num'), K('9', '9', '9', null, 'num'), K('del', 'DEL', 'del', null, 'acdel'), K('ac', 'AC', 'ac', null, 'acdel')],
+    [K('4', '4', '4', null, 'num'), K('5', '5', '5', null, 'num'), K('6', '6', '6', null, 'num'), K('mul', '×', 'mul', null, 'op'), K('div', '÷', 'div', null, 'op')],
+    [K('1', '1', '1', null, 'num'), K('2', '2', '2', null, 'num'), K('3', '3', '3', null, 'num'), K('add', '+', 'add', null, 'op'), K('sub', '−', 'sub', null, 'op')],
+    [K('0', '0', '0', null, 'num'), K('dot', '.', 'dot', null, 'num'), K('exp', '×10ˣ', 'exp', null, 'num'), K('ans', 'Ans', 'ans', null, 'num'), K('equal', '=', 'equal', null, 'eq')]
+  ]
+};
+const keyMap = {};
+[].concat(...layout.func, layout.vars, ...layout.pad).forEach(k => keyMap[k.id] = k);
+
+/* ---------- Inserción de símbolos ---------- */
+const t = (d, c) => ({ d, c: c === undefined ? d : c });
+const INS = {};
+const def = (f, d, c, tp) => { INS[f] = { t: tp || 'val', toks: [t(d, c)] }; };
+'0123456789'.split('').forEach(n => def(n, n));
+def('dot', '.'); def('exp', 'ᴇ');
+def('add', '+', undefined, 'op'); def('sub', '−', '-', 'op'); def('mul', '×', '*', 'op'); def('div', '÷', '/', 'op');
+def('neg', '−', '-'); def('lp', '('); def('rp', ')'); def('comma', ',');
+def('pct', '%', undefined, 'post'); def('pow', '^', undefined, 'op'); def('sq', '²', undefined, 'post'); def('cube', '³', undefined, 'post');
+def('inv', '⁻¹', undefined, 'post'); def('fact', '!', undefined, 'post'); def('root', 'ˣ√', undefined, 'op');
+def('frac', '⁄', undefined, 'op'); def('mixed', '⌟'); def('sqrt', '√('); def('cbrt', '∛(');
+['sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'sinh', 'cosh', 'tanh', 'asinh', 'acosh', 'atanh', 'log', 'ln'].forEach(n => def(n, n + '('));
+def('pi', 'π'); def('econst', 'e'); def('ans', 'Ans'); def('abs', 'Abs('); def('int', 'Int('); def('intg', 'Intg(');
+def('fpart', 'Frac('); def('rnd', 'Rnd('); def('gcd', 'GCD('); def('lcm', 'LCM('); def('mod', ' Mod ', 'Mod', 'op');
+def('ranq', 'Ran#'); def('ranint', 'RanInt('); def('npr', 'nPr', undefined, 'op'); def('ncr', 'nCr', undefined, 'op');
+def('pol', 'Pol('); def('rec', 'Rec('); def('integ', '∫('); def('deriv', 'd/dx('); def('sigma', 'Σ('); def('eqsign', '=');
+INS.pow10 = { t: 'val', toks: [t('1'), t('0'), t('^'), t('(')] };
+INS.powe = { t: 'val', toks: [t('e'), t('^'), t('(')] };
+
+/* ---------- Calculadora (máquina de estados) ---------- */
+class Calc {
+  constructor() { this.resetMemory(); this.angle = 'DEG'; this.fmt = { t: 'norm', n: 0 }; this.clearAll(); }
+  resetMemory() { this.vars = { A: 0, B: 0, C: 0, D: 0, E: 0, F: 0, X: 0, Y: 0, M: 0 }; this.ans = 0; }
+  clearAll() {
+    this.toks = []; this.cur = 0; this.res = null; this.err = null; this.screen = 'edit';
+    this.pending = null; this.prompt = null; this.view = null; this.engShift = 0;
+    this.fracMode = false; this.mixed = false; this.shift = false; this.hyp = false; this.lastCodes = '';
+  }
+  setFmt(s) { const m = /^(norm|fix|sci)(\d?)$/.exec(s); if (!m) return; this.fmt = { t: m[1], n: m[2] ? +m[2] : 0 }; if (this.res) this.view = null; }
+  fmtStr() { return this.fmt.t === 'norm' ? 'norm' : this.fmt.t + this.fmt.n; }
+  codes() { return this.toks.map(k => k.c).join(''); }
+  exprStr() { return this.toks.map(k => k.d).join(''); }
+  cx() { return { angle: this.angle, vars: this.vars, ans: this.ans, fmt: this.fmt, extra: null }; }
+  fail(e) {
+    if (!(e instanceof CalcError)) { if (Calc.debug) throw e; e = new CalcError('Syntax ERROR'); }
+    this.err = e.message; this.screen = 'error'; this.res = null; this.prompt = null; return false;
+  }
+  setResult(v, o) {
+    o = o || {};
+    this.ans = v; this.res = { v, frac: toFrac(v), extra: o.extra || null, pre: o.pre || '' };
+    this.screen = 'result'; this.view = null; this.engShift = 0;
+    this.fracMode = !!(o.fracUsed || o.mixedUsed); this.mixed = !!o.mixedUsed;
+  }
+  evaluate() {
+    const code = this.codes(); if (!code) return false;
+    try {
+      const cx = this.cx(); const o = compute(code, cx);
+      this.setResult(o.v, { fracUsed: o.fracUsed, mixedUsed: o.mixedUsed, extra: cx.extra });
+      this.lastCodes = code; return true;
+    } catch (e) { return this.fail(e); }
+  }
+  currentValue() {
+    if (this.screen === 'result' && this.res) return this.res.v;
+    if (this.toks.length) return this.evaluate() ? this.res.v : null;
+    return this.ans;
+  }
+  ensureResult() { if (this.screen === 'edit' && this.toks.length) this.evaluate(); return this.screen === 'result' && !!this.res; }
+  resText() {
+    const r = this.res; if (!r) return '';
+    if (this.view === 'dms') return toDMS(r.v);
+    if (this.view === 'eng') return engStr(r.v, this.engShift);
+    if (this.fracMode && r.frac) return fracText(r.frac, this.mixed);
+    return formatNum(r.v, this.fmt);
+  }
+  extraText() { const r = this.res; return r && r.extra ? r.extra[0] + ' = ' + formatNum(r.extra[1], this.fmt) : ''; }
+  promptText() { const p = this.prompt; if (!p) return ''; const n = p.vars[p.i]; return n + ' = ? ' + (p.buf !== '' ? p.buf : String(this.vars[n])); }
+  indicators() {
+    const o = [];
+    if (this.shift) o.push('SHIFT'); if (this.hyp) o.push('hyp');
+    o.push(this.angle === 'DEG' ? 'D' : this.angle === 'RAD' ? 'R' : 'G');
+    if (this.fmt.t !== 'norm') o.push(this.fmt.t.toUpperCase() + this.fmt.n);
+    if (this.vars.M !== 0) o.push('M');
+    if (this.pending) o.push(this.pending === 'sto' ? 'STO▶' : 'RCL▶');
+    if (this.prompt) o.push('CALC');
+    return o;
+  }
+  insert(f) {
+    let spec = INS[f];
+    if (!spec && f.startsWith('var:')) spec = { t: 'val', toks: [t(f.slice(4))] };
+    if (!spec && f === 'dms') spec = { t: 'post', toks: [] };
+    if (!spec) return;
+    if (f === 'dms') {
+      let last = null;
+      for (let i = this.cur - 1; i >= 0; i--) {
+        const c = this.toks[i].c;
+        if (/^[0-9.]$/.test(c)) continue;
+        if (c === '°' || c === '′' || c === '″') last = c;
+        break;
+      }
+      spec = { t: 'post', toks: [t(last === '°' ? '′' : last === '′' ? '″' : '°')] };
+    }
+    if (this.screen === 'result') {
+      if (spec.t === 'op' || spec.t === 'post') { this.toks = [t('Ans')]; this.cur = 1; } else { this.toks = []; this.cur = 0; }
+      this.screen = 'edit'; this.res = null; this.view = null;
+    }
+    this.toks.splice(this.cur, 0, ...spec.toks.map(x => ({ d: x.d, c: x.c })));
+    this.cur += spec.toks.length;
+  }
+  store(name) {
+    const v = this.currentValue(); if (v === null) return;
+    this.vars[name] = v; this.setResult(v, {});
+  }
+  startCalc() {
+    const code = this.codes(); if (!code) return;
+    let used;
+    try { used = [...new Set(lex(code).filter(k => k.k === 'id' && /^[A-FXYM]$/.test(k.v)).map(k => k.v))]; }
+    catch (e) { this.fail(e); return; }
+    if (!used.length) { this.evaluate(); return; }
+    this.prompt = { vars: used, i: 0, buf: '' };
+  }
+  promptKey(f) {
+    const p = this.prompt;
+    if (/^\d$/.test(f)) p.buf += f;
+    else if (f === 'dot') { if (!p.buf.includes('.')) p.buf += '.'; }
+    else if (f === 'neg' || f === 'sub') p.buf = p.buf.startsWith('-') ? p.buf.slice(1) : '-' + p.buf;
+    else if (f === 'del') p.buf = p.buf.slice(0, -1);
+    else if (f === 'ac') this.prompt = null;
+    else if (f === 'equal') {
+      const n = p.vars[p.i], val = p.buf === '' ? this.vars[n] : parseFloat(p.buf);
+      if (isNaN(val)) { this.fail(new CalcError('Syntax ERROR')); return; }
+      this.vars[n] = val; p.i++; p.buf = '';
+      if (p.i >= p.vars.length) { this.prompt = null; this.evaluate(); }
+    }
+  }
+  solveEq() {
+    const code = this.codes(); if (!code) return;
+    try {
+      const idx = code.indexOf('=');
+      const L = idx < 0 ? code : code.slice(0, idx), Rr = idx < 0 ? '0' : (code.slice(idx + 1) || '0');
+      const trL = new Parser(lex(L)).parse(), trR = new Parser(lex(Rr)).parse();
+      const used = lex(code).filter(k => k.k === 'id' && /^[A-FXYM]$/.test(k.v)).map(k => k.v);
+      const vn = used.includes('X') ? 'X' : used[0]; if (!vn) E('Syntax ERROR');
+      const cx = this.cx(), old = cx.vars[vn];
+      const f = x => { cx.vars[vn] = x; return ev(trL, cx) - ev(trR, cx); };
+      let root = null;
+      for (const s of [old, 1, -1, 2, -2, 0.5, 5, -5, 10, -10, 100, -100]) {
+        let x = s, ok = false;
+        for (let i = 0; i < 100; i++) {
+          let fx, d;
+          try { fx = f(x); const h = 1e-6 * Math.max(1, Math.abs(x)); d = (f(x + h) - f(x - h)) / (2 * h); } catch (e) { break; }
+          if (!isFinite(fx) || !isFinite(d) || d === 0) break;
+          const nx = x - fx / d;
+          if (Math.abs(nx - x) < 1e-13 * Math.max(1, Math.abs(nx))) { x = nx; ok = true; break; }
+          x = nx;
+        }
+        if (ok) { let r; try { r = f(x); } catch (e) { continue; } if (Math.abs(r) < 1e-7) { root = x; break; } }
+      }
+      if (root === null) { cx.vars[vn] = old; E("Can't Solve"); }
+      root = R15(root); this.vars[vn] = root; this.setResult(root, { pre: vn + ' = ' }); this.lastCodes = code;
+    } catch (e) { this.fail(e); }
+  }
+  press(id) {
+    const d = keyMap[id]; if (!d) throw new Error('Tecla desconocida: ' + id);
+    if (id === 'shift') { this.shift = !this.shift; return { fn: 'shift', toggle: true }; }
+    if (id === 'hyp') { this.hyp = !this.hyp; return { fn: 'hyp', toggle: true }; }
+    let fn = d.f; if (this.shift && d.s) fn = d.s[1];
+    this.shift = false;
+    if (this.hyp && /^a?(sin|cos|tan)$/.test(fn)) fn = fn.replace(/(sin|cos|tan)/, '$1h');
+    this.hyp = false;
+    return this.fn(fn);
+  }
+  fn(f) {
+    const evt = { fn: f };
+    if (this.err) {
+      if (f === 'ac') this.clearAll();
+      else if (f === 'del' || f === 'left' || f === 'right') { this.err = null; this.screen = 'edit'; this.cur = this.toks.length; }
+      return evt;
+    }
+    if (this.prompt) { this.promptKey(f); return evt; }
+    if (this.pending) {
+      const p = this.pending; this.pending = null;
+      if (f.startsWith('var:')) { if (p === 'sto') { this.store(f.slice(4)); evt.fn = 'sto'; } else this.insert(f); return evt; }
+    }
+    switch (f) {
+      case 'ac': this.clearAll(); break;
+      case 'del':
+        if (this.screen === 'result') { this.screen = 'edit'; this.res = null; this.view = null; this.cur = this.toks.length; }
+        if (this.cur > 0) { this.toks.splice(this.cur - 1, 1); this.cur--; }
+        else if (this.toks.length) this.toks.splice(0, 1);
+        break;
+      case 'left':
+        if (this.screen === 'result') { this.screen = 'edit'; this.res = null; this.view = null; this.cur = this.toks.length; }
+        else this.cur = Math.max(0, this.cur - 1);
+        break;
+      case 'right':
+        if (this.screen === 'result') { this.screen = 'edit'; this.res = null; this.view = null; this.cur = 0; }
+        else this.cur = Math.min(this.toks.length, this.cur + 1);
+        break;
+      case 'equal': this.evaluate(); break;
+      case 'sd':
+        this.ensureResult();
+        if (this.screen === 'result' && this.res) { this.view = null; if (this.res.frac) this.fracMode = !this.fracMode; }
+        break;
+      case 'eng': case 'eng_l':
+        if (this.ensureResult()) {
+          if (this.view !== 'eng') { this.view = 'eng'; this.engShift = f === 'eng' ? 0 : -1; }
+          else this.engShift += f === 'eng' ? 1 : -1;
+        }
+        break;
+      case 'todms': if (this.ensureResult()) this.view = this.view === 'dms' ? null : 'dms'; break;
+      case 'mplus': case 'mminus': {
+        const v = this.currentValue();
+        if (v !== null) this.vars.M = R15(this.vars.M + (f === 'mplus' ? v : -v));
+        break;
+      }
+      case 'sto': case 'rcl': this.pending = f; break;
+      case 'calc': this.startCalc(); break;
+      case 'solve': this.solveEq(); break;
+      case 'mode': case 'optn': case 'shift': case 'hyp': break;
+      default: this.insert(f);
+    }
+    return evt;
+  }
+}
+
+/* ---------- Utilidades para ejemplos, pistas y comprobación ---------- */
+const ALIAS = { '=': 'equal', '+': 'add', '-': 'sub', '*': 'mul', '/': 'div', '(': 'lp', ')': 'rp' };
+const NAMEOF = { abs: 'Abs', int: 'Int', intg: 'Intg', fpart: 'Frac', rnd: 'Rnd', gcd: 'GCD', lcm: 'LCM', mod: 'Mod', sigma: 'Σ' };
+Calc.expand = function (str) {
+  const out = [];
+  for (const tk of String(str).trim().split(/\s+/)) {
+    if (!tk) continue;
+    if (/^[0-9.]+$/.test(tk)) for (const ch of tk) out.push(ch === '.' ? 'dot' : ch);
+    else out.push(ALIAS[tk] || tk);
+  }
+  return out;
+};
+Calc.step = function (c, tk) {
+  if (tk[0] === '@') {
+    const m = tk.slice(1);
+    if (m.startsWith('ang:')) { c.angle = m.slice(4); return { fn: 'mode' }; }
+    if (m.startsWith('fmt:')) { c.setFmt(m.slice(4)); return { fn: 'mode' }; }
+    return c.fn(m);
+  }
+  return c.press(tk);
+};
+Calc.runKeys = function (c, str) { Calc.expand(str).forEach(tk => Calc.step(c, tk)); };
+Calc.hint = function (str) {
+  const out = []; let sh = false;
+  for (const tk of String(str).trim().split(/\s+/)) {
+    if (!tk) continue;
+    if (tk[0] === '@') {
+      const m = tk.slice(1);
+      if (m.startsWith('ang:')) out.push('MODE → ' + m.slice(4));
+      else if (m.startsWith('fmt:')) out.push('MODE → ' + m.slice(4).toUpperCase());
+      else out.push('OPTN → ' + (NAMEOF[m] || m));
+      continue;
+    }
+    if (/^[0-9.]+$/.test(tk)) { out.push(tk); continue; }
+    const id = ALIAS[tk] || tk, d = keyMap[id];
+    if (!d) { out.push(tk); continue; }
+    if (id === 'shift') { sh = true; out.push('SHIFT'); continue; }
+    out.push(sh && d.s ? d.s[0] : d.l); sh = false;
+  }
+  return out;
+};
+Calc.check = function (ex, c) {
+  if (c.screen === 'error') return { ok: false, msg: 'Error de cálculo (' + c.err + '). Pulsa AC y revisa las teclas.' };
+  if (ex.on && ex.chk) return ex.chk(c) ? { ok: true } : { ok: false, msg: 'El estado final no es el que pide el ejercicio. Pulsa AC e inténtalo de nuevo.' };
+  if (c.screen !== 'result' || !c.res) return { ok: false, wait: true, msg: 'Termina la operación con =.' };
+  if (ex.ang && c.angle !== ex.ang) return { ok: false, msg: 'Revisa el modo de ángulo: debería ser ' + ex.ang + '.' };
+  if (ex.fmt && c.fmtStr() !== ex.fmt) return { ok: false, msg: 'Revisa el formato de resultado: debería ser ' + ex.fmt.toUpperCase() + '.' };
+  if (ex.use && !ex.use.every(u => c.lastCodes.includes(u))) return { ok: false, msg: 'El resultado puede estar bien, pero el ejercicio pide usar la tecla de esta lección.' };
+  if (ex.chk) return ex.chk(c) ? { ok: true } : { ok: false, msg: 'El resultado no cumple lo que pide el ejercicio.' };
+  if (ex.s !== undefined && c.resText() !== ex.s) return { ok: false, msg: 'Tu resultado es «' + c.resText() + '». No es el esperado.' };
+  if (ex.v !== undefined && ex.v !== null) {
+    const tol = Math.abs(ex.v) * 1e-9 + 1e-12;
+    if (Math.abs(c.res.v - ex.v) > tol) return { ok: false, msg: 'Tu resultado es «' + c.resText() + '». No es el esperado.' };
+  }
+  return { ok: true };
+};
+/* ---------- Sesión de ejercicio: reinicia, ejecuta y corrige ---------- */
+const TRIG = ['equal', 'sd', 'eng', 'eng_l', 'todms', 'solve', 'mplus', 'mminus', 'sto', 'ac'];
+Calc.Session = class {
+  constructor(c, ex) { this.c = c; this.ex = ex; this.restart(); }
+  restart() {
+    const c = this.c, ex = this.ex;
+    c.resetMemory(); c.clearAll(); c.angle = (ex.from && ex.from.ang) || 'DEG';
+    c.fmt = { t: 'norm', n: 0 }; if (ex.from && ex.from.fmt) c.setFmt(ex.from.fmt);
+    if (ex.setup) Calc.runKeys(c, ex.setup);
+    c.clearAll(); this.count = 0; this.done = false;
+  }
+  /* Llamar tras cada pulsación con el evento {fn}. Devuelve null o {ok,msg}. */
+  after(evt) {
+    if (this.done || !evt || evt.toggle) return null;
+    const f = evt.fn, ex = this.ex, c = this.c;
+    if (f === 'ac') { this.count = 0; if (ex.on !== 'ac') return null; }
+    if (!TRIG.includes(f)) return null;
+    if (ex.on) { if (ex.on !== f) return null; this.count++; }
+    else {
+      if (f === 'ac' || f === 'mplus' || f === 'mminus' || f === 'sto') return null;
+      if (c.screen === 'result') this.count++;
+      else if (c.screen !== 'error') return null;
+    }
+    if (c.screen !== 'error' && this.count < (ex.n || 1)) return null;
+    let r = Calc.check(ex, c);
+    if (r.wait) return null;
+    if (r.ok) this.done = true;
+    return r;
+  }
+  press(tk) { const evt = Calc.step(this.c, tk); return this.after(evt); }
+  runAll(keys) { let last = null; Calc.expand(keys).forEach(tk => { const r = this.press(tk); if (r) last = r; }); return last; }
+};
+Calc.layout = layout; Calc.keyMap = keyMap; Calc.fmtFns = { formatNum, engStr, toDMS };
+G.Calc = Calc;
+if (typeof module !== 'undefined' && module.exports) module.exports = Calc;
+})(typeof globalThis !== 'undefined' ? globalThis : window);
+
+</script>
+<script>
+/* ===== Lecciones: explicación, ejemplos y ejercicios por tecla ===== */
+(function (G) {
+'use strict';
+const D = Math.PI / 180;
+const LESSONS = {};
+/* L(id, {t título, w explicación, n nota, m modelos, u uso por defecto, ex [[teclas, comentario]], tr [[enunciado, teclas, spec]]}) */
+function L(id, o) {
+  o.id = id;
+  o.tr = (o.tr || []).map(x => {
+    let sp = x[2], s = {};
+    if (typeof sp === 'number') s = { v: sp };
+    else if (typeof sp === 'string') s = { s: sp };
+    else if (typeof sp === 'function') s = { chk: sp };
+    else s = Object.assign({}, sp);
+    if (s.use === undefined && o.u) s.use = o.u;
+    s.q = x[0]; s.k = x[1];
+    return s;
+  });
+  LESSONS[id] = o;
+}
+const NOTE_ERR = 'Si ves «Math ERROR», pulsa AC y revisa los datos: la operación no existe en matemáticas.';
+
+/* ---------- Teclas de control ---------- */
+L('shift', {
+  t: 'SHIFT · segunda función',
+  w: 'Activa la <b>segunda función</b> de la tecla siguiente: la que está escrita encima, normalmente en amarillo. Solo afecta a <b>una</b> pulsación; si te arrepientes, vuelve a pulsar SHIFT. En pantalla aparece el indicador <code>SHIFT</code>.',
+  n: 'En esta app, las teclas con segunda función muestran la etiqueta amarilla encima. Con SHIFT activo, el texto de la tecla cambia.',
+  m: 'Casio y HP: <b>SHIFT</b> · Texas Instruments: <b>2nd</b> · Sharp y Canon: <b>2ndF</b>. Algunos modelos añaden ALPHA para las letras.',
+  ex: [['shift sqrt 27 ) =', 'SHIFT + √ = ∛ (raíz cúbica)'], ['5 shift inv =', 'SHIFT + x⁻¹ = x! (factorial)'], ['shift pi =', 'SHIFT + π = número e']],
+  tr: [['Calcula la raíz cúbica de 64 usando SHIFT.', 'shift sqrt 64 ) =', { v: 4, use: ['∛('] }],
+       ['Calcula 6! (factorial) con SHIFT.', '6 shift inv =', { v: 720, use: ['!'] }],
+       ['Obtén el número e con SHIFT.', 'shift pi =', { v: Math.E, use: ['e'] }]]
+});
+L('hyp', {
+  t: 'hyp · funciones hiperbólicas',
+  w: 'Pulsa <b>hyp</b> y después sin, cos o tan para obtener <b>sinh, cosh, tanh</b>. El indicador <code>hyp</code> se apaga tras la pulsación. No dependen del modo de ángulo.',
+  n: 'sinh(x) = (eˣ − e⁻ˣ)/2 · cosh(x) = (eˣ + e⁻ˣ)/2 · tanh = sinh/cosh.',
+  m: 'Casio y Sharp: tecla <b>hyp</b>. Texas y otros: suele estar en un menú o como segunda función. Siempre se pulsa antes de la función.',
+  ex: [['hyp sin 1 ) =', 'sinh(1)'], ['hyp cos 0 ) =', 'cosh(0) = 1'], ['hyp tan 1 ) =', 'tanh(1)']],
+  tr: [['Calcula sinh(2).', 'hyp sin 2 ) =', { v: Math.sinh(2), use: ['sinh('] }],
+       ['Calcula cosh(1).', 'hyp cos 1 ) =', { v: Math.cosh(1), use: ['cosh('] }],
+       ['Calcula tanh(0.5).', 'hyp tan 0.5 ) =', { v: Math.tanh(0.5), use: ['tanh('] }]]
+});
+L('ahyp', {
+  t: 'hyp + SHIFT · hiperbólicas inversas',
+  w: 'Combina <b>hyp</b> con <b>SHIFT</b> y la tecla trigonométrica para obtener <b>asinh, acosh, atanh</b> (sinh⁻¹, cosh⁻¹, tanh⁻¹). Orden: hyp, SHIFT, función.',
+  n: 'acosh solo admite x ≥ 1 y atanh solo |x| < 1; fuera de eso, Math ERROR.',
+  m: 'En Casio: hyp + SHIFT + sin/cos/tan. En otras marcas: menú hiperbólico con opción «inversa».',
+  ex: [['hyp shift sin 1 ) =', 'asinh(1)'], ['hyp shift cos 1 ) =', 'acosh(1) = 0'], ['hyp shift tan 0.5 ) =', 'atanh(0.5)']],
+  tr: [['Calcula asinh(1).', 'hyp shift sin 1 ) =', { v: Math.asinh(1), use: ['asinh('] }],
+       ['Calcula acosh(2).', 'hyp shift cos 2 ) =', { v: Math.acosh(2), use: ['acosh('] }],
+       ['Calcula atanh(0.5).', 'hyp shift tan 0.5 ) =', { v: Math.atanh(0.5), use: ['atanh('] }]]
+});
+L('cursor', {
+  t: '◀ ▶ · mover el cursor y corregir',
+  w: 'Mueven el cursor por la expresión para <b>corregir sin borrar todo</b>. Tras un resultado, ◀ te devuelve a la expresión (al final) y ▶ al principio, para editarla y recalcular. Lo que escribas se inserta donde esté el cursor.',
+  n: 'DEL borra el carácter a la izquierda del cursor.',
+  m: 'Casio: ◀ ▶ (y ▲ ▼ para historial). Texas: ◀ ▶ y 2nd + ◀ para saltar al inicio. Sharp: ◀ ▶ y tecla de «reemplazo».',
+  ex: [['2 + 3 * 5 left del 4 =', 'Corrige 5 por 4 sin empezar de nuevo'], ['12 + 8 = left del 9 =', 'Vuelve a la expresión tras el resultado y la cambia']],
+  tr: [['Escribe 2+3×5 y corrige el 5 por un 4 usando DEL. Resultado: 14.', '2 + 3 * 5 del 4 =', 14],
+       ['Calcula 12+8, pulsa ◀ para volver a la expresión y cambia el 8 por un 9: 21.', '12 + 8 = left del 9 =', { v: 21, n: 2 }],
+       ['Escribe 8×2+4 y, con ◀, mete un paréntesis para que sea 8×(2+4) = 48.', '8 * 2 + 4 left left left lp right right right rp =', { v: 48, use: ['('] }]]
+});
+L('angle', {
+  t: 'MODE · modo de ángulo (DEG, RAD, GRA)',
+  w: 'Decide cómo se interpretan los ángulos en sin, cos, tan y sus inversas. <b>DEG</b>: grados (vuelta = 360). <b>RAD</b>: radianes (vuelta = 2π). <b>GRA</b>: gradianes (vuelta = 400). Indicador en pantalla: <code>D</code>, <code>R</code> o <code>G</code>.',
+  n: 'Error típico: calcular sin(30) en RAD y obtener −0.988. Mira siempre el indicador D/R/G antes de calcular.',
+  m: 'Casio: SHIFT + MODE (SETUP) → Angle Unit. Texas: tecla MODE. Sharp: tecla <b>DRG▶</b> que va rotando. Canon: DRG.',
+  ex: [['@ang:RAD sin pi / 2 ) =', 'En RAD, sin(π/2) = 1'], ['@ang:GRA tan 50 ) =', 'En GRA, 50 gradianes = 45°, tan = 1'], ['@ang:DEG sin 30 ) =', 'En DEG, sin(30°) = 0.5']],
+  tr: [['Cambia a RAD (botón MODE) y calcula sin(π÷2). Resultado: 1.', '@ang:RAD sin pi / 2 ) =', { v: 1, ang: 'RAD' }],
+       ['Cambia a GRA y calcula tan(50). Resultado: 1.', '@ang:GRA tan 50 ) =', { v: 1, ang: 'GRA' }],
+       ['Con RAD, calcula sin⁻¹(1) = π/2 ≈ 1.570796327.', '@ang:RAD shift sin 1 ) =', { v: Math.PI / 2, ang: 'RAD' }]]
+});
+L('format', {
+  t: 'MODE · formato del resultado (Norm, Fix, Sci)',
+  w: '<b>Norm</b>: automático. <b>Fix n</b>: fija n decimales (redondea lo mostrado). <b>Sci n</b>: notación científica con n cifras significativas. Indicadores <code>FIX</code> y <code>SCI</code> en pantalla.',
+  n: 'Fix y Sci solo cambian cómo se muestra. Para redondear de verdad el valor usa Rnd( (menú OPTN).',
+  m: 'Casio: SHIFT + MODE → Fix / Sci / Norm. Texas: MODE → float / fix. Sharp: tecla <b>FSE</b> (F↔E) que alterna formato; TAB para decimales.',
+  ex: [['@fmt:fix2 10 / 3 =', 'Fix 2 → 3.33'], ['@fmt:sci3 12345 =', 'Sci 3 → 1.23ᴇ4'], ['@fmt:fix0 7 / 2 =', 'Fix 0 → 4']],
+  tr: [['Pon Fix 2 y calcula 10÷3. Debe mostrar 3.33.', '@fmt:fix2 10 / 3 =', { s: '3.33', fmt: 'fix2' }],
+       ['Pon Sci 3 y calcula 12345. Debe mostrar 1.23ᴇ4.', '@fmt:sci3 12345 =', { s: '1.23ᴇ4', fmt: 'sci3' }],
+       ['Pon Fix 0 y calcula 7÷2. Debe mostrar 4.', '@fmt:fix0 7 / 2 =', { s: '4', fmt: 'fix0' }]]
+});
+L('optn', {
+  t: 'OPTN · menú de funciones extra',
+  w: 'Abre un menú con funciones que no tienen tecla propia: <b>Abs</b> (valor absoluto), <b>Int</b>, <b>Intg</b>, <b>Frac</b> (partes entera/decimal), <b>Rnd</b> (redondeo real), <b>GCD</b> (m.c.d.), <b>LCM</b> (m.c.m.), <b>Mod</b> (resto) y <b>Σ</b> (sumatorio). Elige una y se inserta en la expresión.',
+  n: 'Cada una tiene su propia lección: pulsa OPTN y verás las pestañas de arriba.',
+  m: 'Cambia mucho entre modelos: Casio fx-991EX usa menús (MENU/OPTN) y las ES usan segundas funciones. Texas: menús MATH, NUM y PRB. Los modelos básicos pueden carecer de GCD, LCM, Mod o Σ.',
+  ex: [['@abs neg 5 ) =', 'Abs(−5) = 5'], ['@gcd 12 shift rp 18 ) =', 'GCD(12,18) = 6']],
+  tr: [['Usa el menú OPTN para calcular Abs(−9).', '@abs neg 9 ) =', { v: 9, use: ['Abs('] }],
+       ['Usa el menú OPTN para calcular LCM(4,6).', '@lcm 4 shift rp 6 ) =', { v: 12, use: ['LCM('] }],
+       ['Usa el menú OPTN para calcular 17 Mod 5.', '17 @mod 5 =', { v: 2, use: ['Mod'] }]]
+});
+L('calc', {
+  t: 'CALC · evaluar con variables',
+  w: 'Escribe una expresión con <b>variables</b> (A–F, X, Y, M), pulsa <b>CALC</b> y la calculadora te pregunta el valor de cada una. Después calcula. Sirve para evaluar la misma fórmula con distintos datos.',
+  n: 'Los valores se piden por orden de aparición. Confirma cada uno con =.',
+  m: 'Casio fx-991/570: tecla CALC. Texas: no existe como tal en los modelos básicos (TI-36X Pro tiene tabla de funciones). Sharp avanzadas: CALC/SOLVER.',
+  ex: [['X sq + 3 X + 2 calc 1 =', 'f(X)=X²+3X+2 con X=1'], ['A * B calc 6 = 7 =', 'A=6, B=7 → 42']],
+  tr: [['Escribe 2X+1, pulsa CALC e introduce X=5. Resultado: 11.', '2 X + 1 calc 5 =', { v: 11, use: ['X'] }],
+       ['Escribe A×B y con CALC pon A=6, B=7. Resultado: 42.', 'A * B calc 6 = 7 =', { v: 42, use: ['A', 'B'] }],
+       ['Escribe X²+Y² y con CALC pon X=3, Y=4. Resultado: 25.', 'X sq + Y sq calc 3 = 4 =', { v: 25, use: ['X', 'Y'] }]]
+});
+L('solve', {
+  t: 'SOLVE · resolver ecuaciones',
+  w: 'Escribe una ecuación con la incógnita <b>X</b> usando la tecla <b>a=b</b> para el signo igual y pulsa <b>SHIFT + CALC</b>. Usa un método numérico y devuelve una solución; si hay varias, puede darte solo una.',
+  n: 'Si no converge, muestra «Can\'t Solve».',
+  m: 'Casio: SHIFT + CALC (SOLVE). Texas: solo en avanzadas (TI-36X Pro: numeric solver). Las calculadoras básicas no la tienen.',
+  ex: [['2 X + 6 eqs 14 shift calc', 'Ecuación 2X+6=14 → X=4'], ['X sq eqs 49 shift calc', 'X²=49 → una de las soluciones, 7']],
+  tr: [['Resuelve 2X+6=14.', '2 X + 6 eqs 14 shift calc', { v: 4, use: ['='] }],
+       ['Resuelve 3X−5 = X+9.', '3 X - 5 eqs X + 9 shift calc', { v: 7, use: ['='] }],
+       ['Resuelve X²=49 (vale cualquiera de las dos soluciones).', 'X sq eqs 49 shift calc', { chk: c => Math.abs(Math.abs(c.res.v) - 7) < 1e-8 }]]
+});
+L('eqsign', {
+  t: 'a=b · signo igual de ecuación',
+  w: 'Escribe el signo <b>=</b> <i>dentro</i> de una ecuación para usarla con SOLVE. No ejecuta la operación (eso lo hace la tecla =).',
+  n: 'Úsala siempre antes de SHIFT + CALC. La parte derecha puede ser un número u otra expresión con X.',
+  m: 'Casio: ALPHA + CALC (=). Texas y Sharp: según modelo, en el menú del solver.',
+  ex: [['X + 3 eqs 10 shift calc', 'X+3=10 → 7'], ['4 X eqs 20 shift calc', '4X=20 → 5']],
+  tr: [['Resuelve X+3=10 escribiendo la ecuación con a=b.', 'X + 3 eqs 10 shift calc', { v: 7, use: ['='] }],
+       ['Resuelve 4X=20.', '4 X eqs 20 shift calc', { v: 5, use: ['='] }],
+       ['Resuelve X÷2=9.', 'X / 2 eqs 9 shift calc', { v: 18, use: ['='] }]]
+});
+
+/* ---------- Cálculo ---------- */
+L('integ', {
+  t: '∫ · integral definida',
+  w: 'Calcula el área bajo una función. Sintaxis aquí: <code>∫( f(X) , a , b )</code>. Escribe la función con <b>X</b>, separa con la coma (SHIFT + paréntesis derecho) e indica los límites.',
+  n: 'En funciones trigonométricas, usa RAD. Es un cálculo numérico: puede tardar o tener un pequeño error.',
+  m: 'Casio fx-991/570: tecla ∫dx. Texas: solo TI-36X Pro (fnInt). Muchas calculadoras básicas no la tienen.',
+  ex: [['integ X sq shift rp 0 shift rp 3 ) =', '∫₀³ x² dx = 9'], ['integ X shift rp 0 shift rp 2 ) =', '∫₀² x dx = 2']],
+  tr: [['Calcula ∫₀² X dx.', 'integ X shift rp 0 shift rp 2 ) =', { v: 2, use: ['∫('] }],
+       ['Calcula ∫₀³ X² dx.', 'integ X sq shift rp 0 shift rp 3 ) =', { v: 9, use: ['∫('] }],
+       ['En RAD, calcula ∫₀^π sin(X) dx = 2.', '@ang:RAD integ sin X ) shift rp 0 shift rp pi ) =', { v: 2, ang: 'RAD', use: ['∫('] }]]
+});
+L('deriv', {
+  t: 'd/dx · derivada en un punto',
+  w: 'Calcula la <b>derivada numérica</b> de una función en un punto: <code>d/dx( f(X) , a )</code>. Es SHIFT + ∫. Escribe la función con X y, tras la coma, el valor de X.',
+  n: 'Da una aproximación; en funciones trigonométricas usa RAD.',
+  m: 'Casio fx-991/570: SHIFT + ∫dx. Texas: nDeriv( en TI-36X Pro. No existe en calculadoras básicas.',
+  ex: [['shift integ X sq shift rp 3 ) =', 'Derivada de x² en 3 = 6'], ['shift integ X shift sq shift rp 2 ) =', 'Derivada de x³ en 2 = 12']],
+  tr: [['Calcula la derivada de X² en X=3.', 'shift integ X sq shift rp 3 ) =', { v: 6, use: ['d/dx('] }],
+       ['Calcula la derivada de X³ en X=2.', 'shift integ X shift sq shift rp 2 ) =', { v: 12, use: ['d/dx('] }],
+       ['En RAD, deriva sin(X) en X=0: vale 1.', '@ang:RAD shift integ sin X ) shift rp 0 ) =', { v: 1, ang: 'RAD', use: ['d/dx('] }]]
+});
+L('sigma', {
+  t: 'Σ · sumatorio',
+  w: 'Suma una expresión para valores enteros de X: <code>Σ( f(X) , inicio , fin )</code>. Útil para series y progresiones.',
+  n: 'Inicio y fin deben ser enteros.',
+  m: 'Casio fx-991: Σ( en el menú. Texas: sum(seq( en TI-36X Pro). Los modelos básicos no lo tienen.',
+  ex: [['@sigma X shift rp 1 shift rp 10 ) =', '1+2+…+10 = 55'], ['@sigma X sq shift rp 1 shift rp 4 ) =', '1+4+9+16 = 30']],
+  tr: [['Calcula Σ(2X) de X=1 a 5.', '@sigma 2 X shift rp 1 shift rp 5 ) =', { v: 30, use: ['Σ('] }],
+       ['Calcula Σ(X²) de X=1 a 10.', '@sigma X sq shift rp 1 shift rp 10 ) =', { v: 385, use: ['Σ('] }],
+       ['Calcula Σ(1÷X) de X=1 a 3.', '@sigma 1 / X shift rp 1 shift rp 3 ) =', { v: 1 + 1 / 2 + 1 / 3, use: ['Σ('] }]]
+});
+
+/* ---------- Potencias y raíces ---------- */
+L('inv', {
+  t: 'x⁻¹ · inverso',
+  w: 'Calcula el <b>inverso</b> (1/x) de lo que acabas de escribir. Se pulsa <b>después</b> del número: 4 x⁻¹ = 0.25.',
+  n: '0 x⁻¹ da Math ERROR: no se puede dividir entre 0.',
+  m: 'Casio y Canon: <b>x⁻¹</b>. Sharp, HP y muchas Texas: tecla <b>1/x</b>. Mismo resultado.',
+  ex: [['4 inv =', '1/4 = 0.25'], ['( 2 + 3 ) inv =', '1/5 = 0.2'], ['0 inv =', 'Error: 1/0']],
+  tr: [['Calcula el inverso de 8.', '8 inv =', { v: 0.125, use: ['⁻¹'] }],
+       ['Calcula (0.5+0.25)⁻¹.', '( 0.5 + 0.25 ) inv =', { v: 4 / 3, use: ['⁻¹'] }],
+       ['Dos resistencias de 10Ω y 40Ω en paralelo: R = (10⁻¹ + 40⁻¹)⁻¹ = 8.', '( 10 inv + 40 inv ) inv =', { v: 8, use: ['⁻¹'] }]]
+});
+L('fact', {
+  t: 'x! · factorial',
+  w: 'El <b>factorial</b> de n es 1×2×3×…×n. Se escribe el número y luego x! (SHIFT + x⁻¹). Por definición 0! = 1.',
+  n: 'Solo enteros ≥ 0. Crece muy rápido: 70! ya desborda la calculadora (Math ERROR).',
+  m: 'Casio: SHIFT + x⁻¹. Texas: menú PRB → n!. Sharp y HP: tecla n! o x!.',
+  ex: [['5 shift inv =', '5! = 120'], ['0 shift inv =', '0! = 1'], ['70 shift inv =', 'Demasiado grande: error']],
+  tr: [['Calcula 5!', '5 shift inv =', { v: 120, use: ['!'] }],
+       ['Calcula 10!', '10 shift inv =', { v: 3628800, use: ['!'] }],
+       ['Calcula 6! ÷ (4!×2!) = 15.', '6 shift inv / ( 4 shift inv * 2 shift inv ) =', { v: 15, use: ['!'] }]]
+});
+L('frac', {
+  t: '▫⁄▫ · fracciones',
+  w: 'Escribe fracciones: numerador, tecla <b>▫⁄▫</b>, denominador. El resultado sale en fracción si trabajas con fracciones (se alterna con S⇔D). Se simplifican solas.',
+  n: 'En esta app se escribe en línea (3 ▫⁄▫ 4). En las calculadoras reales ES/EX aparece una plantilla donde rellenas arriba y abajo.',
+  m: 'Casio ES/EX: plantilla ▫/▫. Casio antiguas y Sharp: tecla <b>a b/c</b>. Texas: tecla <b>n/d</b>. Canon y HP: a b/c.',
+  ex: [['1 frac 2 + 1 frac 3 =', '1/2 + 1/3 = 5/6'], ['3 frac 4 * 2 frac 5 =', '3/4 × 2/5 = 3/10']],
+  tr: [['Calcula 1/2 + 1/3.', '1 frac 2 + 1 frac 3 =', { s: '5⁄6', use: ['⁄'] }],
+       ['Calcula 3/4 × 2/5.', '3 frac 4 * 2 frac 5 =', { s: '3⁄10', use: ['⁄'] }],
+       ['Calcula (2/3) ÷ (4/9).', '2 frac 3 / 4 frac 9 =', { s: '3⁄2', use: ['⁄'] }]]
+});
+L('mixed', {
+  t: 'a b⁄c · fracción mixta',
+  w: 'Introduce números mixtos como 2 ¾: entero, SHIFT + ▫⁄▫, numerador, ▫⁄▫, denominador. El resultado se muestra como mixto si hay mixtos.',
+  n: '1⌟1⁄2 significa 1 + 1/2.',
+  m: 'Casio ES/EX: SHIFT + ▫⁄▫. Casio antiguas, Sharp, Canon, HP: tecla <b>a b/c</b> (la misma sirve para todo). Texas: tecla Un/d (2nd n/d).',
+  ex: [['1 shift frac 1 frac 2 + 2 shift frac 1 frac 4 =', '1½ + 2¼ = 3¾']],
+  tr: [['Calcula 2 1/2 + 1 1/4.', '2 shift frac 1 frac 2 + 1 shift frac 1 frac 4 =', { s: '3⌟3⁄4', use: ['⌟'] }],
+       ['Calcula 3 1/3 − 1 1/2.', '3 shift frac 1 frac 3 - 1 shift frac 1 frac 2 =', { s: '1⌟5⁄6', use: ['⌟'] }],
+       ['Calcula 2 3/4 × 2.', '2 shift frac 3 frac 4 * 2 =', { s: '5⌟1⁄2', use: ['⌟'] }]]
+});
+L('sqrt', {
+  t: '√ · raíz cuadrada',
+  w: 'Raíz cuadrada. Abre un paréntesis: escribe el radicando y ciérralo con ). Para raíces de operaciones, usa paréntesis: √(25+144).',
+  n: 'La raíz cuadrada de un número negativo da Math ERROR (en modo real).',
+  m: 'Todas las calculadoras tienen √. Casio ES/EX y Texas modernas la escriben con plantilla (el radicando bajo la raya).',
+  ex: [['sqrt 81 ) =', '√81 = 9'], ['sqrt 2 ) =', '√2 irracional'], ['sqrt neg 4 ) =', 'Error: raíz de negativo']],
+  tr: [['Calcula √144.', 'sqrt 144 ) =', { v: 12, use: ['√('] }],
+       ['Calcula √(25+144).', 'sqrt 25 + 144 ) =', { v: 13, use: ['√('] }],
+       ['Un cuadrado de área 50 cm²: su lado es √50.', 'sqrt 50 ) =', { v: Math.sqrt(50), use: ['√('] }]]
+});
+L('cbrt', {
+  t: '∛ · raíz cúbica',
+  w: 'Raíz cúbica (SHIFT + √). Admite números negativos: ∛(−8) = −2.',
+  m: 'Casio ES/EX: SHIFT + √. Casio antiguas: SHIFT + x³ (∛). Sharp y Texas: ∛ o ˣ√ con índice 3.',
+  ex: [['shift sqrt 27 ) =', '∛27 = 3'], ['shift sqrt neg 8 ) =', '∛(−8) = −2']],
+  tr: [['Calcula ∛125.', 'shift sqrt 125 ) =', { v: 5, use: ['∛('] }],
+       ['Calcula ∛(−64).', 'shift sqrt neg 64 ) =', { v: -4, use: ['∛('] }],
+       ['Un cubo de volumen 343 cm³: su lado es ∛343.', 'shift sqrt 343 ) =', { v: 7, use: ['∛('] }]]
+});
+L('sq', {
+  t: 'x² · cuadrado',
+  w: 'Eleva al cuadrado el número anterior: 12 x² = 144. Se pulsa después del número o del paréntesis.',
+  n: '−5² da −25 (primero el cuadrado, luego el signo). Para 25 escribe (−5)².',
+  m: 'Todas las calculadoras tienen x².',
+  ex: [['12 sq =', '12² = 144'], ['( neg 3 ) sq =', '(−3)² = 9'], ['neg 3 sq =', '−3² = −9']],
+  tr: [['Calcula (−5)².', '( neg 5 ) sq =', { v: 25, use: ['²'] }],
+       ['Calcula −5² (cuidado con el orden).', 'neg 5 sq =', { v: -25, use: ['²'] }],
+       ['Área de un círculo de radio 3: π × 3².', 'pi * 3 sq =', { v: Math.PI * 9, use: ['²'] }]]
+});
+L('cube', {
+  t: 'x³ · cubo',
+  w: 'Eleva al cubo (SHIFT + x²): 4 x³ = 64.',
+  m: 'Casio y Sharp: x³ (segunda función de x²). Texas: usa ^ con 3 (no siempre tiene tecla x³).',
+  ex: [['4 shift sq =', '4³ = 64'], ['2.5 shift sq =', '2.5³ = 15.625']],
+  tr: [['Calcula 7³.', '7 shift sq =', { v: 343, use: ['³'] }],
+       ['Calcula (1+2)³.', '( 1 + 2 ) shift sq =', { v: 27, use: ['³'] }],
+       ['Volumen de una esfera de radio 3: 4÷3 × π × 3³.', '4 / 3 * pi * 3 shift sq =', { v: 4 / 3 * Math.PI * 27, use: ['³'] }]]
+});
+L('pow', {
+  t: 'xʸ · potencia general',
+  w: 'Eleva a cualquier exponente: base, tecla <b>xʸ</b>, exponente. Con exponentes compuestos usa paréntesis: 2^(1÷2). Exponentes negativos o decimales también valen.',
+  n: 'Después de un exponente de varias teclas, cierra el paréntesis antes de seguir.',
+  m: 'Casio ES/EX: x▫ (con cursor ▶ para salir del exponente). Texas, Sharp y HP: tecla <b>^</b>, <b>yˣ</b> o <b>xʸ</b>.',
+  ex: [['2 pow 10 =', '2¹⁰ = 1024'], ['2 pow neg 2 =', '2⁻² = 0.25'], ['9 pow 0.5 =', '9^0.5 = 3']],
+  tr: [['Calcula 3⁵.', '3 pow 5 =', { v: 243, use: ['^'] }],
+       ['Calcula 10⁻³.', '10 pow neg 3 =', { v: 0.001, use: ['^'] }],
+       ['Interés compuesto: 1000 × 1.05¹⁰.', '1000 * 1.05 pow 10 =', { v: 1000 * Math.pow(1.05, 10), use: ['^'] }]]
+});
+L('root', {
+  t: 'ˣ√ · raíz n-ésima',
+  w: 'Raíz de cualquier índice (SHIFT + xʸ): primero el <b>índice</b>, luego ˣ√, luego el radicando. 3 ˣ√ 27 = 3.',
+  n: 'Con índice impar admite radicandos negativos.',
+  m: 'Casio: SHIFT + x▫. Texas y Sharp: <b>ˣ√</b> o con exponente fraccionario (x^(1/n)). HP: tecla ˣ√y.',
+  ex: [['4 shift pow 81 =', '⁴√81 = 3'], ['5 shift pow 32 =', '⁵√32 = 2']],
+  tr: [['Calcula la raíz cuarta de 16.', '4 shift pow 16 =', { v: 2, use: ['ˣ√'] }],
+       ['Calcula la raíz sexta de 64.', '6 shift pow 64 =', { v: 2, use: ['ˣ√'] }],
+       ['Calcula la raíz cúbica de −27 con ˣ√.', '3 shift pow ( neg 27 ) =', { v: -3, use: ['ˣ√'] }]]
+});
+L('log', {
+  t: 'log · logaritmo decimal',
+  w: 'Logaritmo en <b>base 10</b>: log(1000) = 3 porque 10³ = 1000. Solo admite argumentos positivos.',
+  n: 'Para otra base: log_b(x) = log(x) ÷ log(b).',
+  m: 'Todas las calculadoras científicas tienen log (base 10) y ln.',
+  ex: [['log 1000 ) =', 'log 1000 = 3'], ['log 0.01 ) =', 'log 0.01 = −2'], ['log 8 ) / log 2 ) =', 'log₂8 por cambio de base = 3']],
+  tr: [['Calcula log(100000).', 'log 100000 ) =', { v: 5, use: ['log('] }],
+       ['pH = −log[H⁺]. Con [H⁺] = 0.001, ¿cuánto vale el pH?', 'neg log 0.001 ) =', { v: 3, use: ['log('] }],
+       ['Calcula log₂(8) usando log ÷ log.', 'log 8 ) / log 2 ) =', { v: 3, use: ['log('] }]]
+});
+L('pow10', {
+  t: '10ˣ · potencia de 10',
+  w: 'Calcula 10 elevado a lo que escribas (SHIFT + log). Es el antilogaritmo: si log x = 2.5, entonces x = 10^2.5.',
+  m: 'Segunda función de log en casi todas las marcas.',
+  ex: [['shift log 3 ) =', '10³ = 1000'], ['shift log neg 1 ) =', '10⁻¹ = 0.1']],
+  tr: [['Calcula 10⁴.', 'shift log 4 ) =', { v: 10000, use: ['10^('] }],
+       ['Calcula 10⁻².', 'shift log neg 2 ) =', { v: 0.01, use: ['10^('] }],
+       ['Si log x = 2.5, ¿cuánto vale x?', 'shift log 2.5 ) =', { v: Math.pow(10, 2.5), use: ['10^('] }]]
+});
+L('ln', {
+  t: 'ln · logaritmo neperiano',
+  w: 'Logaritmo en <b>base e</b> (≈ 2.718). ln(e) = 1. Se usa en crecimiento exponencial, desintegración y cálculo.',
+  m: 'Todas las científicas tienen ln.',
+  ex: [['ln shift pi ) =', 'ln(e) = 1'], ['ln 10 ) =', 'ln 10 = 2.302…']],
+  tr: [['Calcula ln(e²) (e se obtiene con SHIFT π).', 'ln shift pi sq ) =', { v: 2, use: ['ln('] }],
+       ['Calcula ln(20).', 'ln 20 ) =', { v: Math.log(20), use: ['ln('] }],
+       ['Tiempo de duplicación al 5%: ln 2 ÷ 0.05.', 'ln 2 ) / 0.05 =', { v: Math.log(2) / 0.05, use: ['ln('] }]]
+});
+L('powe', {
+  t: 'eˣ · exponencial',
+  w: 'Calcula e elevado a lo que escribas (SHIFT + ln). Es la inversa de ln.',
+  m: 'Segunda función de ln en casi todas las marcas.',
+  ex: [['shift ln 1 ) =', 'e¹ = 2.718…'], ['shift ln 0 ) =', 'e⁰ = 1']],
+  tr: [['Calcula e².', 'shift ln 2 ) =', { v: Math.exp(2), use: ['e^('] }],
+       ['Comprueba que e^(ln 5) = 5.', 'shift ln ln 5 ) ) =', { v: 5, use: ['e^('] }],
+       ['Desintegración: 100·e^(−0.1×10).', '100 * shift ln neg 0.1 * 10 ) =', { v: 100 * Math.exp(-1), use: ['e^('] }]]
+});
+
+/* ---------- Signos, ángulos, constantes ---------- */
+L('neg', {
+  t: '(−) · signo negativo',
+  w: 'Introduce un número negativo, distinto de la resta (−). <b>(−) cambia el signo</b>; <b>−</b> resta dos cosas.',
+  n: '−2² = −4 y (−2)² = 4. El signo menos delante de una potencia se aplica después.',
+  m: 'Casio y Texas: tecla <b>(−)</b>. Sharp básicas y antiguas: tecla <b>+/−</b> (se pulsa después del número).',
+  ex: [['5 - neg 3 =', '5 − (−3) = 8'], ['neg 7 * neg 6 =', '(−7)×(−6) = 42']],
+  tr: [['Calcula −7 × −6.', 'neg 7 * neg 6 =', { v: 42, use: ['-'] }],
+       ['Calcula −2^2 (el signo se aplica al final).', 'neg 2 pow 2 =', { v: -4, use: ['-'] }],
+       ['Calcula (−2)³.', '( neg 2 ) pow 3 =', { v: -8, use: ['-'] }]]
+});
+L('dms', {
+  t: '° ′ ″ · grados, minutos, segundos',
+  w: 'Escribe ángulos en sexagesimal: número, tecla ° ′ ″ (grados), número, tecla (minutos), número, tecla (segundos). La calculadora lo convierte a decimal para operar.',
+  n: 'La primera pulsación da °, la segunda ′, la tercera ″.',
+  m: 'Casio y Sharp: tecla <b>° ′ ″</b> (DMS). Texas: en el menú ANGLE (2nd). Mismo resultado.',
+  ex: [['12 dms 30 dms =', '12°30′ = 12.5°'], ['1 dms 30 dms 36 dms =', '1°30′36″ = 1.51°']],
+  tr: [['Convierte 45°30′ a decimal.', '45 dms 30 dms =', { v: 45.5, use: ['°'] }],
+       ['Suma 10°15′ + 20°45′.', '10 dms 15 dms + 20 dms 45 dms =', { v: 31, use: ['°'] }],
+       ['Convierte 2°30′36″ a decimal.', '2 dms 30 dms 36 dms =', { v: 2.51, use: ['″'] }]]
+});
+L('todms', {
+  t: '←DMS · pasar a grados/min/seg',
+  w: 'Convierte un resultado decimal a <b>° ′ ″</b> (SHIFT + tecla de grados). Es la operación inversa de introducir sexagesimales.',
+  m: 'Casio: SHIFT + ° ′ ″ (←DMS). Sharp: 2ndF + DMS (←DEG). Texas: en el menú ANGLE.',
+  ex: [['12.5 = shift dms', '12.5° = 12°30′0″']],
+  tr: [['Convierte 2.75° a grados, minutos y segundos.', '2.75 shift dms', { s: '2°45′0″', on: 'todms' }],
+       ['Convierte 1.51° a DMS.', '1.51 shift dms', { s: '1°30′36″', on: 'todms' }],
+       ['Calcula 100÷3 y pásalo a DMS.', '100 / 3 = shift dms', { s: '33°20′0″', on: 'todms' }]]
+});
+L('pi', {
+  t: 'π · número pi',
+  w: 'La constante π ≈ 3.14159265. Úsala en círculos, circunferencias y trigonometría en radianes. Se multiplica sin signo: 2π5 = 2×π×5.',
+  m: 'Todas las científicas tienen π (en Texas suele ser 2nd + ^).',
+  ex: [['pi =', 'π'], ['2 pi * 5 =', 'Longitud de circunferencia r=5']],
+  tr: [['Área de un círculo de radio 4: π×4².', 'pi * 4 sq =', { v: Math.PI * 16, use: ['π'] }],
+       ['Circunferencia de radio 7: 2π×7.', '2 pi * 7 =', { v: 2 * Math.PI * 7, use: ['π'] }],
+       ['Volumen de un cilindro r=2, h=5: π×r²×h.', 'pi * 2 sq * 5 =', { v: Math.PI * 20, use: ['π'] }]]
+});
+L('econst', {
+  t: 'e · número de Euler',
+  w: 'La constante e ≈ 2.71828 (SHIFT + π en esta calculadora). Base de los logaritmos neperianos y las exponenciales.',
+  m: 'En muchas Casio: ALPHA + ×10ˣ (e). Texas: 2nd + ÷. Sharp: 2ndF + EXP (e).',
+  ex: [['shift pi =', 'e'], ['ln shift pi ) =', 'ln(e) = 1']],
+  tr: [['Calcula e³.', 'shift pi pow 3 =', { v: Math.exp(3), use: ['e'] }],
+       ['Calcula e + π.', 'shift pi + pi =', { v: Math.E + Math.PI, use: ['e'] }],
+       ['Calcula ln(e⁵) = 5.', 'ln shift pi pow 5 ) =', { v: 5, use: ['e'] }]]
+});
+
+/* ---------- Trigonometría ---------- */
+L('sin', {
+  t: 'sin · seno',
+  w: 'Seno de un ángulo. Interpreta el ángulo según el modo (D/R/G). Abre paréntesis: cierra con ).',
+  n: 'Por defecto DEG: sin(30) = 0.5. Si ves −0.988, estás en RAD.',
+  m: 'Igual en todas las marcas. En Texas la función se escribe antes y se cierra con ).',
+  ex: [['sin 30 ) =', 'sin 30° = 0.5'], ['sin 90 ) =', 'sin 90° = 1'], ['sin 45 ) =', 'sin 45°']],
+  tr: [['Calcula sin(90°).', 'sin 90 ) =', { v: 1, use: ['sin('] }],
+       ['Una escalera de 10 m forma 40° con el suelo. Altura: 10·sin 40°.', '10 * sin 40 ) =', { v: 10 * Math.sin(40 * D), use: ['sin('] }],
+       ['En RAD, calcula sin(π÷6) = 0.5.', '@ang:RAD sin pi / 6 ) =', { v: 0.5, ang: 'RAD', use: ['sin('] }]]
+});
+L('asin', {
+  t: 'sin⁻¹ · arcoseno',
+  w: 'Devuelve el ángulo cuyo seno es el número (SHIFT + sin). Solo admite valores entre −1 y 1.',
+  m: 'Casio y Sharp: SHIFT + sin (sin⁻¹). Texas: 2nd + sin (sin⁻¹). Otras: arcsin o asin.',
+  ex: [['shift sin 0.5 ) =', 'sin⁻¹(0.5) = 30°'], ['shift sin 1 ) =', 'sin⁻¹(1) = 90°'], ['shift sin 2 ) =', 'Error: fuera de [−1,1]']],
+  tr: [['Calcula sin⁻¹(0.5).', 'shift sin 0.5 ) =', { v: 30, use: ['asin('] }],
+       ['Calcula sin⁻¹(√2÷2).', 'shift sin sqrt 2 ) / 2 ) =', { v: 45, use: ['asin('] }],
+       ['Una rampa sube 3 m cada 5 m: ángulo = sin⁻¹(3÷5).', 'shift sin 3 / 5 ) =', { v: Math.asin(0.6) / D, use: ['asin('] }]]
+});
+L('cos', {
+  t: 'cos · coseno',
+  w: 'Coseno de un ángulo según el modo D/R/G.',
+  m: 'Igual en todas las marcas.',
+  ex: [['cos 60 ) =', 'cos 60° = 0.5'], ['cos 90 ) =', 'cos 90° = 0'], ['cos 0 ) =', 'cos 0 = 1']],
+  tr: [['Calcula cos(60°).', 'cos 60 ) =', { v: 0.5, use: ['cos('] }],
+       ['Calcula cos(120°).', 'cos 120 ) =', { v: -0.5, use: ['cos('] }],
+       ['Cateto contiguo: hipotenusa 8 y ángulo 25°. 8·cos 25°.', '8 * cos 25 ) =', { v: 8 * Math.cos(25 * D), use: ['cos('] }]]
+});
+L('acos', {
+  t: 'cos⁻¹ · arcocoseno',
+  w: 'Devuelve el ángulo cuyo coseno es el número (SHIFT + cos). Admite de −1 a 1.',
+  m: 'Mismo patrón que sin⁻¹: segunda función de cos.',
+  ex: [['shift cos 0.5 ) =', 'cos⁻¹(0.5) = 60°'], ['shift cos neg 1 ) =', 'cos⁻¹(−1) = 180°']],
+  tr: [['Calcula cos⁻¹(0).', 'shift cos 0 ) =', { v: 90, use: ['acos('] }],
+       ['Calcula cos⁻¹(−0.5).', 'shift cos neg 0.5 ) =', { v: 120, use: ['acos('] }],
+       ['Calcula cos⁻¹(0.8).', 'shift cos 0.8 ) =', { v: Math.acos(0.8) / D, use: ['acos('] }]]
+});
+L('tan', {
+  t: 'tan · tangente',
+  w: 'Tangente de un ángulo. En 90° (DEG) no existe y da Math ERROR.',
+  m: 'Igual en todas las marcas.',
+  ex: [['tan 45 ) =', 'tan 45° = 1'], ['tan 60 ) =', 'tan 60°'], ['tan 90 ) =', 'Error: no existe']],
+  tr: [['Calcula tan(45°).', 'tan 45 ) =', { v: 1, use: ['tan('] }],
+       ['Calcula tan(135°).', 'tan 135 ) =', { v: -1, use: ['tan('] }],
+       ['Comprueba que tan(30°)×√3 = 1.', 'tan 30 ) * sqrt 3 ) =', { v: 1, use: ['tan('] }]]
+});
+L('atan', {
+  t: 'tan⁻¹ · arcotangente',
+  w: 'Devuelve el ángulo cuya tangente es el número (SHIFT + tan). Admite cualquier número.',
+  m: 'Segunda función de tan.',
+  ex: [['shift tan 1 ) =', 'tan⁻¹(1) = 45°'], ['shift tan sqrt 3 ) ) =', 'tan⁻¹(√3) = 60°']],
+  tr: [['Calcula tan⁻¹(1).', 'shift tan 1 ) =', { v: 45, use: ['atan('] }],
+       ['Calcula tan⁻¹(−1).', 'shift tan neg 1 ) =', { v: -45, use: ['atan('] }],
+       ['Calcula tan⁻¹(0.5).', 'shift tan 0.5 ) =', { v: Math.atan(0.5) / D, use: ['atan('] }]]
+});
+
+/* ---------- Memoria ---------- */
+L('rcl', {
+  t: 'RCL · recuperar una memoria',
+  w: 'Pulsa <b>RCL</b> y luego una letra (A–F, X, Y, M) para insertar el valor guardado en esa memoria. También puedes pulsar la letra directamente.',
+  n: 'Las memorias no se borran con AC.',
+  m: 'Casio: RCL + letra. Texas: RCL (2nd STO) + variable. Sharp y HP: tecla RCL.',
+  ex: [['7 shift rcl A ac rcl A * 2 =', 'Guarda 7 en A y úsalo']],
+  tr: [['A guarda 12. Calcula A×5 con RCL.', 'rcl A * 5 =', { v: 60, setup: '12 shift rcl A', use: ['A'] }],
+       ['A=3, B=4. Calcula √(A²+B²) con RCL.', 'sqrt rcl A sq + rcl B sq ) =', { v: 5, setup: '3 shift rcl A ac 4 shift rcl B', use: ['A', 'B'] }],
+       ['A guarda 100. Calcula A÷8.', 'rcl A / 8 =', { v: 12.5, setup: '100 shift rcl A', use: ['A'] }]]
+});
+L('sto', {
+  t: 'STO · guardar en memoria',
+  w: 'Guarda el valor actual en una memoria: escribe o calcula el valor, pulsa <b>SHIFT + RCL (STO)</b> y elige la letra.',
+  n: 'Tras STO, el valor sigue en pantalla y puedes seguir calculando con la letra.',
+  m: 'Casio: SHIFT + RCL (STO). Texas: tecla STO▶. Sharp: STO. HP: STO.',
+  ex: [['25 shift rcl A', 'Guarda 25 en A'], ['6 * 7 = shift rcl B', 'Guarda el resultado de 6×7 en B']],
+  tr: [['Guarda 25 en la memoria A.', '25 shift rcl A', { chk: c => c.vars.A === 25, on: 'sto' }],
+       ['Calcula 6×7 y guarda el resultado en B.', '6 * 7 = shift rcl B', { chk: c => c.vars.B === 42, on: 'sto' }],
+       ['Guarda 9 en A y 4 en B, y calcula A−B.', '9 shift rcl A 4 shift rcl B A - B =', { v: 5, use: ['A', 'B'] }]]
+});
+L('mplus', {
+  t: 'M+ · sumar a la memoria',
+  w: 'Suma el valor en pantalla a la <b>memoria M</b>. En pantalla se enciende el indicador <code>M</code> cuando hay algo guardado.',
+  n: 'Pulsa la tecla M del bloque de letras para usar el valor guardado.',
+  m: 'Casio y Sharp: M+. Texas: no tiene M+ en la mayoría (usa STO y RCL).',
+  ex: [['8 * 5 mplus', 'Suma 40 a M']],
+  tr: [['Calcula 8×5 y súmalo a la memoria con M+.', '8 * 5 mplus', { chk: c => c.vars.M === 40, on: 'mplus' }],
+       ['La memoria M ya tiene 10. Calcula 5 y súmalo con M+: queda 15.', '5 mplus', { chk: c => c.vars.M === 15, setup: '10 mplus', on: 'mplus' }],
+       ['M guarda 7. Calcula M×3 usando la tecla M.', 'M * 3 =', { v: 21, setup: '7 mplus', use: ['M'] }]]
+});
+L('mminus', {
+  t: 'M− · restar de la memoria',
+  w: 'Resta el valor en pantalla de la memoria M (SHIFT + M+).',
+  m: 'Casio: SHIFT + M+. Sharp: tecla M− propia.',
+  ex: [['5 shift mplus', 'Resta 5 de M']],
+  tr: [['M guarda 20. Resta 5 con M−: queda 15.', '5 shift mplus', { chk: c => c.vars.M === 15, setup: '20 mplus', on: 'mminus' }],
+       ['Calcula 3×4 y réstalo de la memoria (que vale 0): M = −12.', '3 * 4 shift mplus', { chk: c => c.vars.M === -12, on: 'mminus' }],
+       ['M guarda 9. Resta 9 y deja la memoria en 0.', '9 shift mplus', { chk: c => c.vars.M === 0, setup: '9 mplus', on: 'mminus' }]]
+});
+L('vars', {
+  t: 'A B C D E F X Y M · variables',
+  w: 'Son nueve <b>memorias con nombre</b>. Guarda con STO, recupera escribiendo la letra y úsalas como variables en CALC y SOLVE. Si no has guardado nada valen 0.',
+  m: 'Casio: ALPHA + letra. Texas: tecla STO y variables x, y, z, t, a, b, c. Sharp: variables A–F, X, Y, M.',
+  ex: [['5 shift rcl A ac A + 10 =', 'A=5 → A+10 = 15']],
+  tr: [['A guarda 5. Calcula A+10.', 'A + 10 =', { v: 15, setup: '5 shift rcl A', use: ['A'] }],
+       ['B guarda 3. Calcula B².', 'B sq =', { v: 9, setup: '3 shift rcl B', use: ['B'] }],
+       ['Guarda 4 en A y 6 en B. Calcula A×B+1.', '4 shift rcl A 6 shift rcl B A * B + 1 =', { v: 25, use: ['A', 'B'] }]]
+});
+
+/* ---------- Combinatoria, aleatorios, coordenadas ---------- */
+L('ncr', {
+  t: 'nCr · combinaciones',
+  w: 'Número de formas de elegir r elementos de n <b>sin importar el orden</b>. Se escribe: n, nCr, r. Ej.: 5 nCr 2 = 10.',
+  n: 'r no puede ser mayor que n.',
+  m: 'Casio: tecla nCr. Texas: menú PRB → nCr. Sharp y HP: tecla nCr.',
+  ex: [['5 ncr 2 =', '5 nCr 2 = 10'], ['6 ncr 0 =', 'Una forma de no elegir nada']],
+  tr: [['Calcula 10 nCr 3.', '10 ncr 3 =', { v: 120, use: ['nCr'] }],
+       ['Calcula 6 nCr 0.', '6 ncr 0 =', { v: 1, use: ['nCr'] }],
+       ['Lotería 6/49: 49 nCr 6.', '49 ncr 6 =', { v: 13983816, use: ['nCr'] }]]
+});
+L('npr', {
+  t: 'nPr · permutaciones',
+  w: 'Número de formas de elegir r elementos de n <b>importando el orden</b>. nPr = n!/(n−r)!. SHIFT + nCr.',
+  m: 'Casio: SHIFT + nCr. Texas: menú PRB → nPr. Sharp y HP: tecla nPr.',
+  ex: [['5 shift ncr 2 =', '5 nPr 2 = 20']],
+  tr: [['Calcula 6 nPr 3.', '6 shift ncr 3 =', { v: 120, use: ['nPr'] }],
+       ['Calcula 10 nPr 2.', '10 shift ncr 2 =', { v: 90, use: ['nPr'] }],
+       ['Podio con 8 corredores y 3 puestos: 8 nPr 3.', '8 shift ncr 3 =', { v: 336, use: ['nPr'] }]]
+});
+L('ranq', {
+  t: 'Ran# · número aleatorio',
+  w: 'Genera un decimal aleatorio entre 0 y 0.999. Cada vez que lo uses sale uno distinto.',
+  m: 'Casio: SHIFT + . (Ran#). Texas: rand en menú PRB. Sharp: RANDOM. HP: RAND.',
+  ex: [['ranq =', 'Un número entre 0 y 1'], ['ranq * 100 =', 'Entre 0 y 100']],
+  tr: [['Obtén un aleatorio: debe estar entre 0 y 1.', 'ranq =', { chk: c => c.res.v >= 0 && c.res.v < 1, use: ['Ran#'] }],
+       ['Aleatorio entre 0 y 10: Ran#×10.', 'ranq * 10 =', { chk: c => c.res.v >= 0 && c.res.v < 10, use: ['Ran#'] }],
+       ['Aleatorio entre 5 y 6: Ran#+5.', 'ranq + 5 =', { chk: c => c.res.v >= 5 && c.res.v < 6, use: ['Ran#'] }]]
+});
+L('ranint', {
+  t: 'RanInt · entero aleatorio',
+  w: 'Entero aleatorio entre dos límites: <code>RanInt( a , b )</code> (SHIFT + Ran#). Perfecto para dados.',
+  m: 'Casio: SHIFT + Ran# (RanInt). Texas: randInt en PRB. Sharp: no suele tenerlo.',
+  ex: [['shift ranq 1 shift rp 6 ) =', 'Un dado: 1 a 6']],
+  tr: [['Tira un dado (1 a 6).', 'shift ranq 1 shift rp 6 ) =', { chk: c => Number.isInteger(c.res.v) && c.res.v >= 1 && c.res.v <= 6, use: ['RanInt('] }],
+       ['Un número de lotería entre 1 y 49.', 'shift ranq 1 shift rp 49 ) =', { chk: c => Number.isInteger(c.res.v) && c.res.v >= 1 && c.res.v <= 49, use: ['RanInt('] }],
+       ['Un entero entre −5 y 5.', 'shift ranq neg 5 shift rp 5 ) =', { chk: c => Number.isInteger(c.res.v) && c.res.v >= -5 && c.res.v <= 5, use: ['RanInt('] }]]
+});
+L('pol', {
+  t: 'Pol( · rectangulares a polares',
+  w: 'Convierte (x, y) en (r, θ): <code>Pol( x , y )</code>. Muestra <b>r</b> y debajo <b>θ</b>. También guarda r en X y θ en Y.',
+  n: 'θ se da en el modo de ángulo activo.',
+  m: 'Casio: SHIFT + +. Texas: menú ANGLE (R►Pr, R►Pθ). Sharp: 2ndF + R→P.',
+  ex: [['pol 3 shift rp 4 ) =', 'Pol(3,4): r=5, θ≈53.13°']],
+  tr: [['Calcula Pol(3,4). r debe ser 5.', 'pol 3 shift rp 4 ) =', { v: 5, use: ['Pol('] }],
+       ['Calcula Pol(1,1) y mira θ: 45°.', 'pol 1 shift rp 1 ) =', { chk: c => c.res.extra && Math.abs(c.res.extra[1] - 45) < 1e-9, use: ['Pol('] }],
+       ['Calcula Pol(0,5). r=5 y θ=90°.', 'pol 0 shift rp 5 ) =', { chk: c => c.res.v === 5 && c.res.extra && Math.abs(c.res.extra[1] - 90) < 1e-9, use: ['Pol('] }]]
+});
+L('rec', {
+  t: 'Rec( · polares a rectangulares',
+  w: 'Convierte (r, θ) en (x, y): <code>Rec( r , θ )</code> (SHIFT + Pol). Muestra <b>x</b> y debajo <b>y</b>.',
+  m: 'Casio: SHIFT + −. Texas: menú ANGLE (P►Rx, P►Ry). Sharp: 2ndF + P→R.',
+  ex: [['shift pol 2 shift rp 0 ) =', 'Rec(2,0): x=2, y=0']],
+  tr: [['Calcula Rec(2,0). x debe ser 2.', 'shift pol 2 shift rp 0 ) =', { v: 2, use: ['Rec('] }],
+       ['Calcula Rec(10,90). x=0 e y=10.', 'shift pol 10 shift rp 90 ) =', { chk: c => c.res.v === 0 && c.res.extra && Math.abs(c.res.extra[1] - 10) < 1e-9, use: ['Rec('] }],
+       ['Calcula Rec(√2,45). x=1 e y=1.', 'shift pol sqrt 2 ) shift rp 45 ) =', { chk: c => Math.abs(c.res.v - 1) < 1e-9 && Math.abs(c.res.extra[1] - 1) < 1e-9, use: ['Rec('] }]]
+});
+
+/* ---------- Funciones de OPTN ---------- */
+L('abs', {
+  t: 'Abs · valor absoluto',
+  w: 'Devuelve el número sin signo: Abs(−5) = 5. Es la distancia al cero.',
+  m: 'Casio: SHIFT + hyp (Abs). Texas: abs( en menú NUM. Sharp: ABS.',
+  ex: [['@abs neg 5 ) =', 'Abs(−5) = 5'], ['@abs 3 - 10 ) =', 'Abs(3−10) = 7']],
+  tr: [['Calcula Abs(−12).', '@abs neg 12 ) =', { v: 12, use: ['Abs('] }],
+       ['Calcula Abs(2−9)+Abs(−1).', '@abs 2 - 9 ) + @abs neg 1 ) =', { v: 8, use: ['Abs('] }],
+       ['Calcula Abs(sin(−30°)).', '@abs sin neg 30 ) ) =', { v: 0.5, use: ['Abs('] }]]
+});
+L('int', {
+  t: 'Int · parte entera (truncar)',
+  w: 'Quita los decimales sin redondear: Int(3.7) = 3; Int(−3.7) = −3.',
+  m: 'Texas: iPart(. Casio: Int( en OPTN. Sharp: INT.',
+  ex: [['@int 3.7 ) =', 'Int(3.7) = 3'], ['@int neg 3.7 ) =', 'Int(−3.7) = −3']],
+  tr: [['Calcula Int(9.99).', '@int 9.99 ) =', { v: 9, use: ['Int('] }],
+       ['Calcula Int(−2.5).', '@int neg 2.5 ) =', { v: -2, use: ['Int('] }],
+       ['Calcula Int(17÷5).', '@int 17 / 5 ) =', { v: 3, use: ['Int('] }]]
+});
+L('intg', {
+  t: 'Intg · mayor entero ≤ x',
+  w: 'Devuelve el mayor entero menor o igual: Intg(3.7) = 3 pero Intg(−3.7) = −4. Distinto de Int en negativos.',
+  m: 'Texas: int( (floor). Casio: Intg( en OPTN. Sharp: no siempre.',
+  ex: [['@intg 3.7 ) =', 'Intg(3.7) = 3'], ['@intg neg 3.7 ) =', 'Intg(−3.7) = −4']],
+  tr: [['Calcula Intg(5.9).', '@intg 5.9 ) =', { v: 5, use: ['Intg('] }],
+       ['Calcula Intg(−0.1).', '@intg neg 0.1 ) =', { v: -1, use: ['Intg('] }],
+       ['Calcula Intg(−7÷2).', '@intg neg 7 / 2 ) =', { v: -4, use: ['Intg('] }]]
+});
+L('fpart', {
+  t: 'Frac · parte decimal',
+  w: 'Devuelve solo los decimales: Frac(3.75) = 0.75; Frac(−3.75) = −0.75.',
+  m: 'Texas: fPart(. Casio: Frac( en OPTN.',
+  ex: [['@fpart 3.75 ) =', 'Frac(3.75) = 0.75']],
+  tr: [['Calcula Frac(5.25).', '@fpart 5.25 ) =', { v: 0.25, use: ['Frac('] }],
+       ['Calcula Frac(−1.5).', '@fpart neg 1.5 ) =', { v: -0.5, use: ['Frac('] }],
+       ['Calcula Frac(22÷7).', '@fpart 22 / 7 ) =', { v: 22 / 7 - 3, use: ['Frac('] }]]
+});
+L('rnd', {
+  t: 'Rnd · redondeo real',
+  w: 'Redondea el valor al formato activo (Fix/Sci), no solo la pantalla. Así 10÷3 pasa de verdad a 3.33 en Fix 2 y 3.33×3 = 9.99.',
+  m: 'Casio: Rnd( en OPTN o SHIFT. Texas: round( en NUM.',
+  ex: [['@fmt:fix2 @rnd 10 / 3 ) * 3 =', 'Con Rnd: 9.99, no 10']],
+  tr: [['Fix 2: calcula Rnd(10÷3)×3. Debe mostrar 9.99.', '@fmt:fix2 @rnd 10 / 3 ) * 3 =', { s: '9.99', fmt: 'fix2', use: ['Rnd('] }],
+       ['Fix 0: calcula Rnd(2.5). Debe mostrar 3.', '@fmt:fix0 @rnd 2.5 ) =', { s: '3', fmt: 'fix0', use: ['Rnd('] }],
+       ['Fix 1: calcula Rnd(7÷3). Debe mostrar 2.3.', '@fmt:fix1 @rnd 7 / 3 ) =', { s: '2.3', fmt: 'fix1', use: ['Rnd('] }]]
+});
+L('gcd', {
+  t: 'GCD · máximo común divisor',
+  w: 'Mayor número que divide a los dos: <code>GCD( a , b )</code>. Sirve para simplificar fracciones.',
+  m: 'Solo en modelos avanzados (Casio fx-991EX/CW, fx-570EX; Texas TI-36X Pro).',
+  ex: [['@gcd 12 shift rp 18 ) =', 'GCD(12,18) = 6'], ['@gcd 7 shift rp 13 ) =', 'Primos entre sí → 1']],
+  tr: [['Calcula GCD(48,36).', '@gcd 48 shift rp 36 ) =', { v: 12, use: ['GCD('] }],
+       ['Calcula GCD(100,75).', '@gcd 100 shift rp 75 ) =', { v: 25, use: ['GCD('] }],
+       ['Para simplificar 84/126, calcula GCD(84,126).', '@gcd 84 shift rp 126 ) =', { v: 42, use: ['GCD('] }]]
+});
+L('lcm', {
+  t: 'LCM · mínimo común múltiplo',
+  w: 'Menor número que es múltiplo de los dos: <code>LCM( a , b )</code>. Útil para sumar fracciones.',
+  m: 'Mismos modelos que GCD.',
+  ex: [['@lcm 4 shift rp 6 ) =', 'LCM(4,6) = 12']],
+  tr: [['Calcula LCM(6,8).', '@lcm 6 shift rp 8 ) =', { v: 24, use: ['LCM('] }],
+       ['Calcula LCM(5,7).', '@lcm 5 shift rp 7 ) =', { v: 35, use: ['LCM('] }],
+       ['Dos buses pasan cada 12 y 15 min: coinciden cada LCM(12,15).', '@lcm 12 shift rp 15 ) =', { v: 60, use: ['LCM('] }]]
+});
+L('mod', {
+  t: 'Mod · resto de la división',
+  w: 'Resto de dividir un entero entre otro: <code>a Mod b</code>. 17 Mod 5 = 2.',
+  m: 'Casio fx-991EX: Mod. Texas TI-36X Pro: remainder(. No existe en modelos básicos.',
+  ex: [['17 @mod 5 =', '17 Mod 5 = 2'], ['20 @mod 4 =', 'Divisible: resto 0']],
+  tr: [['Calcula 100 Mod 7.', '100 @mod 7 =', { v: 2, use: ['Mod'] }],
+       ['Calcula 2¹⁰ Mod 1000.', '2 pow 10 @mod 1000 =', { v: 24, use: ['Mod'] }],
+       ['Calcula 2025 Mod 12.', '2025 @mod 12 =', { v: 9, use: ['Mod'] }]]
+});
+
+/* ---------- Formato y conversión ---------- */
+L('eng', {
+  t: 'ENG · notación de ingeniería',
+  w: 'Muestra el resultado con exponente <b>múltiplo de 3</b> (k, M, m, µ…): 12345 → 12.345ᴇ3. Cada pulsación sube el exponente de 3 en 3.',
+  m: 'Casio: tecla ENG. Texas: MODE → ENG. Sharp: tecla ENG o FSE.',
+  ex: [['12345 = eng', '12.345ᴇ3']],
+  tr: [['Expresa 4500 en notación de ingeniería: 4.5ᴇ3.', '4500 = eng', { s: '4.5ᴇ3', on: 'eng' }],
+       ['Expresa 0.00032: 320ᴇ-6.', '0.00032 = eng', { s: '320ᴇ-6', on: 'eng' }],
+       ['Expresa 2 500 000: 2.5ᴇ6.', '2500000 = eng', { s: '2.5ᴇ6', on: 'eng' }]]
+});
+L('eng_l', {
+  t: '← · ENG hacia la izquierda',
+  w: 'SHIFT + ENG baja el exponente de 3 en 3 (desplaza la coma a la derecha): 4 500 000 → 4500ᴇ3.',
+  m: 'Casio: SHIFT + ENG (←).',
+  ex: [['4500000 = shift eng', '4500ᴇ3']],
+  tr: [['Pasa 4 500 000 a 4500ᴇ3 con SHIFT + ENG.', '4500000 = shift eng', { s: '4500ᴇ3', on: 'eng_l' }],
+       ['Pasa 0.047 a 47000ᴇ-6.', '0.047 = shift eng', { s: '47000ᴇ-6', on: 'eng_l' }],
+       ['Pasa 8ᴇ9 a 8000ᴇ6.', '8 exp 9 = shift eng', { s: '8000ᴇ6', on: 'eng_l' }]]
+});
+L('sd', {
+  t: 'S⇔D · fracción ⇄ decimal',
+  w: 'Alterna el resultado entre <b>decimal</b> y <b>fracción</b> cuando es posible. Los irracionales (√2, π) no pueden pasar a fracción.',
+  m: 'Casio ES/EX: S⇔D. Texas: tecla ◄► (f↔d). Sharp: S⇔D o a b/c↔d/c.',
+  ex: [['3 / 8 = sd', '0.375 ⇄ 3/8'], ['0.75 sd', '0.75 ⇄ 3/4']],
+  tr: [['Calcula 3÷8 y pásalo a fracción con S⇔D.', '3 / 8 = sd', { s: '3⁄8', on: 'sd' }],
+       ['Calcula 1/4+1/4 (sale fracción) y pásalo a decimal.', '1 frac 4 + 1 frac 4 = sd', { s: '0.5', on: 'sd' }],
+       ['Pasa 0.75 a fracción.', '0.75 sd', { s: '3⁄4', on: 'sd' }]]
+});
+L('exp', {
+  t: '×10ˣ · notación científica',
+  w: 'Introduce potencias de 10: <code>3 ×10ˣ 4</code> = 3×10⁴ = 30000. Se usa para números muy grandes o muy pequeños.',
+  n: 'No hace falta escribir ×10 ni ^: la tecla ya lo incluye. Para exponentes negativos usa (−).',
+  m: 'Casio: ×10ˣ. Texas: tecla EE. Sharp y Canon: EXP. HP: EXP.',
+  ex: [['3 exp 4 =', '3×10⁴ = 30000'], ['2 exp neg 3 =', '2×10⁻³ = 0.002']],
+  tr: [['Calcula 5×10³.', '5 exp 3 =', { v: 5000, use: ['ᴇ'] }],
+       ['Escribe el número de Avogadro 6.02×10²³.', '6.02 exp 23 =', { s: '6.02ᴇ23', use: ['ᴇ'] }],
+       ['Calcula 3×10⁻⁴.', '3 exp neg 4 =', { v: 0.0003, use: ['ᴇ'] }]]
+});
+
+/* ---------- Básicas ---------- */
+L('digits', {
+  t: '0–9 · dígitos',
+  w: 'Escriben números. En pantalla caben hasta 10 dígitos; los resultados más grandes pasan a notación científica.',
+  m: 'Igual en todos los modelos.',
+  ex: [['123 + 456 =', 'Suma de dos números'], ['7 * 8 =', 'Producto']],
+  tr: [['Calcula 123 + 456.', '123 + 456 =', 579],
+       ['Calcula 7 × 8.', '7 * 8 =', 56],
+       ['Calcula 1000 − 1.', '1000 - 1 =', 999]]
+});
+L('dot', {
+  t: '. · punto decimal',
+  w: 'Separa la parte entera de la decimal. Puedes empezar por el punto: .5 = 0.5.',
+  m: 'Algunos modelos muestran coma decimal según el idioma configurado.',
+  ex: [['0.5 + 0.25 =', '0.75'], ['0.1 + 0.2 =', '0.3']],
+  tr: [['Calcula 3.5 × 2.', '3.5 * 2 =', 7],
+       ['Calcula 0.1 + 0.2.', '0.1 + 0.2 =', 0.3],
+       ['Calcula 2.5 ÷ 0.5.', '2.5 / 0.5 =', 5]]
+});
+L('ans', {
+  t: 'Ans · último resultado',
+  w: 'Contiene el <b>último resultado</b> calculado. Si tras un resultado pulsas un operador (+, −, ×, ÷…), Ans se inserta solo.',
+  m: 'Casio: Ans. Texas: 2nd + (−). Sharp y HP: ANS.',
+  ex: [['5 * 4 = + 1 =', '20, y luego Ans+1 = 21']],
+  tr: [['Calcula 6×7 y después suma 8 al resultado anterior.', '6 * 7 = + 8 =', { v: 50, n: 2 }],
+       ['Calcula 100÷4 y luego multiplícalo por 2 usando Ans.', '100 / 4 = ans * 2 =', { v: 50, n: 2, use: ['Ans'] }],
+       ['Calcula 9 y luego Ans².', '9 = ans sq =', { v: 81, n: 2, use: ['Ans'] }]]
+});
+L('del', {
+  t: 'DEL · borrar',
+  w: 'Borra el carácter a la izquierda del cursor. Tras un resultado vuelve a la expresión y borra el último carácter.',
+  m: 'Casio: DEL. Texas: DEL. Sharp: DEL. HP: ⌫.',
+  ex: [['7 + 9 del 8 =', 'Corrige 9 por 8']],
+  tr: [['Escribe 7+9, borra el 9 y pon 8. Resultado: 15.', '7 + 9 del 8 =', 15],
+       ['Escribe 2×3×4 y borra el último factor.', '2 * 3 * 4 del del =', 6],
+       ['Calcula 5+5, pulsa DEL y cambia por 5+7 = 12.', '5 + 5 = del 7 =', { v: 12, n: 2 }]]
+});
+L('ac', {
+  t: 'AC · borrar todo',
+  w: 'Borra la pantalla y la expresión. <b>No borra las memorias</b> (A–F, X, Y, M ni Ans).',
+  m: 'Casio: AC. Texas: CLEAR. Sharp: ON/C.',
+  ex: [['5 + 5 = ac 2 + 2 =', 'Empieza de nuevo']],
+  tr: [['Escribe 123 y bórralo todo con AC.', '1 2 3 ac', { chk: c => c.toks.length === 0, on: 'ac' }],
+       ['Calcula 5+5, pulsa AC y calcula 2+2.', '5 + 5 = ac 2 + 2 =', 4],
+       ['Guarda 9 en A, pulsa AC y calcula A+1: A sigue valiendo 9.', '9 shift rcl A ac A + 1 =', { v: 10, use: ['A'] }]]
+});
+L('add', {
+  t: '+ · suma',
+  w: 'Suma. Tras un resultado, + continúa con Ans.',
+  m: 'Igual en todas las marcas.',
+  ex: [['2 + 3 =', '5'], ['1 + 2 + 3 + 4 =', '10']],
+  tr: [['Calcula 12.5 + 7.5.', '12.5 + 7.5 =', 20],
+       ['Calcula 1+2+3+4.', '1 + 2 + 3 + 4 =', 10],
+       ['Calcula 5+5 y luego +5 sobre el resultado.', '5 + 5 = + 5 =', { v: 15, n: 2 }]]
+});
+L('sub', {
+  t: '− · resta',
+  w: 'Resta dos valores. No lo confundas con (−), que cambia el signo.',
+  m: 'Igual en todas las marcas.',
+  ex: [['10 - 4 =', '6'], ['3 - 8 =', '−5']],
+  tr: [['Calcula 3 − 8.', '3 - 8 =', -5],
+       ['Calcula 100 − 25 − 5.', '100 - 25 - 5 =', 70],
+       ['Calcula −8 − (−3).', 'neg 8 - ( neg 3 ) =', -5]]
+});
+L('mul', {
+  t: '× · multiplicación',
+  w: 'Multiplica. Tiene prioridad sobre sumas y restas. Entre un número y un paréntesis puede omitirse: 2(3+4) = 14.',
+  m: 'Igual en todas las marcas.',
+  ex: [['6 * 7 =', '42'], ['2 * 3 * 4 =', '24']],
+  tr: [['Calcula 12×12.', '12 * 12 =', 144],
+       ['Calcula 0.5×0.5.', '0.5 * 0.5 =', 0.25],
+       ['Calcula 2×3×4.', '2 * 3 * 4 =', 24]]
+});
+L('div', {
+  t: '÷ · división',
+  w: 'Divide. Dividir entre 0 da Math ERROR.',
+  m: 'Igual en todas las marcas. Las que tienen plantilla de fracción muestran la división como fracción.',
+  ex: [['84 / 4 =', '21'], ['1 / 8 =', '0.125'], ['5 / 0 =', 'Error']],
+  tr: [['Calcula 144÷12.', '144 / 12 =', 12],
+       ['Calcula 22÷7.', '22 / 7 =', 22 / 7],
+       ['Calcula 10÷4.', '10 / 4 =', 2.5]]
+});
+L('paren', {
+  t: '( ) · paréntesis',
+  w: 'Agrupan operaciones y cambian la prioridad. Si olvidas el último «)», la calculadora lo cierra sola al final.',
+  m: 'Igual en todas las marcas. Algunas aceptan hasta 24 niveles de anidamiento.',
+  ex: [['( 2 + 3 ) * 4 =', '20, no 14'], ['2 * ( 3 + ( 4 * 5 ) ) =', 'Paréntesis anidados']],
+  tr: [['Calcula (2+3)×4.', '( 2 + 3 ) * 4 =', { v: 20, use: ['('] }],
+       ['Calcula 12 ÷ (2+4).', '12 / ( 2 + 4 ) =', { v: 2, use: ['('] }],
+       ['Calcula 2×(3+(4×5)).', '2 * ( 3 + ( 4 * 5 ) ) =', { v: 46, use: ['('] }]]
+});
+L('pct', {
+  t: '% · porcentaje',
+  w: 'Se escribe después del número y lo divide entre 100: 15% = 0.15. Para el 15% de 200: 200 × 15 % = 30.',
+  n: 'En esta calculadora 200+10% suma 0.1; para añadir un 10% escribe 200 + 200 × 10 %.',
+  m: 'Casio: SHIFT + (. Texas y Sharp: tecla % propia; algunos modelos Sharp calculan «+%» automáticamente. Revisa tu manual.',
+  ex: [['200 * 15 shift lp =', '15% de 200 = 30']],
+  tr: [['Calcula el 15% de 80.', '80 * 15 shift lp =', { v: 12, use: ['%'] }],
+       ['Calcula 120 × 21%.', '120 * 21 shift lp =', { v: 25.2, use: ['%'] }],
+       ['Descuento del 30% sobre 59.90 €: 59.90 − 59.90×30%.', '59.9 - 59.9 * 30 shift lp =', { v: 59.9 * 0.7, use: ['%'] }]]
+});
+L('comma', {
+  t: ', · coma separadora',
+  w: 'Separa los argumentos de funciones de dos datos: GCD(36,48), Pol(3,4), ∫(f,a,b). Es SHIFT + «)».',
+  m: 'Casio: SHIFT + ). Texas: tecla , . Sharp: tecla , o ;.',
+  ex: [['@gcd 36 shift rp 48 ) =', 'GCD(36,48) = 12']],
+  tr: [['Calcula GCD(36,48).', '@gcd 36 shift rp 48 ) =', { v: 12, use: [','] }],
+       ['Calcula LCM(6,10).', '@lcm 6 shift rp 10 ) =', { v: 30, use: [','] }],
+       ['Calcula Pol(6,8). r=10.', 'pol 6 shift rp 8 ) =', { v: 10, use: [','] }]]
+});
+L('equal', {
+  t: '= · ejecutar',
+  w: 'Calcula la expresión. Respeta la <b>prioridad</b>: paréntesis → potencias y raíces → × ÷ → + −.',
+  m: 'Casio, Sharp y HP: =. Texas: <b>ENTER</b>.',
+  ex: [['2 + 3 * 4 =', '14, no 20']],
+  tr: [['Calcula 100÷8.', '100 / 8 =', 12.5],
+       ['Calcula 2+3×4 respetando la prioridad.', '2 + 3 * 4 =', 14],
+       ['Calcula sin(30)+cos(60).', 'sin 30 ) + cos 60 ) =', 1]]
+});
+
+/* ---------- Teclas → lecciones ---------- */
+const KEYS = {
+  shift: ['shift'], hyp: ['hyp', 'ahyp'], left: ['cursor'], right: ['cursor'], mode: ['angle', 'format'], calc: ['calc', 'solve'],
+  integ: ['integ', 'deriv'], inv: ['inv', 'fact'], frac: ['frac', 'mixed'], sqrt: ['sqrt', 'cbrt'], sq: ['sq', 'cube'], pow: ['pow', 'root'],
+  log: ['log', 'pow10'], ln: ['ln', 'powe'], neg: ['neg'], dms: ['dms', 'todms'],
+  optn: ['optn', 'abs', 'int', 'intg', 'fpart', 'rnd', 'gcd', 'lcm', 'mod', 'sigma'],
+  sin: ['sin', 'asin'], cos: ['cos', 'acos'], tan: ['tan', 'atan'],
+  rcl: ['rcl', 'sto'], eng: ['eng', 'eng_l'], sd: ['sd'], lp: ['paren', 'pct'], rp: ['paren', 'comma'],
+  mplus: ['mplus', 'mminus'], ranq: ['ranq', 'ranint'], pol: ['pol', 'rec'], ncr: ['ncr', 'npr'], pi: ['pi', 'econst'],
+  A: ['vars'], B: ['vars'], C: ['vars'], D: ['vars'], E: ['vars'], F: ['vars'], X: ['vars'], Y: ['vars'], M: ['mplus', 'mminus'], eqs: ['eqsign'],
+  dot: ['dot'], exp: ['exp'], ans: ['ans'], del: ['del'], ac: ['ac'],
+  add: ['add'], sub: ['sub'], mul: ['mul'], div: ['div'], equal: ['equal']
+};
+'0123456789'.split('').forEach(d => KEYS[d] = ['digits']);
+/* qué lección se abre cuando la tecla se pulsa con SHIFT activo */
+const SHIFTED = { sqrt: 'cbrt', sq: 'cube', pow: 'root', log: 'pow10', ln: 'powe', integ: 'deriv', inv: 'fact', frac: 'mixed', dms: 'todms',
+  sin: 'asin', cos: 'acos', tan: 'atan', rcl: 'sto', eng: 'eng_l', lp: 'pct', rp: 'comma', mplus: 'mminus', ranq: 'ranint', pol: 'rec',
+  ncr: 'npr', pi: 'econst', calc: 'solve' };
+const TITLES = { abs: 'Abs', int: 'Int', intg: 'Intg', fpart: 'Frac', rnd: 'Rnd', gcd: 'GCD', lcm: 'LCM', mod: 'Mod', sigma: 'Σ',
+  angle: 'Ángulo', format: 'Formato', ahyp: 'hyp⁻¹', optn: 'OPTN', cursor: '◀ ▶' };
+G.LESSONS = LESSONS; G.KEYLESSONS = KEYS; G.SHIFTED = SHIFTED; G.LTITLES = TITLES;
+if (typeof module !== 'undefined' && module.exports) module.exports = { LESSONS, KEYS, SHIFTED, TITLES };
+})(typeof globalThis !== 'undefined' ? globalThis : window);
+
+</script>
+<script>
+/* ===== Interfaz compartida (ordenador y móvil) ===== */
+(function () {
+'use strict';
+const MOB = document.body.dataset.ver === 'mob';
+const LS = 'sci-calc-progress-v1', LB = 'sci-calc-brand-v1';
+const $ = (s, r) => (r || document).querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const strip = s => String(s).replace(/<[^>]+>/g, '');
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+};
+
+const BRANDS = {
+  casio: { n: 'Casio', l: {} },
+  ti: { n: 'Texas Instruments', l: { shift: '2nd', equal: 'ENTER', exp: 'EE', ac: 'CLEAR', frac: 'n/d', sd: '◄►', pow: '^' } },
+  sharp: { n: 'Sharp', l: { shift: '2ndF', exp: 'EXP', ac: 'ON/C', frac: 'a b/c', inv: '1/x', pow: 'yˣ', neg: '+/−' } }
+};
+const EQUIV = [
+  ['Segunda función', 'SHIFT', '2nd', '2ndF'],
+  ['Ejecutar', '=', 'ENTER', '='],
+  ['Signo negativo', '(−)', '(−)', '(−) o +/− (básicas)'],
+  ['Notación científica', '×10ˣ', 'EE', 'EXP'],
+  ['Fracciones', '▫/▫ (ES/EX) · a b/c (antiguas)', 'n/d · Un/d', 'a b/c'],
+  ['Fracción ⇄ decimal', 'S⇔D', 'f◄►d / n/d◄►Un/d', 'S⇔D o a b/c↔d/c'],
+  ['Cambiar a grados/radianes', 'SHIFT + MODE (SETUP)', 'MODE', 'DRG▶'],
+  ['Formato Fix/Sci/Eng', 'SHIFT + MODE · ENG', 'MODE · FLOAT/FIX', 'FSE · ENG'],
+  ['Borrar todo', 'AC', 'CLEAR', 'ON/C'],
+  ['Último resultado', 'Ans', '2nd + (−)', 'ANS'],
+  ['Guardar / recuperar memoria', 'STO / RCL', 'STO▶ / RCL', 'STO / RCL'],
+  ['Inverso', 'x⁻¹', 'x⁻¹', '1/x'],
+  ['Factorial · combinaciones', 'SHIFT x⁻¹ · nCr', 'menú PRB', 'n! · nCr · nPr (teclas)']
+];
+
+const S = {
+  calc: new Calc(), lesson: null, key: null, mode: 'explore', session: null, ex: null, hint: null,
+  last: null, prog: {}, brand: 'casio', tab: 'calc', playId: 0, menu: null, flash: null
+};
+try { S.prog = JSON.parse(store.get(LS) || '{}') || {}; } catch (e) { S.prog = {}; }
+S.brand = store.get(LB) || 'casio'; if (!BRANDS[S.brand]) S.brand = 'casio';
+const saveProg = () => store.set(LS, JSON.stringify(S.prog));
+
+/* ---------- Progreso ---------- */
+const pk = (lid, i) => lid + '#' + i;
+const exSt = (lid, i) => S.prog[pk(lid, i)] || '';
+function lessonSt(lid) {
+  const L = LESSONS[lid]; let ok = 0, bad = 0;
+  L.tr.forEach((_, i) => { const s = exSt(lid, i); if (s === 'ok') ok++; else if (s === 'bad') bad++; });
+  return { ok, bad, total: L.tr.length, cls: ok === L.tr.length ? 'ok' : bad ? 'bad' : '' };
+}
+function keySt(k) {
+  const ls = KEYLESSONS[k] || []; let ok = 0, bad = 0, total = 0;
+  ls.forEach(l => { const s = lessonSt(l); ok += s.ok; bad += s.bad; total += s.total; });
+  return { ok, bad, total, cls: total && ok === total ? 'ok' : bad ? 'bad' : '' };
+}
+function totals() {
+  let ok = 0, total = 0;
+  Object.keys(LESSONS).forEach(l => { const s = lessonSt(l); ok += s.ok; total += s.total; });
+  return { ok, total };
+}
+const firstKey = lid => Object.keys(KEYLESSONS).find(k => KEYLESSONS[k].includes(lid)) || null;
+const shortTitle = lid => LTITLES[lid] || LESSONS[lid].t.split(' · ')[0];
+
+/* ---------- Construcción del DOM ---------- */
+function keyLabel(k) { const o = BRANDS[S.brand].l; return o[k.id] || k.l; }
+function keyHTML(k) {
+  const s = k.s ? `<span class="s">${esc(k.s[0])}</span>` : '<span class="s"></span>';
+  return `<button class="key ${k.cls}" data-key="${k.id}" aria-label="${esc(k.l)}">${s}<span class="l">${esc(keyLabel(k))}</span><i class="prog"></i></button>`;
+}
+function build() {
+  const lay = Calc.layout;
+  const rows = lay.func.map(r => `<div class="row r6">${r.map(keyHTML).join('')}</div>`).join('');
+  const vars = `<div class="row r5 vars">${lay.vars.map(keyHTML).join('')}</div>`;
+  const pad = lay.pad.map(r => `<div class="row r5">${r.map(keyHTML).join('')}</div>`).join('');
+  $('#app').innerHTML = `
+  <header class="top">
+    <div class="brand"><span class="logo">∑</span><div><b>Calculadora científica</b><small>Aprende cada tecla</small></div></div>
+    <div class="topr">
+      <label class="sel">Teclas estilo <select id="brand">${Object.keys(BRANDS).map(b => `<option value="${b}">${BRANDS[b].n}</option>`).join('')}</select></label>
+      <button class="tb" data-top="index">Índice</button>
+      <button class="tb" data-top="models">Modelos</button>
+      <button class="tb" data-top="reset" title="Borrar progreso">↺</button>
+    </div>
+    <div class="total"><div class="tbar"><i id="tfill"></i></div><span id="ttext"></span></div>
+  </header>
+  <main>
+    <section class="calcwrap">
+      <div id="bar" class="bar"></div>
+      <div class="case">
+        <div class="lcd" id="lcd"><div class="ind" id="ind"></div><div class="expr" id="expr"></div><div class="res" id="res"></div><div class="extra" id="extra"></div></div>
+        <div class="menu" id="menu" hidden></div>
+        <div class="keys" id="keys">${rows}${vars}${pad}</div>
+      </div>
+      <div class="legend"><span class="lg ok">verde: lo has hecho bien</span><span class="lg bad">rojo: algún ejercicio mal</span><span class="lg">gris: sin practicar</span></div>
+    </section>
+    <section class="lesson" id="lesson"></section>
+  </main>
+  ${MOB ? '<nav class="tabs"><button data-tab="calc">🧮 Calculadora</button><button data-tab="lesson">📖 Lección</button></nav>' : ''}
+  <div class="modal" id="modal" hidden><div class="mbox"><button class="mx" data-close>✕</button><div id="mbody"></div></div></div>`;
+  $('#brand').value = S.brand;
+}
+
+/* ---------- Pantalla ---------- */
+function renderScreen() {
+  const c = S.calc;
+  $('#ind').innerHTML = c.indicators().map(t => `<span>${esc(t)}</span>`).join('');
+  let ex = '';
+  if (c.screen === 'edit' || c.screen === 'error' && !c.toks.length) {
+    c.toks.forEach((t, i) => { if (i === c.cur && c.screen === 'edit') ex += '<span class="cur"></span>'; ex += esc(t.d); });
+    if (c.screen === 'edit' && c.cur >= c.toks.length) ex += '<span class="cur"></span>';
+  } else ex = esc(c.exprStr());
+  let res = '', extra = '';
+  if (c.screen === 'error') res = `<span class="err">${esc(c.err)}</span>`;
+  else if (c.prompt) res = esc(c.promptText());
+  else if (c.screen === 'result') { res = esc((c.res.pre || '') + c.resText()); extra = esc(c.extraText()); }
+  else res = c.toks.length ? '' : '0';
+  const e = $('#expr'); e.innerHTML = ex || '&nbsp;'; $('#res').innerHTML = res || '&nbsp;'; $('#extra').innerHTML = extra;
+  e.scrollLeft = c.cur >= c.toks.length ? e.scrollWidth : e.scrollLeft;
+  $('#keys').classList.toggle('shift-on', c.shift);
+  $('#keys').classList.toggle('hyp-on', c.hyp);
+}
+function flashScreen(kind) {
+  const l = $('#lcd'); l.classList.remove('okf', 'badf'); void l.offsetWidth; l.classList.add(kind === 'ok' ? 'okf' : 'badf');
+}
+function renderKeys() {
+  document.querySelectorAll('.key').forEach(b => {
+    const st = keySt(b.dataset.key);
+    b.classList.toggle('ok', st.cls === 'ok'); b.classList.toggle('bad', st.cls === 'bad');
+    const p = b.querySelector('.prog'); p.style.width = st.total ? Math.round(100 * st.ok / st.total) + '%' : '0';
+    b.querySelector('.l').textContent = keyLabel(Calc.keyMap[b.dataset.key]);
+  });
+  const t = totals(); $('#tfill').style.width = (100 * t.ok / t.total) + '%'; $('#ttext').textContent = t.ok + ' / ' + t.total + ' ejercicios correctos';
+}
+
+/* ---------- Chips de teclas ---------- */
+function chips(keys) {
+  return Calc.hint(keys).map(l => `<span class="chip${l === 'SHIFT' ? ' sh' : /^(MODE|OPTN)/.test(l) ? ' mn' : ''}">${esc(l)}</span>`).join('<i class="arr">›</i>');
+}
+function runPreview(keys) {
+  const c = new Calc();
+  try { Calc.runKeys(c, keys); } catch (e) { return { e: '—', r: '' }; }
+  const e = c.exprStr() || c.promptText();
+  if (c.screen === 'error') return { e, r: c.err, bad: true };
+  if (c.prompt) return { e, r: '(pide valores)' };
+  if (c.screen === 'result') return { e, r: (c.res.pre || '') + c.resText() + (c.extraText() ? ' · ' + c.extraText() : '') };
+  return { e, r: '' };
+}
+
+/* ---------- Panel de lección ---------- */
+function welcome() {
+  return `<div class="welcome"><h2>Pulsa cualquier tecla</h2>
+  <p>Cada botón de la calculadora tiene su lección: qué hace, en qué se diferencia entre <b>marcas y modelos</b>, ejemplos que puedes ejecutar con un clic y ejercicios para practicar.</p>
+  <ul><li>📖 <b>Explorar</b>: al pulsar una tecla ves su lección.</li><li>✏️ <b>Practicar</b>: inicia un ejercicio y tu respuesta se corrige sola.</li><li>🟢 La tecla se pone <b>verde</b> cuando haces bien todos sus ejercicios y 🔴 <b>roja</b> si fallas alguno.</li><li>Las teclas con segunda función llevan su etiqueta amarilla arriba: pulsa <b>SHIFT</b> primero.</li></ul>
+  <p class="muted">También puedes usar el teclado del ordenador (números, + − * / ( ) Intro, Borrar, Esc) y abrir el <b>Índice</b> para ir directo a una lección.</p></div>`;
+}
+function lessonHTML() {
+  const lid = S.lesson, L = LESSONS[lid], vars = KEYLESSONS[S.key] || [lid];
+  const st = lessonSt(lid);
+  const tabs = vars.length > 1 ? `<div class="vtabs">${vars.map(v => `<button class="vt ${v === lid ? 'on' : ''} ${lessonSt(v).cls}" data-lesson="${v}">${esc(shortTitle(v))}</button>`).join('')}</div>` : '';
+  const ex = (L.ex || []).map((e, i) => {
+    const p = runPreview(e[0]);
+    return `<div class="exm"><div class="chips">${chips(e[0])}</div><div class="exn">${esc(e[1])}</div>
+    <div class="exr2"><code class="${p.bad ? 'errt' : ''}">${esc(p.e)}${p.r ? ' = ' + esc(p.r) : ''}</code><button class="btn sm" data-act="play" data-i="${i}">▶ Pruébalo</button></div></div>`;
+  }).join('');
+  const trs = L.tr.map((t, i) => {
+    const s = exSt(lid, i), act = S.ex && S.ex.lid === lid && S.ex.i === i && S.session && !S.session.done;
+    const ico = s === 'ok' ? '✓' : s === 'bad' ? '✗' : '○';
+    const v = S.last && S.last.lid === lid && S.last.i === i ? `<div class="verd ${S.last.ok ? 'ok' : 'bad'}">${esc(S.last.msg)}</div>` : '';
+    const hint = act && S.hint === pk(lid, i) ? `<div class="chips hint">${chips(t.k)}</div>` : '';
+    const btns = act
+      ? `<button class="btn sm" data-act="hint" data-i="${i}">💡 Teclas</button><button class="btn sm" data-act="how" data-i="${i}">👁 Ver cómo</button><button class="btn sm ghost" data-act="quit">✕ Abandonar</button>`
+      : `<button class="btn sm pri" data-act="start" data-i="${i}">${s === 'ok' ? 'Repetir' : s === 'bad' ? 'Reintentar' : 'Empezar'}</button>`;
+    return `<div class="exq st-${s || 'none'} ${act ? 'active' : ''}"><div class="exh"><span class="ico">${ico}</span><b>Ejercicio ${i + 1}</b>${act ? '<em>en curso</em>' : ''}</div><p>${esc(t.q)}</p>${hint}${v}<div class="exb">${btns}</div></div>`;
+  }).join('');
+  return `<div class="lhead"><h2>${esc(L.t)}</h2><span class="lst ${st.cls}">${st.ok}/${st.total} ✓</span></div>${tabs}
+  <div class="blk"><h3>¿Qué hace?</h3><p>${L.w}</p>${L.n ? `<p class="tip">💡 ${L.n}</p>` : ''}</div>
+  <div class="blk models"><h3>En otros modelos</h3><p>${L.m}</p></div>
+  <div class="blk"><h3>Ejemplos <small>pulsa «Pruébalo» y mira la calculadora</small></h3>${ex || '<p class="muted">Sin ejemplos.</p>'}</div>
+  <div class="blk"><h3>Ahora tú <small>3 ejercicios · se corrigen solos</small></h3>${trs}</div>`;
+}
+function renderLesson() {
+  const el = $('#lesson');
+  el.innerHTML = S.lesson ? lessonHTML() : welcome();
+}
+function renderBar() {
+  const b = $('#bar'); let h = '';
+  if (S.session && !S.session.done && S.ex) {
+    const t = LESSONS[S.ex.lid].tr[S.ex.i];
+    h = `<div class="bk act"><div class="bt"><b>✏️ Ejercicio ${S.ex.i + 1} · ${esc(shortTitle(S.ex.lid))}</b></div><div class="bq">${esc(t.q)}</div>
+      ${S.last && S.last.msg && S.last.lid === S.ex.lid && !S.last.ok ? `<div class="verd bad">${esc(S.last.msg)}</div>` : ''}
+      <div class="bb"><button class="btn sm" data-act="hint" data-i="${S.ex.i}">💡 Teclas</button><button class="btn sm" data-act="how" data-i="${S.ex.i}">👁 Ver cómo</button><button class="btn sm ghost" data-act="quit">✕ Abandonar</button></div>
+      ${S.hint === pk(S.ex.lid, S.ex.i) ? `<div class="chips hint">${chips(t.k)}</div>` : ''}</div>`;
+  } else if (S.last && S.last.ok) {
+    const L = LESSONS[S.last.lid], more = S.last.i + 1 < L.tr.length;
+    h = `<div class="bk good"><div class="bt"><b>✓ ¡Correcto!</b> ${esc(S.last.msg)}</div><div class="bb">${more ? `<button class="btn sm pri" data-act="next">Siguiente ejercicio ▶</button>` : '<span class="muted">🎉 Lección completada</span>'}<button class="btn sm ghost" data-act="explore">📖 Seguir explorando</button></div></div>`;
+  } else if (S.lesson) {
+    h = `<div class="bk"><div class="bt"><b>📖 ${esc(LESSONS[S.lesson].t)}</b></div><div class="bq muted">${esc(strip(LESSONS[S.lesson].w).slice(0, 120))}…</div><div class="bb">${MOB ? '<button class="btn sm pri" data-tab="lesson">Ver lección y ejercicios</button>' : ''}<button class="btn sm ${S.mode === 'practice' ? 'pri' : 'ghost'}" data-act="togglemode">${S.mode === 'explore' ? '📖 Explorando' : '✏️ Solo calcular'}</button></div></div>`;
+  } else {
+    h = `<div class="bk"><div class="bt"><b>👆 Pulsa una tecla</b></div><div class="bq muted">Verás qué hace y podrás practicar con ejemplos y ejercicios.</div><div class="bb"><button class="btn sm ${S.mode === 'practice' ? 'pri' : 'ghost'}" data-act="togglemode">${S.mode === 'explore' ? '📖 Explorando' : '✏️ Solo calcular'}</button></div></div>`;
+  }
+  b.innerHTML = h;
+}
+function renderAll() { renderScreen(); renderKeys(); renderLesson(); renderBar(); document.body.dataset.tab = S.tab; }
+function setTab(t) { S.tab = t; document.body.dataset.tab = t; if (t === 'lesson') $('#lesson').scrollTop = 0; window.scrollTo(0, 0); }
+
+/* ---------- Acciones ---------- */
+function openLesson(lid, key, scroll) {
+  S.lesson = lid; S.key = key || firstKey(lid); S.last = null; S.hint = null;
+  renderLesson(); renderBar();
+  if (scroll !== false) { const el = $('#lesson'); el.scrollTop = 0; if (!MOB) { const r = el.getBoundingClientRect(); if (r.top < 0) window.scrollTo({ top: 0, behavior: 'smooth' }); } }
+}
+function startEx(lid, i) {
+  document.body.classList.remove('lesson-focus');
+  const ex = LESSONS[lid].tr[i];
+  S.lesson = lid; if (!(KEYLESSONS[S.key] || []).includes(lid)) S.key = firstKey(lid);
+  S.playId++; S.mode = 'practice'; S.ex = { lid, i }; S.session = new Calc.Session(S.calc, ex); S.last = null; S.hint = null;
+  closeMenu(); renderAll(); if (MOB) setTab('calc'); else { const a = $('.exq.active'); if (a) a.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+}
+function quitEx() { S.playId++; S.session = null; S.ex = null; S.mode = 'explore'; S.last = null; S.hint = null; S.calc.clearAll(); renderAll(); }
+function verdict(r) {
+  if (!r) return;
+  const { lid, i } = S.ex, k = pk(lid, i);
+  if (r.ok) {
+    S.prog[k] = 'ok'; saveProg(); S.last = { ok: true, msg: 'Tu respuesta es la esperada.', lid, i };
+    S.session = null; S.mode = 'explore'; flashScreen('ok');
+  } else {
+    if (S.prog[k] !== 'ok') S.prog[k] = 'bad'; saveProg(); S.last = { ok: false, msg: r.msg, lid, i }; flashScreen('bad');
+  }
+  renderKeys(); renderLesson(); renderBar();
+  if (MOB) window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function pickLesson(id) {
+  const c = S.calc;
+  if (['sin', 'cos', 'tan'].includes(id) && c.hyp) return c.shift ? 'ahyp' : 'hyp';
+  if (c.shift && SHIFTED[id]) return SHIFTED[id];
+  return (KEYLESSONS[id] || [])[0];
+}
+function press(id) {
+  S.playId++;
+  const active = S.session && !S.session.done;
+  let lid = null;
+  if (!active && S.mode === 'explore') lid = pickLesson(id);
+  if (id === 'mode' || id === 'optn') { S.calc.shift = false; if (lid) openLesson(lid, id); openMenu(id); renderScreen(); return; }
+  const evt = S.calc.press(id);
+  if (lid) { if (id === 'shift' && !S.calc.shift) lid = 'shift'; openLesson(lid, id, false); }
+  const r = active ? S.session.after(evt) : null;
+  renderScreen(); if (r) verdict(r);
+  if (active && evt && evt.fn === 'ac') { S.last = null; renderBar(); }
+}
+function tap(id) {
+  const b = document.querySelector(`.key[data-key="${id}"]`); if (!b) return;
+  b.classList.remove('tap'); void b.offsetWidth; b.classList.add('tap');
+  clearTimeout(b._tapTimer); b._tapTimer = setTimeout(() => b.classList.remove('tap'), 1100);
+}
+async function play(keys, restart) {
+  const my = ++S.playId; closeMenu();
+  if (restart) restart();
+  renderScreen(); await wait(250);
+  for (const tk of Calc.expand(keys)) {
+    if (my !== S.playId) return;
+    let id = tk;
+    if (tk[0] === '@') id = tk.startsWith('@ang') || tk.startsWith('@fmt') ? 'mode' : 'optn';
+    tap(id); await wait(900);
+    if (my !== S.playId) return;
+    Calc.step(S.calc, tk); renderScreen(); await wait(450);
+  }
+}
+const resetPlain = () => { const c = S.calc; c.resetMemory(); c.clearAll(); c.angle = 'DEG'; c.fmt = { t: 'norm', n: 0 }; };
+function playExample(i) {
+  document.body.classList.remove('lesson-focus');
+  S.session = null; S.ex = null; S.mode = S.mode; renderBar();
+  if (MOB) setTab('calc');
+  else { const el = $('.calcwrap'); if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' }); }
+  play(LESSONS[S.lesson].ex[i][0], resetPlain);
+}
+function playHow(i) {
+  document.body.classList.remove('lesson-focus');
+  if (!S.session || S.session.done) return;
+  S.hint = pk(S.ex.lid, S.ex.i);
+  if (MOB) setTab('calc');
+  play(LESSONS[S.ex.lid].tr[S.ex.i].k, () => { S.session.restart(); }); renderLesson(); renderBar();
+}
+
+/* ---------- Menús MODE y OPTN ---------- */
+function closeMenu() { S.menu = null; const m = $('#menu'); m.hidden = true; m.innerHTML = ''; }
+function openMenu(kind) {
+  const m = $('#menu'), c = S.calc;
+  if (S.menu === kind) { closeMenu(); return; }
+  S.menu = kind; m.hidden = false;
+  if (kind === 'mode') {
+    const ang = [['DEG', 'Grados (D)'], ['RAD', 'Radianes (R)'], ['GRA', 'Gradianes (G)']];
+    const fx = ['norm'].concat([0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => 'fix' + n));
+    const sc = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map(n => 'sci' + n);
+    const nm = s => s === 'norm' ? 'Norm' : s === 'sci0' ? 'Sci 10' : s[0].toUpperCase() + s.slice(1, 3) + ' ' + s.slice(3);
+    m.innerHTML = `<div class="mh"><b>MODE</b><button data-mclose>✕</button></div>
+      <h4>Unidad de ángulo</h4><div class="mg">${ang.map(a => `<button class="mb ${c.angle === a[0] ? 'on' : ''}" data-ang="${a[0]}">${a[1]}</button>`).join('')}</div>
+      <h4>Formato del resultado</h4><div class="mg g5">${fx.concat(sc).map(f => `<button class="mb ${c.fmtStr() === f ? 'on' : ''}" data-fmt="${f}">${nm(f)}</button>`).join('')}</div>`;
+  } else {
+    const it = [['abs', 'Abs'], ['int', 'Int'], ['intg', 'Intg'], ['fpart', 'Frac'], ['rnd', 'Rnd'], ['gcd', 'GCD'], ['lcm', 'LCM'], ['mod', 'Mod'], ['sigma', 'Σ']];
+    m.innerHTML = `<div class="mh"><b>OPTN</b><button data-mclose>✕</button></div><div class="mg g3">${it.map(i => `<button class="mb" data-opt="${i[0]}">${i[1]}</button>`).join('')}</div>`;
+  }
+}
+function menuClick(t) {
+  const c = S.calc, active = S.session && !S.session.done;
+  if (t.closest('[data-mclose]')) { closeMenu(); return; }
+  const a = t.closest('[data-ang]'), f = t.closest('[data-fmt]'), o = t.closest('[data-opt]');
+  if (a) { c.angle = a.dataset.ang; closeMenu(); if (!active && S.mode === 'explore') openLesson('angle', 'mode', false); renderScreen(); }
+  else if (f) { c.setFmt(f.dataset.fmt); closeMenu(); if (!active && S.mode === 'explore') openLesson('format', 'mode', false); renderScreen(); }
+  else if (o) { c.fn(o.dataset.opt); closeMenu(); if (!active && S.mode === 'explore') openLesson(o.dataset.opt, 'optn', false); renderScreen(); }
+}
+
+/* ---------- Modales ---------- */
+function modal(html) { $('#mbody').innerHTML = html; $('#modal').hidden = false; }
+function showIndex() {
+  const groups = [['Control y modos', ['shift', 'hyp', 'ahyp', 'cursor', 'angle', 'format', 'optn']],
+    ['Cálculo avanzado', ['calc', 'solve', 'eqsign', 'integ', 'deriv', 'sigma']],
+    ['Potencias, raíces, logaritmos', ['inv', 'fact', 'sq', 'cube', 'pow', 'root', 'sqrt', 'cbrt', 'log', 'pow10', 'ln', 'powe']],
+    ['Fracciones y formato', ['frac', 'mixed', 'sd', 'eng', 'eng_l', 'exp', 'dms', 'todms']],
+    ['Trigonometría y constantes', ['sin', 'asin', 'cos', 'acos', 'tan', 'atan', 'pi', 'econst', 'neg']],
+    ['Memoria', ['rcl', 'sto', 'mplus', 'mminus', 'vars']],
+    ['Combinatoria, azar, coordenadas', ['ncr', 'npr', 'ranq', 'ranint', 'pol', 'rec']],
+    ['Funciones de OPTN', ['abs', 'int', 'intg', 'fpart', 'rnd', 'gcd', 'lcm', 'mod']],
+    ['Teclas básicas', ['digits', 'dot', 'add', 'sub', 'mul', 'div', 'paren', 'pct', 'comma', 'equal', 'ans', 'del', 'ac']]];
+  modal('<h2>Índice de lecciones</h2><div class="idx">' + groups.map(g => `<h4>${g[0]}</h4><div class="ic">${g[1].map(l => `<button class="ib ${lessonSt(l).cls}" data-go="${l}">${esc(shortTitle(l))}<small>${lessonSt(l).ok}/3</small></button>`).join('')}</div>`).join('') + '</div>');
+}
+function showModels() {
+  modal(`<h2>Equivalencias entre marcas</h2><p class="muted">Los nombres y la posición de las teclas cambian entre marcas, series y generaciones. Esta tabla reúne las diferencias más habituales; ante la duda, consulta el manual de tu modelo. Casio fx-82/991/570, Texas Instruments TI-30/34/36 y Sharp EL-W/EL-5xx son las familias más comunes; Canon y HP se parecen a Sharp o Casio.</p>
+  <div class="tw"><table><thead><tr><th>Función</th><th>Casio</th><th>Texas Instruments</th><th>Sharp</th></tr></thead><tbody>${EQUIV.map(r => `<tr><td>${r.map(esc).join('</td><td>')}</td></tr>`).join('')}</tbody></table></div>
+  <p class="muted">Usa el selector «Teclas estilo» de la cabecera para ver las etiquetas de la calculadora con los nombres de cada marca.</p>`);
+}
+
+/* ---------- Eventos ---------- */
+function bind() {
+  document.addEventListener('click', e => {
+    const t = e.target;
+    const key = t.closest('.key'); if (key) { press(key.dataset.key); tap(key.dataset.key); return; }
+    if (t.closest('#menu')) { menuClick(t); return; }
+    const tb = t.closest('[data-top]');
+    if (tb) { const a = tb.dataset.top; if (a === 'index') showIndex(); else if (a === 'models') showModels(); else if (a === 'reset' && confirm('¿Borrar todo tu progreso?')) { S.prog = {}; saveProg(); S.session = null; S.ex = null; S.last = null; renderAll(); } return; }
+    if (t.closest('[data-close]') || t.id === 'modal') { $('#modal').hidden = true; return; }
+    const go = t.closest('[data-go]'); if (go) { $('#modal').hidden = true; document.body.classList.add('lesson-focus'); openLesson(go.dataset.go, null); if (MOB) setTab('lesson'); else $('#lesson').scrollIntoView({ block: 'start', behavior: 'smooth' }); return; }
+    const tab = t.closest('button[data-tab]'); if (tab) { setTab(tab.dataset.tab); return; }
+    const vt = t.closest('[data-lesson]'); if (vt) { const lid = vt.dataset.lesson; if (S.session && !S.session.done) return; openLesson(lid, S.key); return; }
+    const ac = t.closest('[data-act]');
+    if (ac) {
+      const a = ac.dataset.act, i = +ac.dataset.i;
+      if (a === 'start') startEx(S.lesson, i);
+      else if (a === 'quit') quitEx();
+      else if (a === 'hint') { const k = pk(S.ex.lid, S.ex.i); S.hint = S.hint === k ? null : k; renderLesson(); renderBar(); }
+      else if (a === 'how') playHow(i);
+      else if (a === 'play') playExample(i);
+      else if (a === 'next') startEx(S.last.lid, S.last.i + 1);
+      else if (a === 'explore') { S.last = null; S.mode = 'explore'; renderLesson(); renderBar(); }
+      else if (a === 'togglemode') { S.mode = S.mode === 'explore' ? 'practice' : 'explore'; renderBar(); }
+    }
+  });
+  $('#brand').addEventListener('change', e => { S.brand = e.target.value; store.set(LB, S.brand); renderKeys(); });
+  document.addEventListener('keydown', e => {
+    if (e.ctrlKey || e.metaKey || e.altKey || !$('#modal').hidden || /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+    const m = { Enter: 'equal', '=': 'equal', Backspace: 'del', Escape: 'ac', ArrowLeft: 'left', ArrowRight: 'right', '+': 'add', '-': 'sub', '*': 'mul', '/': 'div', '(': 'lp', ')': 'rp', '.': 'dot', ',': 'dot', '^': 'pow' };
+    let id = m[e.key]; if (!id && /^[0-9]$/.test(e.key)) id = e.key;
+    if (!id) return; e.preventDefault(); tap(id); press(id);
+  });
+}
+build(); bind(); renderAll();
+if (MOB) document.body.dataset.tab = 'calc';
+})();
+
+</script>
+</body>
+</html>

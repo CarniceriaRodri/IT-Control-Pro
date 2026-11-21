@@ -144,8 +144,10 @@ async function initialize() {
 async function backup(force=false) {
   const day=new Date().toISOString().slice(0,10);
   const target=path.join(backupDir,"sistema-"+day+".json");
-  if(force || !existsSync(target)) {
-    await copyFile(sourceFile,target);
+  {
+    const temporary=target+".tmp";
+    await copyFile(sourceFile,temporary);
+    await rename(temporary,target);
     const files=path.join(storage,"archivos");
     const dest=path.join(backupDir,"archivos");
     await mkdir(dest,{recursive:true});
@@ -229,8 +231,16 @@ async function handler(req,res){
       if(!existsSync(file))return reply(res,404,{error:"Copia no encontrada"});
       const saved=JSON.parse(await readFile(file,"utf8"));
       if(!validData(saved.data))return reply(res,400,{error:"La copia está dañada"});
+      const owners=[
+        ...saved.data.modules,...saved.data.records,
+        ...(saved.data.history||[]).flatMap(event=>[event.before,event.after]),
+        ...(saved.data.imports||[]).flatMap(batch=>[
+          batch.before?.module,...(batch.before?.records||[]),
+          batch.after?.module,...(batch.after?.records||[])
+        ])
+      ];
       const refs=new Set();
-      for(const owner of [...saved.data.modules,...saved.data.records])for(const ref of owner.files||[])refs.add(ref.hash);
+      for(const owner of owners)for(const ref of owner?.files||[])refs.add(ref.hash);
       const source=path.join(backupDir,"archivos"),dest=path.join(storage,"archivos");
       await mkdir(dest,{recursive:true});
       for(const hash of refs) {

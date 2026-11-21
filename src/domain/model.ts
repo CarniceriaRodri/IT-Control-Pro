@@ -169,7 +169,12 @@ export function initialModules(): Module[] {
     active: true,
     fields: [
       ...keys.filter((key) => id !== "Agenda" || key !== "estado").map((key, i) => ({
-        ...field(key, key[0].toUpperCase() + key.slice(1), id === "Agenda" && key === "fecha" ? "fecha" : "texto"),
+        ...field(
+          key,
+          key[0].toUpperCase() + key.slice(1),
+          id === "Agenda" && key === "fecha" ? "fecha" : key === "centro" ? "relación" : "texto",
+        ),
+        ...(key === "centro" ? { target: "Centros" } : {}),
         required: i === 0,
       })),
       ...(id === "Agenda" ? agendaExtras() : []),
@@ -185,6 +190,48 @@ export function initialModules(): Module[] {
     ],
   })), tasksModule(), contactsModule(), movementsModule()];
 }
+/** Convierte los antiguos centros de texto en relaciones con registros reales.
+ * Si falta el centro en el directorio, lo crea con ese nombre para no perder el dato.
+ */
+export function migrateCenterRelations(data: Dataset): boolean {
+  const centers = data.modules.find((m) => m.id === "Centros");
+  if (!centers) return false;
+  let changed = false;
+  if (!centers.fields.some((f) => f.id === "nombre")) {
+    centers.fields.unshift(field("nombre", "Nombre"));
+    changed = true;
+  }
+  const normalize = (value: unknown) => String(value ?? "")
+    .normalize("NFKC").trim().toLocaleLowerCase("es").replace(/\\s+/g, " ");
+  const rows = data.records.filter((r) => r.module === "Centros");
+  for (const mod of data.modules) {
+    const centerField = mod.fields.find((f) => f.id === "centro");
+    if (!centerField || mod.id === "Centros") continue;
+    if (centerField.type !== "relación" || centerField.target !== "Centros") {
+      centerField.type = "relación";
+      centerField.target = "Centros";
+      centerField.relationMode = "full";
+      changed = true;
+    }
+    for (const row of data.records.filter((r) => r.module === mod.id)) {
+      const raw = row.values.centro;
+      if (typeof raw !== "string" || !raw.trim()) continue;
+      const existingId = rows.find((r) => r.id === raw && !r.archived);
+      if (existingId) continue;
+      let linked = rows.find((r) => normalize(r.values.nombre) === normalize(raw) && !r.archived);
+      if (!linked) {
+        linked = { id: uid(), module: "Centros", values: { nombre: raw.trim() }, rev: 1, archived: false };
+        data.records.push(linked);
+        rows.push(linked);
+      }
+      row.values = { ...row.values, centro: linked.id };
+      row.rev += 1;
+      changed = true;
+    }
+  }
+  return changed;
+}
+
 export function shown(f: Field, values: Entity["values"]) {
   return (
     f.visible && f.relationMode !== "off" &&

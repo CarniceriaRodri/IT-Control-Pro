@@ -7,11 +7,14 @@ import { join, relative } from "node:path";
 rmSync("assets", { recursive: true, force: true });
 cpSync("dist/assets", "assets", { recursive: true });
 cpSync("dist/app.html", "index.html");
+// Herramientas educativas autónomas, sin dependencias del motor de IT Control Pro.
+if (existsSync("dist/modules")) cpSync("dist/modules", "modules", { recursive: true });
 
 mkdirSync("android", { recursive: true });
 rmSync("android/assets", { recursive: true, force: true });
 cpSync("dist/assets", "android/assets", { recursive: true });
 cpSync("dist/app.html", "android/index.html");
+if (existsSync("dist/modules")) cpSync("dist/modules", "android/modules", { recursive: true });
 rmSync("android/ocr", { recursive: true, force: true });
 if (existsSync("ocr")) cpSync("ocr", "android/ocr", { recursive: true });
 
@@ -27,11 +30,13 @@ const mainFiles = [
   "index.html", "manifest.webmanifest", ...icons,
   ...allFiles("assets").map((file) => "assets/" + file),
   ...allFiles("ocr").map((file) => "ocr/" + file),
+  ...allFiles("modules").map((file) => "modules/" + file),
 ];
 const androidFiles = [
   "index.html", "manifest.webmanifest",
   ...allFiles("android/assets").map((file) => "assets/" + file),
   ...allFiles("android/ocr").map((file) => "ocr/" + file),
+  ...allFiles("android/modules").map((file) => "modules/" + file),
   ...icons.map((file) => "../" + file),
 ];
 function createWorker(file, files, sourceRoot) {

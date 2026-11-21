@@ -72,7 +72,7 @@ export function ProfileSettingsPanel({
       }><Trash2 size={16}/> Eliminar perfil</button>
     </form>
     <h3>Orden y visibilidad de módulos</h3>
-    <p>En «Módulos y formularios» puedes subir o bajar cada módulo, quitarlo del menú y restaurarlo. Al ocultarlo se conservan sus registros.</p>
+    <p>Los módulos se muestran automáticamente en orden alfabético, incluidos los nuevos. En «Módulos y formularios» puedes quitar o restaurar módulos; sus registros se conservan.</p>
     <h3><Palette size={18}/> Apariencia de este perfil</h3>
     <div className="profileSettingsGrid">
       <label>Tema

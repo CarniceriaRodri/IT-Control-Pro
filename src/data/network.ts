@@ -39,7 +39,7 @@ export async function openNetworkRepository():Promise<Repository>{
       return res.blob();
     },
     points:()=>api<RestorePoint[]>("points"),
-    point:async()=>undefined,
+    point:(key)=>api<Dataset|undefined>("point?key="+encodeURIComponent(key)),
     retention:()=>api<Retention>("retention"),
     setRetention:async(value)=>{await api("retention",value)},
     tick:async()=>{},

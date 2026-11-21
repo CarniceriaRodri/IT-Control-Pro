@@ -25,6 +25,54 @@ class SharedData:
         try:self.state=json.loads((self.home/"datos.json").read_text(encoding="utf-8"))
         except (OSError,ValueError):pass
         self.attempts={}
+        self._migrate_cross_module_links()
+
+    def _migrate_cross_module_links(self):
+        data=self.state.get("data",{})
+        modules=data.get("modules",[]) if isinstance(data,dict) else []
+        records=data.get("records",[]) if isinstance(data,dict) else []
+        centers=next((m for m in modules if isinstance(m,dict) and m.get("id")=="Centros"),None)
+        if not centers or not isinstance(centers.get("fields"),list) or not isinstance(records,list):
+            return
+        changed=False
+        if not any(isinstance(f,dict) and f.get("id")=="nombre" for f in centers["fields"]):
+            centers["fields"].insert(0,{"id":"nombre","label":"Nombre","type":"texto","required":False,"visible":True,"options":[]})
+            changed=True
+        def norm(value):
+            return " ".join(str(value or "").strip().casefold().split())
+        center_rows=[r for r in records if isinstance(r,dict) and r.get("module")=="Centros"]
+        for module in modules:
+            if not isinstance(module,dict) or module.get("id")=="Centros" or not isinstance(module.get("fields"),list):
+                continue
+            fields=module["fields"]
+            if not any(isinstance(f,dict) and f.get("id")=="registrosRelacionados" for f in fields):
+                fields.append({"id":"registrosRelacionados","label":"Registros relacionados","type":"relación múltiple","required":False,"visible":True,"options":[],"target":"*"})
+                changed=True
+            center_field=next((f for f in fields if isinstance(f,dict) and f.get("id")=="centro"),None)
+            if not center_field:
+                continue
+            if center_field.get("type")!="relación" or center_field.get("target")!="Centros":
+                center_field.update({"type":"relación","target":"Centros","relationMode":"full"})
+                changed=True
+            for row in records:
+                if not isinstance(row,dict) or row.get("module")!=module.get("id") or not isinstance(row.get("values"),dict):
+                    continue
+                raw=row["values"].get("centro")
+                if not isinstance(raw,str) or not raw.strip():
+                    continue
+                if any(c.get("id")==raw and not c.get("archived",False) for c in center_rows):
+                    continue
+                linked=next((c for c in center_rows if not c.get("archived",False) and norm(c.get("values",{}).get("nombre"))==norm(raw)),None)
+                if not linked:
+                    linked={"id":str(uuid.uuid4()),"module":"Centros","values":{"nombre":raw.strip()},"rev":1,"archived":False}
+                    records.append(linked)
+                    center_rows.append(linked)
+                row["values"]["centro"]=linked["id"]
+                row["rev"]=int(row.get("rev",1))+1
+                changed=True
+        if changed:
+            self.state["version"]=int(self.state.get("version",1))+1
+            self._save("datos.json",self.state)
 
     def _save(self, name, value):
         self.home.mkdir(parents=True,exist_ok=True)

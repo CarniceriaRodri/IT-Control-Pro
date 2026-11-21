@@ -1,0 +1,30 @@
+name: Compilar APK Alarma Solar
+on:
+  workflow_dispatch:
+  push:
+    branches: [alarma-solar-android]
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: AlarmaSolarAndroid
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Compilar APK de prueba
+        run: gradle --no-daemon :app:assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AlarmaSolarPro-APK-debug
+          path: AlarmaSolarAndroid/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error

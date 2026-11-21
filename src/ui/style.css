@@ -798,3 +798,10 @@ details > summary {
 .moduleAttachments>summary{cursor:pointer;font-weight:700}
 .moduleAttachments>p{margin:8px 0;color:var(--dim);font-size:13px}
 @media(max-width:650px){.defenderTitle{flex-direction:column}.defenderControls{align-items:stretch;flex-direction:column}.defenderControls label,.defenderControls input,.defenderControls select{width:100%}.moduleOrganizer span{width:100%;margin-left:0}}
+
+.moduleOrderHint{display:block;padding:0 12px 7px;color:#a9c0ca;font-size:11px;line-height:1.35}
+nav button[data-module-id]{touch-action:none;user-select:none;-webkit-user-select:none;position:relative}
+nav button[data-module-id] .moduleGrip{margin-left:auto;flex:none;opacity:.38}
+nav button[data-module-id]:hover .moduleGrip{opacity:.8}
+nav button.draggingModule{background:#087663;color:#fff;box-shadow:0 0 0 2px #a5e4ce;opacity:.9}
+nav button.draggingModule .moduleGrip{opacity:1}

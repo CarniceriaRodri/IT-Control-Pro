@@ -792,19 +792,12 @@ details > summary {
 .defenderDetection code{overflow-wrap:anywhere}
 .defenderLog summary{cursor:pointer;font-size:13px;color:var(--accent)}
 .defenderLog pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:250px;overflow:auto;background:var(--bg);padding:10px;border-radius:8px;font-size:12px}
-.moduleOrganizer{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
-.moduleOrganizer span{font-size:13px;color:var(--dim);margin-left:auto}
+.moduleVisibility{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.moduleVisibility span{font-size:13px;color:var(--dim)}
 .moduleAttachments{margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
 .moduleAttachments>summary{cursor:pointer;font-weight:700}
 .moduleAttachments>p{margin:8px 0;color:var(--dim);font-size:13px}
-@media(max-width:650px){.defenderTitle{flex-direction:column}.defenderControls{align-items:stretch;flex-direction:column}.defenderControls label,.defenderControls input,.defenderControls select{width:100%}.moduleOrganizer span{width:100%;margin-left:0}}
-
-.moduleOrderHint{display:block;padding:0 12px 7px;color:#a9c0ca;font-size:11px;line-height:1.35}
-nav button[data-module-id]{touch-action:auto;user-select:none;-webkit-user-select:none;position:relative}
-nav button[data-module-id] .moduleGrip{margin-left:auto;flex:none;opacity:.38}
-nav button[data-module-id]:hover .moduleGrip{opacity:.8}
-nav button.draggingModule{background:#087663;color:#fff;box-shadow:0 0 0 2px #a5e4ce;opacity:.9}
-nav button.draggingModule .moduleGrip{opacity:1}
+@media(max-width:650px){.defenderTitle{flex-direction:column}.defenderControls{align-items:stretch;flex-direction:column}.defenderControls label,.defenderControls input,.defenderControls select{width:100%}.moduleVisibility span{width:100%;margin-left:0}}
 
 nav .chatgptNav{display:flex;align-items:center;gap:10px;margin:7px 0;padding:10px 12px;border:1px solid #35505f;border-radius:8px;background:#1d3949;color:inherit;text-decoration:none;font-weight:600}
 nav .chatgptNav:hover{background:#274859;color:#fff}

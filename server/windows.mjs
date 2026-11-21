@@ -4,13 +4,16 @@ import http from "node:http";
 import { readFile, writeFile, rename, mkdir, stat, copyFile, readdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
+import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { randomUUID, createHash } from "node:crypto";
 import { diagnostics } from "./diagnostics.mjs";
 import { monitorApi } from "./monitor.mjs";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const storage = path.resolve(process.env.IT_DATA_DIR || path.join(root, "datos"));
+const stableHome = process.env.LOCALAPPDATA || path.join(homedir(), ".it_control_pro");
+const storage = path.resolve(process.env.IT_DATA_DIR || path.join(stableHome, "IT-Control-Pro"));
 const backupDir = path.resolve(process.env.IT_BACKUP_DIR || path.join(storage, "copias"));
+const legacyStorage = path.join(root, "datos");
 const host = process.env.IT_HOST || "127.0.0.1";
 if (!["127.0.0.1", "::1", "localhost"].includes(host))
   throw Error("El servidor de pruebas no admite exposición LAN; un servidor multiusuario requiere autenticación y TLS.");
@@ -31,8 +34,76 @@ async function initialize() {
   await mkdir(storage,{recursive:true});
   await mkdir(path.join(storage,"archivos"),{recursive:true});
   await mkdir(backupDir,{recursive:true});
-  if(existsSync(sourceFile)) state=JSON.parse(await readFile(sourceFile,"utf8"));
-  else { state=blank(); await persist(); }
+  if(existsSync(sourceFile)) {
+    state=JSON.parse(await readFile(sourceFile,"utf8"));
+  } else {
+    const previousData=path.join(legacyStorage,"sistema.json");
+    const previousFiles=path.join(legacyStorage,"archivos");
+    const previousBackups=path.join(legacyStorage,"copias");
+    if(existsSync(previousData)) {
+      await copyFile(previousData,sourceFile);
+      if(existsSync(previousFiles)) {
+        await mkdir(path.join(storage,"archivos"),{recursive:true});
+        for(const file of await readdir(previousFiles)) {
+          const from=path.join(previousFiles,file),to=path.join(storage,"archivos",file);
+          if(!existsSync(to))await copyFile(from,to);
+        }
+      }
+      if(existsSync(previousBackups)) {
+        for(const file of await readdir(previousBackups)) {
+          const from=path.join(previousBackups,file),to=path.join(backupDir,file);
+          if(!existsSync(to)) {
+            const info=await stat(from);
+            if(info.isFile())await copyFile(from,to);
+          }
+        }
+      }
+      state=JSON.parse(await readFile(sourceFile,"utf8"));
+    } else {
+      if(existsSync(previousBackups)) {
+        for(const file of await readdir(previousBackups)) {
+          const from=path.join(previousBackups,file),to=path.join(backupDir,file);
+          if(!existsSync(to)) {
+            const info=await stat(from);
+            if(info.isFile())await copyFile(from,to);
+          }
+        }
+        const oldFiles=path.join(previousBackups,"archivos");
+        if(existsSync(oldFiles)) {
+          const dest=path.join(backupDir,"archivos");
+          await mkdir(dest,{recursive:true});
+          for(const file of await readdir(oldFiles)) {
+            const from=path.join(oldFiles,file),to=path.join(dest,file);
+            if(!existsSync(to))await copyFile(from,to);
+          }
+        }
+      }
+      const backups=(await readdir(backupDir))
+        .filter(name=>/^sistema-\\d{4}-\\d{2}-\\d{2}\\.json$/.test(name))
+        .sort().reverse();
+      let restored=false;
+      for(const file of backups) {
+        try {
+          const candidate=JSON.parse(await readFile(path.join(backupDir,file),"utf8"));
+          if(!validData(candidate.data))continue;
+          state={...candidate,version:Math.max(1,Number(candidate.version)||1)+1};
+          const savedFiles=path.join(backupDir,"archivos");
+          if(existsSync(savedFiles)) {
+            for(const name of await readdir(savedFiles)) {
+              if(/^[a-f0-9]{64}$/.test(name)) {
+                const from=path.join(savedFiles,name),to=path.join(storage,"archivos",name);
+                if(!existsSync(to))await copyFile(from,to);
+              }
+            }
+          }
+          await persist();
+          restored=true;
+          break;
+        } catch {}
+      }
+      if(!restored) { state=blank(); await persist(); }
+    }
+  }
   // Compatibilidad: ocultar la antigua tarea duplicada de Agenda sin borrar su contenido.
   const agenda = state.data?.modules?.find(m=>m.id==="Agenda");
   const oldTask = agenda?.fields?.find(f=>f.id==="tarea");

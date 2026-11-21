@@ -42,12 +42,14 @@ class SharedData:
             return " ".join(str(value or "").strip().casefold().split())
         center_rows=[r for r in records if isinstance(r,dict) and r.get("module")=="Centros"]
         for module in modules:
-            if not isinstance(module,dict) or module.get("id")=="Centros" or not isinstance(module.get("fields"),list):
+            if not isinstance(module,dict) or not isinstance(module.get("fields"),list):
                 continue
             fields=module["fields"]
             if not any(isinstance(f,dict) and f.get("id")=="registrosRelacionados" for f in fields):
                 fields.append({"id":"registrosRelacionados","label":"Registros relacionados","type":"relación múltiple","required":False,"visible":True,"options":[],"target":"*"})
                 changed=True
+            if module.get("id")=="Centros":
+                continue
             center_field=next((f for f in fields if isinstance(f,dict) and f.get("id")=="centro"),None)
             if not center_field:
                 continue

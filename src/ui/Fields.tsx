@@ -76,14 +76,19 @@ function Control({
     const targets = data.modules.filter((m) => m.id === f.target || f.target === "*");
     const related = data.records.filter((r) => targets.some((m) => m.id === r.module));
     const optionText = (r: Entity) => {
-      const m = data.modules.find((m) => m.id === r.module)!;
-      return m.name + " · " + m.fields.map((f) => {
-        const value = r.values[f.id];
-        return Array.isArray(value) ? "" : String(value ?? "");
-      }).filter(Boolean).join(" · ");
+      const m = data.modules.find((item) => item.id === r.module)!;
+      return m.name + " · " + title(r, m);
+    };
+    const searchText = (r: Entity) => {
+      const m = data.modules.find((item) => item.id === r.module)!;
+      return m.fields
+        .filter((item) => item.type !== "identificador")
+        .map((item) => r.values[item.id])
+        .filter((value) => typeof value === "string" || typeof value === "number")
+        .join(" ");
     };
     const matches = related.filter((r) => !r.archived && !ids.includes(r.id) &&
-      optionText(r).toLocaleLowerCase().includes(term.toLocaleLowerCase())).slice(0, 20);
+      (optionText(r) + " " + searchText(r)).toLocaleLowerCase().includes(term.toLocaleLowerCase())).slice(0, 20);
     const chosen = ids.map((id) => related.find((r) => r.id === id)).filter((r): r is Entity => !!r);
     function choose(id: string) {
       set(multi ? [...ids, id] : id);

@@ -504,7 +504,7 @@ export function App({
           {page === "Calculadora" && (() => {
             // Resolver desde la URL real evita romper la ruta del HTML dentro de la PWA,
             // tanto en GitHub Pages como en la copia local de Windows/Android.
-            const calculatorUrl = new URL(`${import.meta.env.BASE_URL}modules/calculadora-ordenador.html`, window.location.href).href;
+            const calculatorUrl = new URL("../modules/calculadora-ordenador.html", import.meta.url).href;
             return (
               <section aria-label="Módulo de calculadora científica" style={{padding:0,overflow:"hidden",borderRadius:12}}>
                 <iframe title="Calculadora científica interactiva" src={calculatorUrl} style={{display:"block",width:"100%",height:"min(82vh,1050px)",minHeight:560,border:0,background:"#eef0f4"}} allow="clipboard-write" loading="eager" />

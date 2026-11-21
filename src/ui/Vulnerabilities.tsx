@@ -58,7 +58,7 @@ export function Vulnerabilities() {
   const filtered=useMemo(()=>items.filter(v=>(tech==="Todas"||v.tech.toLowerCase().includes(tech.toLowerCase()))&&(severity==="Todas"||SEV(v.severity)===severity)&&(!query||(`${v.id} ${v.desc} ${v.tech}`).toLowerCase().includes(query.toLowerCase()))),[items,tech,severity,query]);
   const sourceLinks=[
     ["PHP · avisos de seguridad","https://www.php.net/releases/"],
-    ["Java / OpenJDK · avisos","https://openjdk.org/groups/vulnerability/"],
+    ["Java / OpenJDK · avisos","https://openjdk.org/groups/vulnerability/advisories/"],
     ["Nginx · avisos de seguridad","https://nginx.org/en/security_advisories.html"],
     ["CISA · vulnerabilidades explotadas (KEV)","https://www.cisa.gov/known-exploited-vulnerabilities-catalog"],
   ];

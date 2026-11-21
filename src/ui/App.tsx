@@ -15,6 +15,7 @@ import {
   Boxes,
   Building2,
   CalendarDays,
+  Calculator,
   ChartNoAxesColumn,
   ChevronRight,
   ClipboardList,
@@ -56,6 +57,7 @@ const icons: Record<string, typeof Monitor> = {
   Informes: ChartNoAxesColumn,
   Administración: Settings2,
   Ayuda: CircleHelp,
+  Calculadora: Calculator,
 };
 const descriptions: Record<string, string> = {
   Centros: "Directorio de centros y ubicaciones",
@@ -68,6 +70,7 @@ const descriptions: Record<string, string> = {
   Agenda: "Tareas, fechas y estados",
   Documentación: "Referencias y documentación técnica",
   Ayuda: "Glosario y guías de uso",
+  Calculadora: "Calculadora científica interactiva, explicaciones y pruebas guiadas",
 };
 const Icon = ({ id, size = 19 }: { id: string; size?: number }) => {
   const Glyph = icons[id] || Layers3;
@@ -129,7 +132,7 @@ export function App({
       ? preferred : incoming.page;
     const current = makeRoute(startingPage, incoming.editor);
     if (current.page !== "Panel" && current.page !== "Administración" &&
-      current.page !== "Informes" && current.page !== "Ayuda" && !data.modules.some(m => m.id === current.page && m.active)) {
+      current.page !== "Informes" && current.page !== "Ayuda" && current.page !== "Calculadora" && !data.modules.some(m => m.id === current.page && m.active)) {
       initializeHistory(makeRoute("Panel"));
       replaceAppRoute(makeRoute("Panel"));
       nav("Panel");
@@ -164,7 +167,7 @@ export function App({
       }
       const next = isRoute(event.state) ? event.state : routeFromUrl();
       const validPage = next.page === "Panel" || next.page === "Informes" ||
-        next.page === "Administración" || next.page === "Ayuda" || data.modules.some(m => m.id === next.page && m.active);
+        next.page === "Administración" || next.page === "Ayuda" || next.page === "Calculadora" || data.modules.some(m => m.id === next.page && m.active);
       const target = validPage ? next.page : "Panel";
       nav(target);
       search("");
@@ -317,6 +320,7 @@ export function App({
           {button("Informes")}
           {button("Administración")}
           {button("Ayuda")}
+          {button("Calculadora", "Calculadora científica")}
         </nav>
         <div className="asideFoot">
           <Database size={16} /> {location.port === "8787" ? "Datos en servidor Windows" : "Almacenamiento local"}
@@ -470,6 +474,7 @@ export function App({
                   </button>
                 ))}
               </div>
+              <button className="fieldRow" onClick={() => go("Calculadora")} style={{width:"100%",cursor:"pointer",textAlign:"left",gap:12,marginTop:16}}><Calculator size={23}/><span><strong>Calculadora científica</strong><br/>Aprende las funciones y practica con ejemplos guiados</span><ChevronRight size={18}/></button>
               <MonitorAlerts open={() => go("Redes")} />
               <DueOverview data={data} open={openRelated} />
             </>
@@ -486,6 +491,12 @@ export function App({
             </section>
           )}
           {page === "Ayuda" && <Help />}
+          {page === "Calculadora" && (
+            <section aria-label="Módulo de calculadora científica" style={{padding:0,overflow:"hidden",borderRadius:12}}>
+              <iframe title="Calculadora científica interactiva" src={`${import.meta.env.BASE_URL}modules/calculadora-ordenador.html`} style={{display:"block",width:"100%",height:"min(82vh,1050px)",minHeight:560,border:0,background:"#eef0f4"}} allow="clipboard-write" />
+              <p style={{padding:"10px 12px",fontSize:13}}>La calculadora funciona de forma independiente; también puedes <a href={`${import.meta.env.BASE_URL}modules/calculadora-ordenador.html`} target="_blank" rel="noopener noreferrer">abrirla en una ventana completa</a>.</p>
+            </section>
+          )}
           {page === "Administración" && (
             <><AccessSettings repo={repo} snapshot={snap}/><ProfileSettingsPanel profiles={profiles} onChange={changeProfiles} modules={data.modules}/><Admin
               data={data}

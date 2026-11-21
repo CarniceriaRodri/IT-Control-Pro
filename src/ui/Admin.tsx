@@ -99,6 +99,60 @@ export function Admin({
       }
     }, true);
   }
+  async function permanentlyDeleteModule() {
+    if (data.modules.length <= 1) throw Error("Debe quedar al menos un módulo en la aplicación.");
+    const records = data.records.filter((row) => row.module === mod.id);
+    const recordIds = new Set(records.map((row) => row.id));
+    if (!confirm(
+      "Primera aprobación. Eliminar definitivamente el módulo «" + mod.name +
+      "» y sus " + records.length + " registros. También se quitarán sus referencias de otros módulos. Esta acción no se puede deshacer desde la aplicación."
+    )) return;
+    const phrase = "eliminar módulo " + mod.name;
+    if (prompt("Segunda aprobación. Escribe exactamente:\n" + phrase) !== phrase) {
+      msg("Eliminación cancelada. La frase no coincide.");
+      return;
+    }
+    const next = data.modules.find((item) => item.id !== mod.id)!;
+    await write("Eliminar módulo definitivamente", mod.id, (draft) => {
+      draft.modules = draft.modules.filter((item) => item.id !== mod.id);
+      draft.records = draft.records.filter((row) => row.module !== mod.id);
+      for (const other of draft.modules) {
+        other.fields = other.fields.map((item) =>
+          item.target === mod.id ? { ...item, target: "*" } : item
+        );
+      }
+      for (const row of draft.records) {
+        const owner = draft.modules.find((item) => item.id === row.module);
+        if (!owner) continue;
+        const values = { ...row.values };
+        let updated = false;
+        for (const item of owner.fields) {
+          if (item.type === "relación múltiple" && Array.isArray(values[item.id])) {
+            const kept = (values[item.id] as unknown[]).filter((id) => !recordIds.has(String(id)));
+            if (kept.length !== (values[item.id] as unknown[]).length) {
+              values[item.id] = kept;
+              updated = true;
+            }
+          } else if (item.type === "relación" && recordIds.has(String(values[item.id] ?? ""))) {
+            values[item.id] = "";
+            updated = true;
+          }
+        }
+        if (updated) {
+          row.values = values;
+          row.rev++;
+        }
+      }
+      draft.history = draft.history.filter((event) =>
+        event.target !== mod.id && !recordIds.has(event.target) &&
+        event.before?.module !== mod.id && event.after?.module !== mod.id
+      );
+      draft.imports = (draft.imports || []).filter((batch) => batch.module !== mod.id);
+    });
+    select(next.id);
+    msg("Módulo y registros eliminados.");
+  }
+
   const [table, setTable] = useState(false),
     [files, attach] = useState(emptyFiles),
     [busy, work] = useState(false),
@@ -193,6 +247,10 @@ export function Admin({
             d.modules.find(m=>m.id===mod.id)!.active=!mod.active;
           }))}>{mod.active?"Quitar del menú":"Restaurar módulo"}</button>
           <span>{mod.active?"Visible en el menú":"Oculto; los registros se conservan"}</span>
+          <button type="button" className="danger" disabled={data.modules.length <= 1}
+            onClick={()=>void run(permanentlyDeleteModule)}>
+            Eliminar definitivamente «{mod.name}»
+          </button>
         </div>
         <details className="moduleAttachments">
           <summary>Fotos y documentos del módulo</summary>

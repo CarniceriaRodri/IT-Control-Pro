@@ -5,7 +5,7 @@ on:
     branches: [alarma-solar-android]
 jobs:
   android:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     defaults:
@@ -17,12 +17,17 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
+      - name: Verificar SDK Android preinstalado
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          ls -la "$ANDROID_HOME" || true
+          test -d "$ANDROID_HOME" || { echo "No existe Android SDK en el runner"; exit 1; }
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
       - name: Compilar APK de prueba
-        run: gradle --no-daemon :app:assembleDebug
+        run: gradle --no-daemon --stacktrace :app:assembleDebug
       - uses: actions/upload-artifact@v4
         with:
           name: AlarmaSolarPro-APK-debug

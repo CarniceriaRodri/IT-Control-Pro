@@ -176,7 +176,6 @@ function Control({
   return (
     <>
       <input {...props} type={html[f.type] || "text"}
-        readOnly={f.type === "identificador"}
         step={f.type === "decimal" ? "any" : undefined}
         list={f.type === "autocompletado" ? f.id : undefined} />
       {f.type === "autocompletado" && (

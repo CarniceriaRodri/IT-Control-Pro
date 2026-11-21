@@ -3,26 +3,27 @@ on:
   workflow_dispatch:
   push:
     branches: [alarma-solar-android]
+    paths-ignore:
+      - 'AlarmaSolarAndroid/descarga/**'
 jobs:
   android:
     runs-on: ubuntu-24.04
     permissions:
-      contents: read
+      contents: write
     defaults:
       run:
         working-directory: AlarmaSolarAndroid
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-      - name: Verificar SDK Android preinstalado
+      - name: Verificar SDK Android
         run: |
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
-          ls -la "$ANDROID_HOME" || true
-          test -d "$ANDROID_HOME" || { echo "No existe Android SDK en el runner"; exit 1; }
+          test -d "$ANDROID_HOME" || { echo "SDK Android no disponible"; exit 1; }
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
@@ -33,3 +34,16 @@ jobs:
           name: AlarmaSolarPro-APK-debug
           path: AlarmaSolarAndroid/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+      - name: Publicar APK para descarga directa desde Android
+        run: |
+          mkdir -p descarga
+          cp app/build/outputs/apk/debug/app-debug.apk descarga/AlarmaSolarPro-debug.apk
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add descarga/AlarmaSolarPro-debug.apk
+          if git diff --cached --quiet; then
+            echo "APK ya publicado, sin cambios"
+          else
+            git commit -m "Publicar APK debug para móvil [skip ci]"
+            git push origin HEAD:alarma-solar-android
+          fi

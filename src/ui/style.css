@@ -772,3 +772,29 @@ details > summary {
 .vulnFooter{margin:0}
 .spin{animation:vulnspin 1s linear infinite}@keyframes vulnspin{to{transform:rotate(360deg)}}
 @media(max-width:700px){.vulnHead{flex-direction:column}.vulnFilters{grid-template-columns:1fr 1fr}.vulnSearch{grid-column:1/-1}.vulnCardTop{align-items:flex-start;flex-direction:column}}
+
+.defenderCard{display:grid;gap:12px;padding:16px;border:1px solid var(--line);border-radius:13px;background:var(--panel)}
+.defenderTitle{display:flex;justify-content:space-between;align-items:flex-start;gap:14px}
+.defenderTitle h3{display:flex;align-items:center;gap:8px;margin:0 0 4px}
+.defenderTitle p{color:var(--dim);font-size:13px;margin:0}
+.defenderState{border-radius:99px;padding:4px 10px;font-size:12px;font-weight:750;white-space:nowrap}
+.defenderState.ready{background:#dff3e7;color:#17623a}.defenderState.running{background:#fff2c5;color:#685000}.defenderState.unavailable{background:var(--bg);color:var(--dim)}
+.defenderControls{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.defenderControls label{display:grid;gap:5px;font-size:13px;font-weight:650}
+.defenderControls input,.defenderControls select{min-width:210px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);padding:9px 10px;font:inherit}
+.defenderControls .defenderPath{flex:1}
+.defenderControls .defenderPath input{width:100%}
+.defenderMessage{margin:0;padding:10px 12px;border-left:4px solid var(--accent);background:var(--bg);border-radius:6px;font-size:13px}
+.defenderCard>small{color:var(--dim)}
+.defenderDetections{display:grid;gap:7px;padding:10px 12px;border:1px solid #d86666;background:color-mix(in srgb,#ef6565 8%,var(--panel));border-radius:9px}
+.defenderDetection{display:grid;gap:3px;border-top:1px solid var(--line);padding:8px 0}
+.defenderDetection span{font-size:13px;color:var(--dim)}
+.defenderDetection code{overflow-wrap:anywhere}
+.defenderLog summary{cursor:pointer;font-size:13px;color:var(--accent)}
+.defenderLog pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:250px;overflow:auto;background:var(--bg);padding:10px;border-radius:8px;font-size:12px}
+.moduleOrganizer{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.moduleOrganizer span{font-size:13px;color:var(--dim);margin-left:auto}
+.moduleAttachments{margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.moduleAttachments>summary{cursor:pointer;font-weight:700}
+.moduleAttachments>p{margin:8px 0;color:var(--dim);font-size:13px}
+@media(max-width:650px){.defenderTitle{flex-direction:column}.defenderControls{align-items:stretch;flex-direction:column}.defenderControls label,.defenderControls input,.defenderControls select{width:100%}.moduleOrganizer span{width:100%;margin-left:0}}

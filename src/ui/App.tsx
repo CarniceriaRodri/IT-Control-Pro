@@ -6,7 +6,7 @@ import { DueOverview } from "./DueOverview";
 import { MonitorAlerts } from "./MonitorAlerts";
 import { AlarmCenter } from "./AlarmCenter";
 import { Help } from "./Help";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { readProfiles, currentProfile, persistProfiles, applyProfile, type ProfilesState } from "../data/profiles";
 import { ProfileSettingsPanel } from "./ProfileSettingsPanel";
 import { makeRoute, routeFromUrl, initializeHistory, pushAppRoute, replaceAppRoute, isRoute, isGuard } from "./history";
@@ -38,6 +38,7 @@ import {
   Ticket,
   Warehouse,
   ShieldAlert,
+  GripVertical,
 } from "lucide-react";
 import { type Entity, type Module, title } from "../domain/model";
 import { type Repository, type Snapshot, putRecord } from "../data/repository";
@@ -109,13 +110,19 @@ export function App({
   // Las altas relacionadas se guardan juntas con el formulario principal.
   // Si se cancela, se descartan sin dejar registros huérfanos.
   const pendingRef = useRef<{ row: Entity; files: Map<string, Blob> }[]>([]);
-  const [pendingVersion, changePending] = useState(0);
+  const [pendingVersion, changePending] = useState(0),
+    [draggingModule, setDraggingModule] = useState<string | null>(null),
+    [dragOrder, setDragOrder] = useState<string[]>([]);
+  const reorderGesture = useRef<{timer:number|null;active:boolean;source:string;pointer:number;startX:number;startY:number;order:string[]}>({
+    timer:null,active:false,source:"",pointer:-1,startX:0,startY:0,order:[]
+  });
+  const suppressModuleClick = useRef(false);
   const data = pendingVersion >= 0
       ? { ...snap.data, records: [...snap.data.records, ...pendingRef.current.map(x => x.row)] }
       : snap.data,
     mods = data.modules.filter((m) => m.active),
     mod = mods.find((m) => m.id === page),
-    orderedMods = [...mods];
+    orderedMods = draggingModule ? dragOrder.map(id=>mods.find(m=>m.id===id)).filter((m):m is Module=>!!m) : [...mods];
   useEffect(() => {
     applyProfile(operator);
     const media = matchMedia("(prefers-color-scheme: dark)");
@@ -262,6 +269,69 @@ export function App({
       {label}
     </button>
   );
+  const beginModuleHold = (event: ReactPointerEvent<HTMLButtonElement>, id: string) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    const gesture = reorderGesture.current;
+    if (gesture.timer !== null) window.clearTimeout(gesture.timer);
+    gesture.active = false; gesture.source = id; gesture.pointer = event.pointerId;
+    gesture.startX = event.clientX; gesture.startY = event.clientY;
+    gesture.order = mods.map(m=>m.id);
+    const buttonElement = event.currentTarget, pointerId = event.pointerId;
+    gesture.timer = window.setTimeout(() => {
+      gesture.timer = null; gesture.active = true;
+      setDraggingModule(id); setDragOrder([...gesture.order]);
+      suppressModuleClick.current = true;
+      try { buttonElement.setPointerCapture(pointerId); } catch {}
+    }, 500);
+  };
+  const moveModuleHold = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    const gesture = reorderGesture.current;
+    if (gesture.pointer !== event.pointerId) return;
+    if (!gesture.active) {
+      if (gesture.timer !== null && Math.hypot(event.clientX-gesture.startX,event.clientY-gesture.startY)>10) {
+        window.clearTimeout(gesture.timer); gesture.timer=null;
+      }
+      return;
+    }
+    event.preventDefault();
+    const target = document.elementFromPoint(event.clientX,event.clientY)?.closest<HTMLElement>("[data-module-id]")?.dataset.moduleId;
+    if (!target || target===gesture.source) return;
+    const from=gesture.order.indexOf(gesture.source), to=gesture.order.indexOf(target);
+    if(from<0||to<0||from===to)return;
+    const next=[...gesture.order]; next.splice(from,1); next.splice(to,0,gesture.source);
+    gesture.order=next; setDragOrder(next);
+  };
+  const finishModuleHold = (event: ReactPointerEvent<HTMLButtonElement>, cancelled=false) => {
+    const gesture = reorderGesture.current;
+    if (gesture.pointer !== event.pointerId) return;
+    if (gesture.timer !== null) window.clearTimeout(gesture.timer);
+    gesture.timer=null; gesture.pointer=-1;
+    if (!gesture.active) return;
+    const order=[...gesture.order], changed=order.some((id,i)=>id!==mods[i]?.id);
+    gesture.active=false; setDraggingModule(null); setDragOrder([]);
+    suppressModuleClick.current=true;
+    window.setTimeout(()=>{suppressModuleClick.current=false;},600);
+    if(cancelled||!changed)return;
+    void write("Reordenar módulos", "menú lateral", d=>{
+      const active=order.map(id=>d.modules.find(m=>m.id===id)).filter((m):m is Module=>!!m);
+      const hidden=d.modules.filter(m=>!m.active);
+      const inactiveIds=new Set(hidden.map(m=>m.id));
+      d.modules=[...active,...d.modules.filter(m=>inactiveIds.has(m.id))];
+    }).then(()=>notify("Orden de módulos guardado.")).catch(e=>notify("No se pudo guardar el orden: "+String(e)));
+  };
+  const moduleButton = (m: Module) => (
+    <button key={m.id} data-module-id={m.id} title="Mantén pulsado y arrastra para cambiar el orden"
+      className={page===m.id?"selected":draggingModule===m.id?"draggingModule":""}
+      aria-label={m.name+". Mantén pulsado para ordenar"}
+      onPointerDown={e=>beginModuleHold(e,m.id)}
+      onPointerMove={moveModuleHold}
+      onPointerUp={e=>finishModuleHold(e)}
+      onPointerCancel={e=>finishModuleHold(e,true)}
+      onContextMenu={e=>e.preventDefault()}
+      onClick={e=>{if(suppressModuleClick.current){e.preventDefault();suppressModuleClick.current=false;return;}go(m.id);}}>
+      <Icon id={m.id}/>{m.name}<GripVertical className="moduleGrip" size={15}/>
+    </button>
+  );
   const heading = mod?.name || page;
   const display = (m: Module, r: Entity, k: string) => {
     const f = m.fields.find((f) => f.id === k),
@@ -314,10 +384,10 @@ export function App({
           </b>{" "}
           IT Control <em>Pro</em>
         </div>
-        <div className="navLabel">ESPACIO DE TRABAJO</div>
+        <div className="navLabel">ESPACIO DE TRABAJO</div><small className="moduleOrderHint">Mantén pulsado un módulo y arrástralo para ordenarlo.</small>
         <nav>
           {button("Panel", "Panel principal")}
-          {orderedMods.map((m) => button(m.id, m.name))}
+          {orderedMods.map(moduleButton)}
         </nav>
         <div className="navLabel">GESTIÓN</div>
         <nav>

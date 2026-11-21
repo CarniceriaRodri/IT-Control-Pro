@@ -115,7 +115,7 @@ export function App({
       : snap.data,
     mods = data.modules.filter((m) => m.active),
     mod = mods.find((m) => m.id === page),
-    orderedMods = [...mods].sort((a,b)=>Number(operator.settings.favorites.includes(b.id))-Number(operator.settings.favorites.includes(a.id)));
+    orderedMods = [...mods];
   useEffect(() => {
     applyProfile(operator);
     const media = matchMedia("(prefers-color-scheme: dark)");

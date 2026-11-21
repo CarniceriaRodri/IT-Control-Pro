@@ -121,14 +121,27 @@ function Control({
           </div>
         )}
         {mode === "full" && createRelated && targets.filter((m) => m.active).length > 0 && (
-          <div className="relationCreate">
-            {targets.filter((m) => m.active).map((m) => (
-              <button type="button" key={m.id}
-                onClick={() => createRelated(m, (r) => choose(r.id))}>
-                + Nuevo en {m.name}
-              </button>
-            ))}
-          </div>
+          targets.filter((m) => m.active).length > 3 ? (
+            <div className="relationCreate">
+              <select aria-label={"Crear registro relacionado para " + f.label} value=""
+                onChange={(e) => {
+                  const selected = targets.find((m) => m.id === e.target.value && m.active);
+                  if (selected) createRelated(selected, (r) => choose(r.id));
+                }}>
+                <option value="">+ Crear registro en módulo…</option>
+                {targets.filter((m) => m.active).map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+              </select>
+            </div>
+          ) : (
+            <div className="relationCreate">
+              {targets.filter((m) => m.active).map((m) => (
+                <button type="button" key={m.id}
+                  onClick={() => createRelated(m, (r) => choose(r.id))}>
+                  + Nuevo en {m.name}
+                </button>
+              ))}
+            </div>
+          )
         )}
         {f.required && !ids.length && !readonly && <span className="hint">Selecciona al menos un registro</span>}
       </div>

@@ -501,12 +501,17 @@ export function App({
           )}
           {page === "Ayuda" && <Help />}
           {page === "Vulnerabilidades" && <Vulnerabilities />}
-          {page === "Calculadora" && (
-            <section aria-label="Módulo de calculadora científica" style={{padding:0,overflow:"hidden",borderRadius:12}}>
-              <iframe title="Calculadora científica interactiva" src={`${import.meta.env.BASE_URL}modules/calculadora-ordenador.html`} style={{display:"block",width:"100%",height:"min(82vh,1050px)",minHeight:560,border:0,background:"#eef0f4"}} allow="clipboard-write" />
-              <p style={{padding:"10px 12px",fontSize:13}}>La calculadora funciona de forma independiente; también puedes <a href={`${import.meta.env.BASE_URL}modules/calculadora-ordenador.html`} target="_blank" rel="noopener noreferrer">abrirla en una ventana completa</a>.</p>
-            </section>
-          )}
+          {page === "Calculadora" && (() => {
+            // Resolver desde la URL real evita romper la ruta del HTML dentro de la PWA,
+            // tanto en GitHub Pages como en la copia local de Windows/Android.
+            const calculatorUrl = new URL(`${import.meta.env.BASE_URL}modules/calculadora-ordenador.html`, window.location.href).href;
+            return (
+              <section aria-label="Módulo de calculadora científica" style={{padding:0,overflow:"hidden",borderRadius:12}}>
+                <iframe title="Calculadora científica interactiva" src={calculatorUrl} style={{display:"block",width:"100%",height:"min(82vh,1050px)",minHeight:560,border:0,background:"#eef0f4"}} allow="clipboard-write" loading="eager" />
+                <p style={{padding:"10px 12px",fontSize:13}}>Calculadora lista para usar. Si los controles no responden dentro del panel, <a href={calculatorUrl} target="_blank" rel="noopener noreferrer">abrir la calculadora en una ventana completa</a>.</p>
+              </section>
+            );
+          })()}
           {page === "Administración" && (
             <><AccessSettings repo={repo} snapshot={snap}/><ProfileSettingsPanel profiles={profiles} onChange={changeProfiles} modules={data.modules}/><Admin
               data={data}

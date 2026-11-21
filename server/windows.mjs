@@ -79,7 +79,7 @@ async function initialize() {
         }
       }
       const backups=(await readdir(backupDir))
-        .filter(name=>/^sistema-\\d{4}-\\d{2}-\\d{2}\\.json$/.test(name))
+        .filter(name=>/^sistema-\d{4}-\d{2}-\d{2}\.json$/.test(name))
         .sort().reverse();
       let restored=false;
       for(const file of backups) {

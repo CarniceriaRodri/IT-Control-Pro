@@ -130,7 +130,7 @@ export function Admin({
                 name: label,
                 active: true,
                 files: files.refs,
-                fields: [{ ...field("nombre", "Nombre"), required: true }],
+                fields: [{ ...field("nombre", "Nombre"), required: true }, { ...field("registrosRelacionados", "Registros relacionados", "relación múltiple"), target: "*" }],
               };
               await write(
                 "Crear módulo",

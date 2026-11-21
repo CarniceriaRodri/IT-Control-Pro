@@ -104,8 +104,6 @@ async function initialize() {
       if(!restored) { state=blank(); await persist(); }
     }
   }
-  // Copia diaria al iniciar. Los adjuntos se deduplican por su hash.
-  await backup();
   // Compatibilidad: ocultar la antigua tarea duplicada de Agenda sin borrar su contenido.
   const agenda = state.data?.modules?.find(m=>m.id==="Agenda");
   const oldTask = agenda?.fields?.find(f=>f.id==="tarea");
@@ -140,6 +138,8 @@ async function initialize() {
     state.version++;
     await persist();
   }
+  // Copia diaria al iniciar. Los adjuntos se deduplican por su hash.
+  await backup();
 }
 async function backup(force=false) {
   const day=new Date().toISOString().slice(0,10);
@@ -213,7 +213,7 @@ async function handler(req,res){
     if(req.method==="GET"&&u==="/api/health")return reply(res,200,{app:"IT Control Pro",mode:"windows-server",version:1});
     if(req.method==="GET"&&u==="/api/state")return reply(res,200,{version:state.version,data:state.data});
     if(req.method==="GET"&&u==="/api/points") {
-      const files=(await readdir(backupDir)).filter(name=>/^sistema-\\d{4}-\\d{2}-\\d{2}\\.json$/.test(name)).sort().reverse();
+      const files=(await readdir(backupDir)).filter(name=>/^sistema-\d{4}-\d{2}-\d{2}\.json$/.test(name)).sort().reverse();
       const points=[];
       for(const name of files) {
         const stamp=(await stat(path.join(backupDir,name))).mtime.toISOString();
@@ -223,7 +223,7 @@ async function handler(req,res){
     }
     if(req.method==="GET"&&u==="/api/point") {
       const key=url.searchParams.get("key")||"";
-      const match=/^day\\/(\\d{4}-\\d{2}-\\d{2})$/.exec(key);
+      const match=/^day\/(\d{4}-\d{2}-\d{2})$/.exec(key);
       if(!match)return reply(res,400,{error:"Copia no válida"});
       const file=path.join(backupDir,"sistema-"+match[1]+".json");
       if(!existsSync(file))return reply(res,404,{error:"Copia no encontrada"});

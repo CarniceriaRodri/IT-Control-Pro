@@ -60,7 +60,7 @@ export function ImportTable({
   const [columnIds, setColumnIds] = useState<string[]>([]);
   const [recordIds, setRecordIds] = useState<string[]>([]);
   const [moduleId] = useState(uid);
-  const [skipDuplicates, setSkipDuplicates] = useState(false);
+  const [skipDuplicates, setSkipDuplicates] = useState(true);
   const [source, setSource] = useState("");
   const [matchColumn, setMatchColumn] = useState("");
   const [replaceMatching, setReplaceMatching] = useState(false);

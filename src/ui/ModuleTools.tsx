@@ -30,9 +30,6 @@ export function ModuleTools({
     [centersPreview, setCentersPreview] = useState(false);
   return (
     <>
-      <ImportHistory data={data} module={mod.id} write={write}/>
-      {mod.id === "Redes" && <NetworkMonitor data={data} write={write} />}
-      {mod.id === "Redes" && <NetworkDiagnostics saved={data.records.filter(r=>r.module===mod.id && !r.archived).map(r=>({ip:String(r.values.ip||""),device:String(r.values.dispositivo||"Equipo")}))}/>}
       <div className="inline moduleTools">
         <button onClick={() => set("table")}>Importar tabla</button>
         {mod.id === "Centros" && <button type="button" onClick={()=>{msg("");setCentersPreview(true);}}>Añadir centros del documento</button>}
@@ -68,6 +65,9 @@ export function ModuleTools({
           Archivos y fotos ({mod.files?.length || 0})
         </button>
       </div>
+      <ImportHistory data={data} module={mod.id} write={write}/>
+      {mod.id === "Redes" && <NetworkMonitor data={data} write={write} />}
+      {mod.id === "Redes" && <NetworkDiagnostics saved={data.records.filter(r=>r.module===mod.id && !r.archived).map(r=>({ip:String(r.values.ip||""),device:String(r.values.dispositivo||"Equipo")}))}/>}
       {mod.id === "Centros" && centersPreview && (
         <Dialog name="Añadir centros del documento" close={()=>setCentersPreview(false)}>
           <p>Se añadirán los centros, servicios y unidades del listado proporcionado, sin los códigos numéricos. Los registros existentes se conservan y las coincidencias se omiten.</p>

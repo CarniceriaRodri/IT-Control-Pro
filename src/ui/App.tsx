@@ -111,8 +111,11 @@ export function App({
   // Si se cancela, se descartan sin dejar registros huérfanos.
   const pendingRef = useRef<{ row: Entity; files: Map<string, Blob> }[]>([]);
   const [pendingVersion, changePending] = useState(0);
+  // Nunca mostrar dos veces el mismo identificador cuando hay altas relacionadas pendientes.
+  const pendingRows = pendingRef.current.map(x => x.row)
+    .filter(r => !snap.data.records.some(saved => saved.id === r.id));
   const data = pendingVersion >= 0
-      ? { ...snap.data, records: [...snap.data.records, ...pendingRef.current.map(x => x.row)] }
+      ? { ...snap.data, records: [...snap.data.records, ...pendingRows] }
       : snap.data,
     mods = data.modules.filter((m) => m.active),
     mod = mods.find((m) => m.id === page),

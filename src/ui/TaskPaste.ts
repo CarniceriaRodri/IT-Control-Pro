@@ -5,6 +5,10 @@ export const taskPasteFields: Field[] = [
   field("referencia", "Identificador CA_SIS"),
   field("referenciaExterna", "Referencia externa"),
   field("tipoTarea", "Tipo de tarea"),
+  field("tipoOrigen", "Tipo de registro en CA_SIS"),
+  field("numeroReclamaciones", "Número de reclamaciones", "entero"),
+  field("numeroRechazos", "Número de rechazos", "entero"),
+  field("etiquetasOrigen", "Etiquetas de origen"),
   field("subtipo", "Subtipo"),
   field("areaTic", "Área TIC"),
   field("centroGestion", "Centro de gestión"),
@@ -26,7 +30,9 @@ const labels: Record<string, string> = {
   "miembro asignado":"responsable", "tarificacion":"tarificacion",
   "area tic":"areaTic", "centros de gestion":"centroGestion",
   "referencia externa":"referenciaExterna", "tipo de tarea":"tipoTarea",
-  "subtipo":"subtipo", "grado de avance tecnico (%)":"avanceTecnico",
+  "subtipo":"subtipo", "tipo":"tipoOrigen",
+  "numero reclamaciones":"numeroReclamaciones", "numero rechazos":"numeroRechazos",
+  "etiquetas":"etiquetasOrigen", "grado de avance tecnico (%)":"avanceTecnico",
   "grado de avance economico (%)":"avanceEconomico",
 };
 const stops = new Set(["adjuntos","actividad","todo","comentarios","comentarios fijados",
@@ -56,6 +62,7 @@ export function parseTaskPaste(raw: string): ParsedTask {
     const target=labels[key];
     if(target) {
       let val=direct?.[2]?.trim() || "";
+      if(key === "etiquetas" && !val)continue;
       if(!val && i+1<lines.length) {
         const next=lines[i+1], nextKey=keyLine(next.split(":")[0]);
         if(!headings.has(nextKey) && !ignore.test(next))val=next;

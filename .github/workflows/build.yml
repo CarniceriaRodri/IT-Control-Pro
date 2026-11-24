@@ -20,8 +20,27 @@ jobs:
       - run: node --check server/diagnostics.mjs
       - run: node --test tests/diagnostics-node.test.mjs
 
+      - name: Preparar paquete de prueba Windows
+        run: |
+          mkdir -p paquete-it-control-pro
+          cp -R index.html app.html assets modules sw.js manifest.webmanifest icon.svg paquete-it-control-pro/ 2>/dev/null || true
+          cp -R server paquete-it-control-pro/
+          cp -R extension-cges-casis paquete-it-control-pro/
+          cp INICIAR-SERVIDOR-WINDOWS.bat paquete-it-control-pro/
+          cp README.md paquete-it-control-pro/
+          test -s paquete-it-control-pro/index.html
+          test -d paquete-it-control-pro/assets
+          test -s paquete-it-control-pro/INICIAR-SERVIDOR-WINDOWS.bat
+      - name: Ofrecer descarga de aplicación compilada
+        uses: actions/upload-artifact@v4
+        with:
+          name: IT-Control-Pro-Importador-CA-SIS-Windows
+          path: paquete-it-control-pro/
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Publicar versiones locales compiladas
-        if: "!contains(github.event.head_commit.message, '[skip ci]')"
+        if: "${{ github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[skip ci]') }}"
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

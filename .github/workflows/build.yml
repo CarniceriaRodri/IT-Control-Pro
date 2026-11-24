@@ -1,7 +1,7 @@
 name: Comprobar compilacion IT Control Pro
 on:
   push:
-    branches: [main]
+    branches: [main, 'feature/importar-tareas-texto-casis-20261124']
   workflow_dispatch:
 permissions:
   contents: write
@@ -49,3 +49,107 @@ jobs:
             git commit -m "build: actualizar aplicación con calculadora [skip ci]"
             git push
           fi
+
+  windows-completo:
+    name: Compilar paquete Windows completo con Node y OCR
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Instalar dependencias de compilacion
+        run: npm ci
+      - name: Incluir OCR completo para funcionamiento local
+        run: node scripts/prepare-ocr.mjs
+      - name: Compilar interfaz y modulos
+        run: npm run build
+      - name: Verificar importadores incluidos
+        shell: pwsh
+        run: |
+          $bundle = (Get-ChildItem -Path assets -Filter '*.js' -File | ForEach-Object { Get-Content $_.FullName -Raw }) -join ''
+          if (-not $bundle.Contains('Importar incidencia desde CGES')) { throw 'Falta importador CGES' }
+          if (-not $bundle.Contains('Importar tarea desde CA_SIS / Jira')) { throw 'Falta importador CA_SIS' }
+          if (-not (Test-Path 'ocr/lang/spa.traineddata.gz')) { throw 'Falta OCR español' }
+          if (-not (Test-Path 'ocr/lang/eng.traineddata.gz')) { throw 'Falta OCR inglés' }
+      - name: Construir paquete Windows autosuficiente
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $dest = 'IT-Control-Pro-Completo-Windows'
+          New-Item -ItemType Directory -Path $dest -Force | Out-Null
+          $items = @(
+            'index.html','app.html','sw.js','manifest.webmanifest',
+            'icon.svg','icon-192.png','icon-512.png','assets','modules','ocr',
+            'server','extension-cges-casis','docs',
+            'INICIAR-SERVIDOR-WINDOWS.bat','ABRIR-CLIENTE-WINDOWS.bat',
+            'PREPARAR-WINDOWS.bat','CONFIGURACION-EJEMPLO.cmd',
+            'ACTIVAR-INICIO-AUTOMATICO.bat','DESACTIVAR-INICIO-AUTOMATICO.bat',
+            'INICIAR-PYTHON.bat','servidor_python.py','monitor_python.py',
+            'alarmas_windows.py','servicios_windows.py','datos_compartidos.py',
+            'antivirus_windows.py','README.md'
+          )
+          foreach ($item in $items) {
+            if (Test-Path $item) {
+              Copy-Item -LiteralPath $item -Destination $dest -Recurse -Force
+            } else {
+              Write-Warning "Elemento opcional ausente: $item"
+            }
+          }
+          New-Item -ItemType Directory -Path "$dest/runtime" -Force | Out-Null
+          $nodeExe = (Get-Command node.exe).Source
+          Copy-Item -LiteralPath $nodeExe -Destination "$dest/runtime/node.exe"
+          $notes = @(
+            'IT CONTROL PRO - PAQUETE COMPLETO WINDOWS',
+            '',
+            '1. Descomprime en una CARPETA NUEVA. No sobrescribas tu instalacion anterior.',
+            '2. Ejecuta INICIAR-SERVIDOR-WINDOWS.bat.',
+            '3. Abre http://127.0.0.1:8787/ en Chrome o Edge.',
+            '4. En Tareas o Incidencias, abre Nuevo registro y busca Importar desde CA_SIS o CGES.',
+            '5. Pega el texto, analiza, verifica los campos y guarda solo si corresponde.',
+            '',
+            'Los datos existentes se encuentran normalmente en %LOCALAPPDATA%\\IT-Control-Pro.',
+            'Haz una copia externa de sistema.json, copias y archivos antes de probar.',
+            'El programa no debe usar datos corporativos sin autorizacion.',
+            'El servidor Node funciona sin npm ni instalacion de Node en el equipo.',
+            'Las herramientas Python son opcionales y requieren Python instalado.',
+            'El paquete incluye recursos OCR localizados.',
+            'La extension debe cargarse separadamente desde extension-cges-casis.',
+            'La aplicacion solo escucha en 127.0.0.1 y no ofrece autenticacion corporativa.'
+          )
+          $notes | Set-Content -LiteralPath "$dest/LEEME-INSTALACION.txt" -Encoding utf8
+          $must = @('index.html','assets','modules','ocr','server/windows.mjs',
+            'server/monitor.mjs','server/diagnostics.mjs','runtime/node.exe',
+            'extension-cges-casis/manifest.json','INICIAR-SERVIDOR-WINDOWS.bat')
+          foreach ($item in $must) {
+            if (-not (Test-Path "$dest/$item")) { throw "Falta archivo obligatorio: $item" }
+          }
+          Write-Host "Node incluido: $nodeExe"
+          Write-Host "Elementos totales:" (Get-ChildItem $dest -Recurse -File).Count
+      - name: Publicar paquete Windows completo
+        uses: actions/upload-artifact@v4
+        with:
+          name: IT-Control-Pro-Completo-Windows-CA-SIS-CGES
+          path: IT-Control-Pro-Completo-Windows/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+      - name: Publicar codigo fuente de esta compilacion
+        uses: actions/upload-artifact@v4
+        with:
+          name: IT-Control-Pro-Codigo-Fuente-Compilacion
+          path: |
+            src/
+            scripts/
+            server/
+            tests/
+            public/
+            extension-cges-casis/
+            package.json
+            package-lock.json
+            tsconfig.json
+            vite.config.ts
+            .github/workflows/build.yml
+          if-no-files-found: error
+          retention-days: 14

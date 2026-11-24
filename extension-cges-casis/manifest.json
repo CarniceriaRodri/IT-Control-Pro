@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "IT Control Pro - Captura local de fichas",
+  "version": "0.1.0",
+  "description": "Copia el texto visible de una incidencia o tarea para importarlo localmente en IT Control Pro.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "clipboardWrite"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Copiar ficha para IT Control Pro"
+  }
+}

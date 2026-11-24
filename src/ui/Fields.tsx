@@ -1,6 +1,7 @@
 import { Attachments, type FileDraft } from "./Attachments";
 import type { Binaries } from "../data/media";
 import { shown } from "../domain/model";
+import { parseTaskPaste, taskPasteFields } from "./TaskPaste";
 import {
   type Dataset,
   type Module,
@@ -230,6 +231,32 @@ export function Editor({
     ...row?.values,
   }));
   const [error, err] = useState("");
+  const [taskPaste, setTaskPaste] = useState("");
+  const [taskPreview, setTaskPreview] = useState<Record<string, string> | null>(null);
+  const taskFields = mod.id === "Tareas"
+    ? [...mod.fields, ...taskPasteFields.filter(f => !mod.fields.some(existing => existing.id === f.id))]
+    : mod.fields;
+  const duplicateTask = mod.id === "Tareas" && taskPreview?.referencia
+    ? data.records.find(r => r.module === "Tareas" && !r.archived
+      && String(r.values.referencia || "").toUpperCase() === taskPreview.referencia!.toUpperCase()
+      && r.id !== row?.id)
+    : undefined;
+  function applyTaskPaste() {
+    if (!taskPreview?.referencia) { err("No se ha detectado un identificador de tarea válido."); return; }
+    if (duplicateTask) { err("Esta tarea ya está registrada. Abre su registro para actualizarla."); return; }
+    set(current => {
+      const result = {...current};
+      for(const [key, value] of Object.entries(taskPreview)){
+        if(!value || (key === "estado" && !mod.fields.some(f => f.id === "estado")))continue;
+        // No reemplazar el contenido existente sin revisión explícita.
+        if(!String(result[key] ?? "").trim())result[key]=value;
+      }
+      return result;
+    });
+    err("");
+    setTaskPreview(null);
+    setTaskPaste("");
+  }
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (busy) return;
@@ -256,8 +283,8 @@ export function Editor({
   const grouped = new Map<string, Field[]>();
   // Los campos ocultos con datos anteriores se pueden consultar y editar
   // bajo petición. No se pierde su contenido cuando otro archivo cambia el módulo.
-  const visibleFields = mod.fields.filter(f => shown(f, values));
-  const hiddenFields = mod.fields.filter(f => !shown(f, values));
+  const visibleFields = taskFields.filter(f => shown(f, values));
+  const hiddenFields = taskFields.filter(f => !shown(f, values));
   for (const f of visibleFields) {
     const section = f.section || "";
     if (!grouped.has(section)) grouped.set(section, []);
@@ -270,6 +297,24 @@ export function Editor({
       close={close}
     >
       <form onSubmit={submit}>
+        {mod.id === "Tareas" && <section className="fieldRow">
+          <h3>Importar tarea desde CA_SIS / Jira</h3>
+          <p>Pega la ficha copiada; se analizará localmente. Revisa los campos antes de aplicarlos. No se modifica CA_SIS.</p>
+          <textarea aria-label="Texto de tarea copiado de CA_SIS" rows={6}
+            value={taskPaste} onChange={e => {setTaskPaste(e.target.value); setTaskPreview(null);}} />
+          <button type="button" onClick={()=>{setTaskPreview(parseTaskPaste(taskPaste));err("");}}
+            disabled={!taskPaste.trim()}>Analizar texto pegado</button>
+          {taskPreview && <div>
+            <h4>Vista previa de campos detectados</h4>
+            {Object.entries(taskPreview).map(([key,value])=><p key={key}>
+              <strong>{taskPasteFields.find(f=>f.id===key)?.label || mod.fields.find(f=>f.id===key)?.label || key}:</strong>{" "}
+              {value.length > 200 ? value.slice(0,200)+"…" : value}
+            </p>)}
+            {duplicateTask && <p role="alert">Ya existe esa referencia: no se creará una tarea duplicada.</p>}
+            <button type="button" disabled={!taskPreview.referencia || !!duplicateTask}
+              onClick={applyTaskPaste}>Aplicar campos detectados (solo vacíos)</button>
+          </div>}
+        </section>}
         {row && <div className="fieldRow">
           <strong>Registro existente · todos los campos pueden editarse</strong>
           <span>{row.archived ? "Archivado" : "Activo"}</span>

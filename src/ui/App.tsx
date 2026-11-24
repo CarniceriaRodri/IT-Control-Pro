@@ -2,6 +2,7 @@ import { DataTable } from "./DataTable";
 import { AccessSettings } from "./AccessSettings";
 import { SystemStatus } from "./SystemStatus";
 import { ModuleTools } from "./ModuleTools";
+import { taskPasteFields } from "./TaskPaste";
 import { DueOverview } from "./DueOverview";
 import { MonitorAlerts } from "./MonitorAlerts";
 import { AlarmCenter } from "./AlarmCenter";
@@ -618,7 +619,17 @@ export function App({
                   const target = d.modules.find(m => m.id === item.row.module)!;
                   putRecord(d, target, item.row);
                 }
-                putRecord(d, d.modules.find(m => m.id === r.module)!, r);
+                const targetModule = d.modules.find(m => m.id === r.module)!;
+                if(r.module === "Tareas"){
+                  for(const field of taskPasteFields)
+                    if(!targetModule.fields.some(f=>f.id === field.id))
+                      targetModule.fields.push({...field,options:[...field.options]});
+                  const reference=String(r.values.referencia||"").trim().toUpperCase();
+                  if(reference && d.records.some(item => item.module === "Tareas" && item.id !== r.id &&
+                     !item.archived && String(item.values.referencia||"").trim().toUpperCase() === reference))
+                    throw Error("Ya existe una tarea con identificador "+reference+". Edita ese registro en vez de duplicarlo.");
+                }
+                putRecord(d, targetModule, r);
               },
               false,
               binaries,

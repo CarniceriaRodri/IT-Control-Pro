@@ -3,6 +3,7 @@ import { AccessSettings } from "./AccessSettings";
 import { SystemStatus } from "./SystemStatus";
 import { ModuleTools } from "./ModuleTools";
 import { taskPasteFields } from "./TaskPaste";
+import { incidentPasteFields } from "./IncidentPaste";
 import { DueOverview } from "./DueOverview";
 import { MonitorAlerts } from "./MonitorAlerts";
 import { AlarmCenter } from "./AlarmCenter";
@@ -620,14 +621,16 @@ export function App({
                   putRecord(d, target, item.row);
                 }
                 const targetModule = d.modules.find(m => m.id === r.module)!;
-                if(r.module === "Tareas"){
-                  for(const field of taskPasteFields)
+                if(r.module === "Tareas" || r.module === "Incidencias"){
+                  const importFields = r.module === "Tareas" ? taskPasteFields : incidentPasteFields;
+                  for(const field of importFields)
                     if(!targetModule.fields.some(f=>f.id === field.id))
                       targetModule.fields.push({...field,options:[...field.options]});
-                  const reference=String(r.values.referencia||"").trim().toUpperCase();
-                  if(reference && d.records.some(item => item.module === "Tareas" && item.id !== r.id &&
-                     !item.archived && String(item.values.referencia||"").trim().toUpperCase() === reference))
-                    throw Error("Ya existe una tarea con identificador "+reference+". Edita ese registro en vez de duplicarlo.");
+                  const key = r.module === "Tareas" ? "referencia" : "número";
+                  const reference=String(r.values[key]||"").trim().toUpperCase();
+                  if(reference && d.records.some(item => item.module === r.module && item.id !== r.id &&
+                     !item.archived && String(item.values[key]||"").trim().toUpperCase() === reference))
+                    throw Error("Ya existe un registro con identificador "+reference+". Edita el existente.");
                 }
                 putRecord(d, targetModule, r);
               },
